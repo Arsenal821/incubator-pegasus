@@ -263,15 +263,25 @@ inline bool validate_filter(pegasus::pegasus_client::filter_type filter_type,
     return false;
 }
 // return true if the data is valid for the filter
-inline bool
-validate_filter(scan_data_context *context, const std::string &sort_key, const std::string &value)
+inline bool validate_filter(scan_data_context *context,
+                            const std::string &sort_key,
+                            const std::string &value,
+                            bool filter_on_server)
 {
-    // for sort key, we only need to check MATCH_EXACT, because it is not supported
+    // we only need to check MATCH_EXACT, because it is not supported
     // on the server side, but MATCH_PREFIX is already satisified.
     if (context->sort_key_filter_type == pegasus::pegasus_client::FT_MATCH_EXACT &&
         sort_key.length() > context->sort_key_filter_pattern.length())
         return false;
-    return validate_filter(context->value_filter_type, context->value_filter_pattern, value);
+
+    if (!filter_on_server) {
+        return validate_filter(context->value_filter_type, context->value_filter_pattern, value);
+    }
+
+    if (context->value_filter_type == pegasus::pegasus_client::FT_MATCH_EXACT &&
+        value.length() > context->value_filter_pattern.length())
+        return false;
+    return true;
 }
 
 inline int compute_ttl_seconds(uint32_t expire_ts_seconds, bool &ts_expired)
@@ -323,9 +333,10 @@ inline void scan_multi_data_next(scan_data_context *context)
                                                std::string &&value,
                                                pegasus::pegasus_client::internal_info &&info,
                                                uint32_t expire_ts_seconds,
+                                               bool filter_on_server,
                                                uint32_t kv_count) {
             if (ret == pegasus::PERR_OK) {
-                if (validate_filter(context, sort_key, value)) {
+                if (validate_filter(context, sort_key, value, filter_on_server)) {
                     bool ts_expired = false;
                     int ttl_seconds = 0;
                     ttl_seconds = compute_ttl_seconds(expire_ts_seconds, ts_expired);
@@ -403,9 +414,10 @@ inline void scan_data_next(scan_data_context *context)
                                                std::string &&value,
                                                pegasus::pegasus_client::internal_info &&info,
                                                uint32_t expire_ts_seconds,
+                                               bool filter_on_server,
                                                int32_t kv_count) {
             if (ret == pegasus::PERR_OK) {
-                if (kv_count == -1 || validate_filter(context, sort_key, value)) {
+                if (validate_filter(context, sort_key, value, filter_on_server)) {
                     bool ts_expired = false;
                     int ttl_seconds = 0;
                     switch (context->op) {

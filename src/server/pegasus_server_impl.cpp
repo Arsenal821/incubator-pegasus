@@ -1056,6 +1056,7 @@ void pegasus_server_impl::on_get_scanner(get_scanner_rpc rpc)
     resp.app_id = _gpid.get_app_id();
     resp.partition_index = _gpid.get_partition_index();
     resp.server = _primary_address;
+    resp.__set_filter_on_server(true);
 
     if (!_read_size_throttling_controller->available()) {
         rpc.error() = dsn::ERR_BUSY;
@@ -1081,6 +1082,18 @@ void pegasus_server_impl::on_get_scanner(get_scanner_rpc rpc)
                replica_name(),
                rpc.remote_address().to_string(),
                request.sort_key_filter_type);
+        resp.error = rocksdb::Status::kInvalidArgument;
+        _cu_calculator->add_scan_cu(req, resp.error, resp.kvs);
+        _pfc_scan_latency->set(dsn_now_ns() - start_time);
+
+        return;
+    }
+    if (!is_filter_type_supported(request.value_filter_type)) {
+        derror("%s: invalid argument for get_scanner from %s: "
+               "value filter type %d not supported",
+               replica_name(),
+               rpc.remote_address().to_string(),
+               request.value_filter_type);
         resp.error = rocksdb::Status::kInvalidArgument;
         _cu_calculator->add_scan_cu(req, resp.error, resp.kvs);
         _pfc_scan_latency->set(dsn_now_ns() - start_time);
@@ -1195,6 +1208,8 @@ void pegasus_server_impl::on_get_scanner(get_scanner_rpc rpc)
             request.hash_key_filter_pattern,
             request.sort_key_filter_type,
             request.sort_key_filter_pattern,
+            request.value_filter_type,
+            request.value_filter_pattern,
             epoch_now,
             request.no_value,
             request.__isset.validate_partition_hash ? request.validate_partition_hash : true,
@@ -1276,6 +1291,8 @@ void pegasus_server_impl::on_get_scanner(get_scanner_rpc rpc)
             request.sort_key_filter_type,
             std::string(request.sort_key_filter_pattern.data(),
                         request.sort_key_filter_pattern.length()),
+            request.value_filter_type,
+            std::string(request.value_filter_pattern.data(), request.value_filter_pattern.length()),
             batch_count,
             request.no_value,
             request.__isset.validate_partition_hash ? request.validate_partition_hash : true,
@@ -1336,6 +1353,8 @@ void pegasus_server_impl::on_scan(scan_rpc rpc)
         const ::dsn::blob &hash_key_filter_pattern = context->hash_key_filter_pattern;
         ::dsn::apps::filter_type::type sort_key_filter_type = context->sort_key_filter_type;
         const ::dsn::blob &sort_key_filter_pattern = context->sort_key_filter_pattern;
+        ::dsn::apps::filter_type::type value_filter_type = context->sort_key_filter_type;
+        const ::dsn::blob &value_filter_pattern = context->sort_key_filter_pattern;
         bool no_value = context->no_value;
         bool validate_hash = context->validate_partition_hash;
         bool return_expire_ts = context->return_expire_ts;
@@ -1370,6 +1389,8 @@ void pegasus_server_impl::on_scan(scan_rpc rpc)
                                                    hash_key_filter_pattern,
                                                    sort_key_filter_type,
                                                    sort_key_filter_pattern,
+                                                   value_filter_type,
+                                                   value_filter_pattern,
                                                    epoch_now,
                                                    no_value,
                                                    validate_hash,
@@ -2288,6 +2309,8 @@ pegasus_server_impl::append_key_value_for_scan(std::vector<::dsn::apps::key_valu
                                                const ::dsn::blob &hash_key_filter_pattern,
                                                ::dsn::apps::filter_type::type sort_key_filter_type,
                                                const ::dsn::blob &sort_key_filter_pattern,
+                                               ::dsn::apps::filter_type::type value_filter_type,
+                                               const ::dsn::blob &value_filter_pattern,
                                                uint32_t epoch_now,
                                                bool no_value,
                                                bool request_validate_hash,
@@ -2314,6 +2337,7 @@ pegasus_server_impl::append_key_value_for_scan(std::vector<::dsn::apps::key_valu
     // extract raw key
     ::dsn::blob raw_key(key.data(), 0, key.size());
     if (hash_key_filter_type != ::dsn::apps::filter_type::FT_NO_FILTER ||
+        value_filter_type != ::dsn::apps::filter_type::FT_NO_FILTER ||
         sort_key_filter_type != ::dsn::apps::filter_type::FT_NO_FILTER) {
         ::dsn::blob hash_key, sort_key;
         pegasus_restore_key(raw_key, hash_key, sort_key);
@@ -2328,6 +2352,14 @@ pegasus_server_impl::append_key_value_for_scan(std::vector<::dsn::apps::key_valu
             !validate_filter(sort_key_filter_type, sort_key_filter_pattern, sort_key)) {
             if (_verbose_log) {
                 derror("%s: sort key filtered for scan", replica_name());
+            }
+            return range_iteration_state::kFiltered;
+        }
+        ::dsn::blob value_(value.data(), 0, value.size());
+        if (value_filter_type != ::dsn::apps::filter_type::FT_NO_FILTER &&
+            !validate_filter(value_filter_type, value_filter_pattern, value_)) {
+            if (_verbose_log) {
+                derror("%s: value filtered for scan", replica_name());
             }
             return range_iteration_state::kFiltered;
         }

@@ -40,6 +40,8 @@ struct pegasus_scan_context
                          const std::string &&hash_key_filter_pattern_,
                          ::dsn::apps::filter_type::type sort_key_filter_type_,
                          const std::string &&sort_key_filter_pattern_,
+                         ::dsn::apps::filter_type::type value_filter_type_,
+                         const std::string &&value_filter_pattern_,
                          int32_t batch_size_,
                          bool no_value_,
                          bool validate_partition_hash_,
@@ -47,6 +49,7 @@ struct pegasus_scan_context
         : _stop_holder(std::move(stop_)),
           _hash_key_filter_pattern_holder(std::move(hash_key_filter_pattern_)),
           _sort_key_filter_pattern_holder(std::move(sort_key_filter_pattern_)),
+          _value_filter_pattern_holder(std::move(value_filter_pattern_)),
           iterator(std::move(iterator_)),
           stop(_stop_holder.data(), _stop_holder.size()),
           stop_inclusive(stop_inclusive_),
@@ -56,6 +59,9 @@ struct pegasus_scan_context
           sort_key_filter_type(sort_key_filter_type_),
           sort_key_filter_pattern(
               _sort_key_filter_pattern_holder.data(), 0, _sort_key_filter_pattern_holder.length()),
+          value_filter_type(value_filter_type_),
+          value_filter_pattern(
+              _value_filter_pattern_holder.data(), 0, _value_filter_pattern_holder.length()),
           batch_size(batch_size_),
           no_value(no_value_),
           validate_partition_hash(validate_partition_hash_),
@@ -67,6 +73,7 @@ private:
     std::string _stop_holder;
     std::string _hash_key_filter_pattern_holder;
     std::string _sort_key_filter_pattern_holder;
+    std::string _value_filter_pattern_holder;
 
 public:
     std::unique_ptr<rocksdb::Iterator> iterator;
@@ -76,6 +83,8 @@ public:
     dsn::blob hash_key_filter_pattern;
     ::dsn::apps::filter_type::type sort_key_filter_type;
     dsn::blob sort_key_filter_pattern;
+    ::dsn::apps::filter_type::type value_filter_type;
+    dsn::blob value_filter_pattern;
     int32_t batch_size;
     bool no_value;
     bool validate_partition_hash;

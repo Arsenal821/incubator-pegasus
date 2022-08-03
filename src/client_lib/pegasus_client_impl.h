@@ -293,6 +293,7 @@ public:
         internal_info _info;
         int32_t _p;
         int32_t _kv_count;
+        bool _filter_on_server;
 
         int64_t _context;
         mutable ::dsn::zlock _lock;

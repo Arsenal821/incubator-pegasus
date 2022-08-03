@@ -279,7 +279,9 @@ struct get_scanner_request
     11:optional bool    validate_partition_hash;
     12:optional bool    return_expire_ts;
     13:optional bool full_scan; // true means client want to build 'full scan' context with the server side, false otherwise
-    14:optional bool only_return_count;
+    14:optional filter_type value_filter_type;
+    15:optional dsn.blob    value_filter_pattern;
+    16:optional bool    only_return_count = false;
 }
 
 struct scan_request
@@ -296,7 +298,8 @@ struct scan_response
     4:i32           app_id;
     5:i32           partition_index;
     6:string        server;
-    7:optional i32  kv_count = -1;
+    7:optional bool filter_on_server = false;
+    8:optional i32  kv_count = -1;
 }
 
 struct duplicate_request

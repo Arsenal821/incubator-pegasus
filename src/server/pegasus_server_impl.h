@@ -232,6 +232,8 @@ private:
                               const ::dsn::blob &hash_key_filter_pattern,
                               ::dsn::apps::filter_type::type sort_key_filter_type,
                               const ::dsn::blob &sort_key_filter_pattern,
+                              ::dsn::apps::filter_type::type value_filter_type,
+                              const ::dsn::blob &value_filter_pattern,
                               uint32_t epoch_now,
                               bool no_value,
                               bool request_validate_hash,

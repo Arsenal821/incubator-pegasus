@@ -2394,12 +2394,20 @@ bool count_data(command_executor *e, shell_context *sc, arguments args)
             options.sort_key_filter_type = sort_key_filter_type;
         options.sort_key_filter_pattern = sort_key_filter_pattern;
     }
+    if (value_filter_type != pegasus::pegasus_client::FT_NO_FILTER) {
+        if (value_filter_type == pegasus::pegasus_client::FT_MATCH_EXACT)
+            options.value_filter_type = pegasus::pegasus_client::FT_MATCH_PREFIX;
+        else
+            options.value_filter_type = value_filter_type;
+        options.value_filter_pattern = value_filter_pattern;
+    }
     if (stat_size || value_filter_type != pegasus::pegasus_client::FT_NO_FILTER)
         options.no_value = false;
     else
         options.no_value = true;
 
-    if (diff_hash_key || stat_size || value_filter_type != pegasus::pegasus_client::FT_NO_FILTER ||
+    if (diff_hash_key || stat_size ||
+        value_filter_type == pegasus::pegasus_client::FT_MATCH_EXACT ||
         sort_key_filter_type == pegasus::pegasus_client::FT_MATCH_EXACT) {
         options.only_return_count = false;
     }

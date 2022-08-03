@@ -72,6 +72,7 @@ int pegasus_client_impl::pegasus_scanner_impl::next(std::string &hashkey,
                         std::string &&val,
                         internal_info &&ii,
                         uint32_t expire_ts_seconds,
+                        bool filter_on_server,
                         int32_t kv_count) {
         ret = err;
         hashkey = std::move(hash);
@@ -98,6 +99,7 @@ int pegasus_client_impl::pegasus_scanner_impl::next(std::string &hashkey,
                         std::string &&val,
                         internal_info &&ii,
                         uint32_t expire_ts_seconds,
+                        bool filter_on_server,
                         int32_t kv_count) {
         ret = err;
         hashkey = std::move(hash);
@@ -168,6 +170,7 @@ void pegasus_client_impl::pegasus_scanner_impl::_async_next_internal()
                                      std::string(),
                                      std::move(info),
                                      0,
+                                     _filter_on_server,
                                      -1);
                         }
                     }
@@ -210,6 +213,7 @@ void pegasus_client_impl::pegasus_scanner_impl::_async_next_internal()
                      std::move(value),
                      std::move(info),
                      expire_ts_seconds,
+                     _filter_on_server,
                      _kv_count);
             _lock.lock();
             if (_queue.size() == 1) {
@@ -259,6 +263,9 @@ void pegasus_client_impl::pegasus_scanner_impl::_start_scan()
     req.sort_key_filter_type = (dsn::apps::filter_type::type)_options.sort_key_filter_type;
     req.sort_key_filter_pattern = ::dsn::blob(
         _options.sort_key_filter_pattern.data(), 0, _options.sort_key_filter_pattern.size());
+    req.__set_sort_key_filter_type((dsn::apps::filter_type::type)_options.sort_key_filter_type);
+    req.__set_sort_key_filter_pattern(::dsn::blob(
+        _options.sort_key_filter_pattern.data(), 0, _options.sort_key_filter_pattern.size()));
     req.no_value = _options.no_value;
     req.__set_validate_partition_hash(_validate_partition_hash);
     req.__set_return_expire_ts(_options.return_expire_ts);
@@ -296,6 +303,7 @@ void pegasus_client_impl::pegasus_scanner_impl::_on_scan_response(::dsn::error_c
             _p = -1;
             _context = response.context_id;
             _kv_count = response.kv_count;
+            _filter_on_server = response.filter_on_server;
             _async_next_internal();
             return;
         } else if (get_rocksdb_server_error(response.error) == PERR_NOT_FOUND) {
@@ -323,7 +331,14 @@ void pegasus_client_impl::pegasus_scanner_impl::_on_scan_response(::dsn::error_c
 
     for (auto &callback : temp) {
         if (callback) {
-            callback(ret, std::string(), std::string(), std::string(), internal_info(info), 0, -1);
+            callback(ret,
+                     std::string(),
+                     std::string(),
+                     std::string(),
+                     internal_info(info),
+                     0,
+                     _filter_on_server,
+                     -1);
         }
     }
 }
@@ -359,6 +374,7 @@ void pegasus_client_impl::pegasus_scanner_impl_wrapper::async_next(
                                                                      std::string &&value,
                                                                      internal_info &&info,
                                                                      uint32_t expire_ts_seconds,
+                                                                     bool filter_on_server,
                                                                      int32_t kv_count) {
         user_callback(error_code,
                       std::move(hash_key),
@@ -366,6 +382,7 @@ void pegasus_client_impl::pegasus_scanner_impl_wrapper::async_next(
                       std::move(value),
                       std::move(info),
                       expire_ts_seconds,
+                      filter_on_server,
                       kv_count);
     });
 }
