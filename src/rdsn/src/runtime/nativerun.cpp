@@ -34,6 +34,7 @@
  */
 
 #include <dsn/tool/nativerun.h>
+#include <dsn/utility/config_api.h>
 
 namespace dsn {
 namespace tools {
@@ -59,19 +60,22 @@ void nativerun::install(service_spec &spec)
         cs2.message_buffer_block_size = 1024 * 64;
         spec.network_default_server_cfs[cs2] = cs2;
     }
-    {
-        network_client_config cs;
-        cs.factory_name = "dsn::tools::asio_udp_provider";
-        cs.message_buffer_block_size = 1024 * 64;
-        spec.network_default_client_cfs[RPC_CHANNEL_UDP] = cs;
-    }
-    {
-        network_server_config cs2;
-        cs2.port = 0;
-        cs2.channel = RPC_CHANNEL_UDP;
-        cs2.factory_name = "dsn::tools::asio_udp_provider";
-        cs2.message_buffer_block_size = 1024 * 64;
-        spec.network_default_server_cfs[cs2] = cs2;
+    if (dsn_config_get_value_bool(
+            "network", "enable_udp", false, "whether to enable udp rpc engine")) {
+        {
+            network_client_config cs;
+            cs.factory_name = "dsn::tools::asio_udp_provider";
+            cs.message_buffer_block_size = 1024 * 64;
+            spec.network_default_client_cfs[RPC_CHANNEL_UDP] = cs;
+        }
+        {
+            network_server_config cs2;
+            cs2.port = 0;
+            cs2.channel = RPC_CHANNEL_UDP;
+            cs2.factory_name = "dsn::tools::asio_udp_provider";
+            cs2.message_buffer_block_size = 1024 * 64;
+            spec.network_default_server_cfs[cs2] = cs2;
+        }
     }
 
     if (spec.logging_factory_name == "")
