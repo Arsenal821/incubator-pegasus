@@ -283,7 +283,7 @@ function run_build()
     echo "#define PEGASUS_GIT_COMMIT \"$PEGASUS_GIT_COMMIT\"" >>$GIT_COMMIT_FILE
 
     # rebuild link
-    rm -f ${ROOT}/src/builder
+    rm -rf ${ROOT}/src/builder
     ln -s ${BUILD_DIR} ${ROOT}/src/builder
 
     echo "[$(date)] Building Pegasus ..."

@@ -39,9 +39,13 @@
 #include <dsn/tool-api/task_spec.h>
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool-api/threadpool_spec.h>
+#include <dsn/utility/flags.h>
 #include <dsn/utility/smart_pointers.h>
 
 namespace dsn {
+namespace tools {
+DSN_DECLARE_bool(enable_udp);
+}
 
 constexpr int TASK_SPEC_STORE_CAPACITY = 512;
 
@@ -231,6 +235,11 @@ bool task_spec::init()
                        spec->name.c_str());
                 return false;
             }
+        }
+
+        if (spec->rpc_call_channel == RPC_CHANNEL_UDP && !dsn::tools::FLAGS_enable_udp) {
+            derror("task rpc_call_channel RPC_CHANNEL_UCP need udp service, set network configuration enable_udp true");
+            return false;
         }
     }
 

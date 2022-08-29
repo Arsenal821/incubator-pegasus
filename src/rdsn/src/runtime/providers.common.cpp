@@ -35,6 +35,7 @@
 
 #include "runtime/rpc/asio_net_provider.h"
 #include <dsn/tool/providers.common.h>
+#include <dsn/utility/flags.h>
 #include "utils/lockp.std.h"
 #include "runtime/task/simple_task_queue.h"
 #include "runtime/task/hpc_task_queue.h"
@@ -46,6 +47,11 @@
 
 namespace dsn {
 namespace tools {
+
+DSN_DEFINE_bool("network",
+                enable_udp,
+                true,
+                "whether to enable udp rpc engine");
 
 void register_std_lock_providers()
 {
@@ -64,8 +70,7 @@ void register_common_providers()
 
     register_std_lock_providers();
 
-    if (dsn_config_get_value_bool(
-            "network", "enable_udp", false, "whether to enable udp rpc engine")) {
+    if (FLAGS_enable_udp) {
         register_component_provider<asio_udp_provider>("dsn::tools::asio_udp_provider");
     }
     register_component_provider<asio_network_provider>("dsn::tools::asio_network_provider");

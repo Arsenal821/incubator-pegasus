@@ -34,10 +34,12 @@
  */
 
 #include <dsn/tool/nativerun.h>
-#include <dsn/utility/config_api.h>
+#include <dsn/utility/flags.h>
 
 namespace dsn {
 namespace tools {
+
+DSN_DECLARE_bool(enable_udp);
 
 void nativerun::install(service_spec &spec)
 {
@@ -60,8 +62,7 @@ void nativerun::install(service_spec &spec)
         cs2.message_buffer_block_size = 1024 * 64;
         spec.network_default_server_cfs[cs2] = cs2;
     }
-    if (dsn_config_get_value_bool(
-            "network", "enable_udp", false, "whether to enable udp rpc engine")) {
+    if (FLAGS_enable_udp) {
         {
             network_client_config cs;
             cs.factory_name = "dsn::tools::asio_udp_provider";
