@@ -1685,28 +1685,28 @@ void server_state::rename_app(configuration_rename_app_rpc rpc)
                 } else {
                     std::vector<std::string> args;
                     utils::split_args(iter->second.c_str(), args, ';');
-                    if (args[0] == "updating") {
-                        auto &response = rpc.response();
-                        response.err = ERR_OPERATION_DISABLED;
-                        response.hint_message = fmt::format("app_name of app_id({}) is being updated, "
-                                                            "thus this request would be rejected",
-                                                            app->app_id);
-                        derror_f("failed to set app_name: app_id={}, new_app_name={},error_code={}, "
-                                 "hint_message={}",
-                                 app->app_id,
-                                 new_app_name,
-                                 response.err.to_string(),
-                                 response.hint_message);
-                    }
+                    dassert_f(args[0] == "updating", "invalid app env, env = {}:{}",
+                              replica_envs::UPDATE_APP_NAME,
+                              args[0]);
+
+                    auto &response = rpc.response();
+                    response.err = ERR_OPERATION_DISABLED;
+                    response.hint_message = fmt::format("app_name of app_id({}) is being updated, "
+                                                        "thus this request would be rejected",
+                                                        app->app_id);
+                    derror_f("failed to set app_name: app_id={}, new_app_name={},error_code={}, "
+                             "hint_message={}",
+                             app->app_id,
+                             new_app_name,
+                             response.err.to_string(),
+                             response.hint_message);
                 }
             }
         }
     }
 
     if (do_rename) {
-        {
-            do_app_rename(target_app, rpc);
-        }
+        do_app_rename(target_app, rpc);
     }
 }
 
