@@ -1458,10 +1458,11 @@ void server_state::check_app_info_rename_finished_on_replica(int32_t app_id,
 {
     rpc_address node;
     dsn::gpid id;
+    std::shared_ptr<app_state> target_app;
     {
         zauto_read_lock l(_lock);
-        std::shared_ptr<app_state> target_app = get_app(app_id);
-        const auto &partition_config = app->partitions[partition_index];
+        target_app = get_app(app_id);
+        const auto &partition_config = target_app->partitions[partition_index];
         node = partition_config.primary; 
         id = partition_config.pid;
     }
@@ -1473,8 +1474,8 @@ void server_state::check_app_info_rename_finished_on_replica(int32_t app_id,
 
     rpc.call(node,,
              &tracker,
-             [rpc](error_code err) mutable {
-                auto resp = update_rpc.response();
+             [this, rpc, target_app](error_code err) mutable {
+                auto resp = rpc.response();
                 if (resp.err == dsn::ERR_OK) {
                     ddebug_f("received app_name {} response from node({}), gpid({}), err({})",
                              resp.app_name,
@@ -1489,6 +1490,31 @@ void server_state::check_app_info_rename_finished_on_replica(int32_t app_id,
                                  new_app_name);
                         if (uncompleted == 0) {
                             ainfo.envs.erase(replica_envs::UPDATE_APP_NAME);
+
+                            auto ainfo = *(reinterpret_cast<app_info *>(target_app.get()));
+                            ainfo.envs.erase(replica_envs::UPDATE_APP_NAME);
+                            auto app_path = get_app_path(*app);
+                            do_update_app_info(app_path, ainfo, [this, target_app](error_code ec) mutable {
+                                {
+                                    zauto_write_lock l(_lock);
+                                    dassert_f(ec == ERR_OK,
+                                              "An error that can't be handled occurs while updating "
+                                              "remote app environment variable "
+                                              "app_name: error_code={}, app_id={}, app_name={}, {}={}",
+                                              ec.to_string(),
+                                              app->app_id,
+                                              app->app_name,
+                                              replica_envs::UPDATE_APP_NAME,
+                                              app->envs[replica_envs::UPDATE_APP_NAME]);
+
+                                    app->envs.erase(replica_envs::UPDATE_APP_NAME);
+
+                                    ddebug_f("both remote and local env of app_name have been deleted "
+                                             "successfully: app_id={}, app_name={}, new_app_name={}",
+                                             app->app_id,
+                                             app->app_name);
+                                }
+                            });
                         }
                         return;
                     }

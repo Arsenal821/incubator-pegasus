@@ -1135,15 +1135,15 @@ void replica_stub::on_query_app_info(query_app_info_rpc rpc)
     }
 }
 
-void replica_stub::on_query_decree(query_app_name_on_replica_rpc rpc);
+void replica_stub::on_query_app_name_on_replica(query_app_name_on_replica_rpc rpc);
 {
     const query_replica_app_mame_on_replica_request &req = rpc.requset();
     query_replica_app_mame_on_replica_reponse &resp = rpc.response();
 
-    ddebug_f("got query app name on replica request from {} for gpid{}",
+    ddebug_f("got query app name on replica request from {} to gpid {}",
              req.meta_server.to_string(),
              req.gpid.to_string());
-    replica_ptr replica = get_replica(id);
+    replica_ptr replica = get_replica(req.pid);
     if (replica != nullptr) {
         response.err = ERR_OBJECT_NOT_FOUND;
     } else {
@@ -1151,7 +1151,6 @@ void replica_stub::on_query_decree(query_app_name_on_replica_rpc rpc);
         response.app_name = info.app_name;
         response.err = ERR_OK;
     }
-
 }
 
 // ThreadPool: THREAD_POOL_DEFAULT
