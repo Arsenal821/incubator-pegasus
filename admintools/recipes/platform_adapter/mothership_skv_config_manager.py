@@ -50,7 +50,7 @@ class MothershipSkvConfigManager(BaseSkvConfigManager):
         client = MothershipClient(self.logger)
         return client.get_host_list_by_role_config_group_name(self.module, self.role, group_name)
 
-    def find_host_config_group(self, host, server_conf=None):
+    def get_config_group_by_host(self, host, server_conf=None):
         """获取某个主机所在的配置组"""
         client = MothershipClient()
         return client.get_role_config_group_by_host(self.module, self.role, host)
@@ -283,8 +283,8 @@ if __name__ == '__main__':
     replica_group_hosts = mc2.get_config_group_hosts(replica_group_list[0])
     print('%s meta_group_hosts = %s' % (meta_group_list[0], meta_group_hosts))
     print('%s replica_group_list = %s' % (replica_group_list[0], replica_group_hosts))
-    meta_host_group = mc1.find_host_config_group(meta_group_hosts[0])
-    replica_host_group = mc2.find_host_config_group(replica_group_hosts[0])
+    meta_host_group = mc1.get_config_group_by_host(meta_group_hosts[0])
+    replica_host_group = mc2.get_config_group_by_host(replica_group_hosts[0])
     assert meta_host_group == meta_group_list[0]
     assert replica_host_group == replica_group_list[0]
 

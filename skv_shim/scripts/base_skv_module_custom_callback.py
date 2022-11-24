@@ -2,20 +2,30 @@
 # -*- coding: UTF-8 -*-
 
 """
-skv_online 扩缩容 & 加减盘 回调
+skv_offline/skv_online 扩缩容 & 加减盘 回调
 """
 
 import os
 import sys
 import socket
+import time
+
+sys.path.append(os.path.join(os.environ['SKV_HOME'], 'skv_shim/scripts/skv_utils'))
+from shell_wrapper import check_output
 
 skv_tools_path = os.path.join(os.environ['SKV_HOME'], 'admintools')
 if skv_tools_path not in sys.path:
     sys.path.append(skv_tools_path)
 from skv_common import get_skv_cluster_type, SKVClusterType, SKV_META_SERVER_ROLE_NAME, SKV_REPLICA_SERVER_ROLE_NAME
-from recipes import check_balance, balance_and_wait, check_health, inactive_replica, restart_all_meta_server
+from recipes import check_balance, balance_and_wait, check_health, inactive_replica, restart_all_meta_server, wait_replica_server, wait_table_healthy, get_skv_config_manager
 from skv_admin_api import SkvAdminApi
 from recipes.ops.move_primary_runner import move_primary
+
+
+SKV_DISK_DIR_TYPE = {
+    'skv_offline': 'random_dir',
+    'skv_online': 'online_random_dir'
+}
 
 
 def get_module_name(params):
@@ -23,10 +33,8 @@ def get_module_name(params):
 
 
 def get_role_host_list(params, role):
-    if SKV_META_SERVER_ROLE_NAME == role:
-        return params['cluster_node_info'][SKV_META_SERVER_ROLE_NAME].get('nodes')
-    if SKV_REPLICA_SERVER_ROLE_NAME == role:
-        return params['cluster_node_info'][SKV_REPLICA_SERVER_ROLE_NAME].get('nodes')
+    if role in (SKV_META_SERVER_ROLE_NAME, SKV_REPLICA_SERVER_ROLE_NAME):
+        return params['cluster_node_info'][role].get('nodes')
     raise Exception('get hosts error, role[%s], role must be %s or %s!' % (role, SKV_META_SERVER_ROLE_NAME, SKV_REPLICA_SERVER_ROLE_NAME))
 
 
@@ -70,7 +78,7 @@ def init_context(context, fun_desc=None):
     context_obj.replica_server_host_list = get_role_host_list(context_obj.params, SKV_REPLICA_SERVER_ROLE_NAME)  # 获取老集群 replica server 的 所在节点的域名列表
     context_obj.replica_server_addr_list = get_role_addr_list(context_obj.params, SKV_REPLICA_SERVER_ROLE_NAME, context_obj.replica_server_host_list)   # 获取老集群 replica server 的 ip:host 列表
     context_obj.api = SkvAdminApi(context_obj.logger, context_obj.module_name)
-    context_obj.logger.info('%s' % fun_desc)
+    context_obj.logger.info('%s : %s' % (context_obj.module_name, fun_desc))
     return context_obj
 
 
@@ -114,6 +122,9 @@ def pre_scale_up_start(context):
 
 def post_scale_up_start(context):
     this = init_context(context, 'post_scale_up_start')
+    # 检查新加节点状态是否为 live
+    host_list = [get_addr(this.params, SKV_REPLICA_SERVER_ROLE_NAME, h) for h in this.scale_hosts]
+    wait_replica_server(this.module_name, this.logger, host_list, 'ALIVE')
     # 配置检查
     # 1. 渲染skv shell config, todo
     # 2. 启动balance
@@ -172,7 +183,6 @@ def pre_scale_down_check(context):
 
 def decommission_callback(context):
     this = init_context(context, 'decommission_callback')
-    this.api.set_meta_level(this.api.META_LEVEL_STEADY)
     if SKV_META_SERVER_ROLE_NAME == this.scale_role:
         raise Exception('unsupport horizontal scale down on %s!' % SKV_META_SERVER_ROLE_NAME)
     # 设置黑名单
@@ -182,9 +192,13 @@ def decommission_callback(context):
     this.api.set_replica_server_black_list(','.join(black_list))
     # 将assign_delay_ms设为10，这样做的目的是让节点下线后，立即在其他节点上补充备份
     this.api.set_lb_assign_delay_ms(10)
+    this.api.set_meta_level(this.api.META_LEVEL_STEADY)
+    this.api.set_add_secondary_max_count_for_one_node('DEFAULT')
     for addr in black_list:
         # 把待下线节点上的primary副本全部挪走
         move_primary(this.module_name, this.logger, addr)
+        # 挪走之后需要sleep 5s 等待所有客户端更新路由
+        time.sleep(5)
         # 将待下线机器上的secondary replica转移走，使用downgrade_node是用来标记secondary为Inactive，从而触发数据转移
         inactive_replica(this.module_name, this.logger, addr)
 
@@ -208,13 +222,10 @@ def decommission_complete_inspection(context):
 
 def post_scale_down_stop(context):
     this = init_context(context, 'post_scale_down_stop')
-    # 从replica server list中删除host，修改配置
-    # 删除replica group配置,修改配置
-    # 更改client 配置，主要是partition_factor, zk信息同步
-    # 将待下节点上的meta迁移
-    # 停掉当前节点上的meta
-    # 修改 client conf上的meta server list
-    # 渲染shell conf
+    wait_table_healthy(this.module_name, this.logger)
+    # 检查已下掉的节点状态是否为 unlive
+    host_list = [get_addr(this.params, SKV_REPLICA_SERVER_ROLE_NAME, h) for h in this.scale_hosts]
+    wait_replica_server(this.module_name, this.logger, host_list, 'UNALIVE')
     # 重启meta server
     restart_all_meta_server(this.module_name, this.logger)
 
@@ -226,4 +237,182 @@ def post_scale_down_check(context):
         raise Exception('cluster not healthy!')
     # 3. 启动balance
     if this.skv_cluster_type == SKVClusterType.GE_THREE_NODE:
+        balance_and_wait(this.module_name, this.logger)
+
+
+def get_data_dir_set_by_host(host, module_name, logger):
+    skv_config_manager = get_skv_config_manager(module_name, SKV_REPLICA_SERVER_ROLE_NAME, logger)
+    group = skv_config_manager.get_config_group_by_host(host)
+    data_dirs = skv_config_manager.get_config_value('replication', 'data_dirs', group).split(',')
+    old_dir_set = {dir.split(':')[1] for dir in data_dirs}
+    return old_dir_set
+
+
+def get_slog_dir_by_host(host, module_name, logger):
+    skv_config_manager = get_skv_config_manager(module_name, SKV_REPLICA_SERVER_ROLE_NAME, logger)
+    group = skv_config_manager.get_config_group_by_host(host)
+    return skv_config_manager.get_config_value('replication', 'slog_dir', group)
+
+
+def check_disk_type(module_name, dir_type):
+    if module_name in SKV_DISK_DIR_TYPE.keys():
+        assert dir_type == SKV_DISK_DIR_TYPE[module_name], '%s is usually place on %s type disk not %s' % (module_name, SKV_DISK_DIR_TYPE[module_name], dir_type)
+    else:
+        raise Exception("undefined module type: %s" % module_name)
+
+
+def init_scale_disk_context(context, fun_desc=None):
+    MyContext = type('MyContext', (object,), {})
+    context_obj = MyContext()
+    context_obj.params = context.get_params()  # 获取 param.json 的内容
+    context_obj.module_name = get_module_name(context_obj.params)  # 获取模块名 skv_online or skv_offline
+    context_obj.logger = context.get_logger()  # 获取 logger 实例
+    context_obj.scale_host = context_obj.params['node_params'].get('hostname')
+    context_obj.dir_type = context.get_change_dir_type()
+    context_obj.change_dirs = context.get_change_dirs()
+    context_obj.replica_server_ip_addr = get_addr(context_obj.params, SKV_REPLICA_SERVER_ROLE_NAME, context_obj.scale_host)
+    context_obj.api = SkvAdminApi(context_obj.logger, context_obj.module_name)
+    context_obj.logger.info('%s : %s' % (context_obj.module_name, fun_desc))
+    return context_obj
+
+
+def pre_add_dirs_check(context):
+    """
+    PRE_ADD_DIRS_CHECK 步骤回调函数
+    加减盘接入文档：https://doc.sensorsdata.cn/pages/viewpage.action?pageId=306393307
+    context 说明文档：https://doc.sensorsdata.cn/pages/viewpage.action?pageId=272759515
+
+    :param context: 上下文实例，可用于获取 params.json 等，支持的方法见 context 说明文档
+    :return:
+    """
+    this = init_scale_disk_context(context, 'pre_add_dirs_check')
+    # 1. 检查 skv 是否健康
+    if not check_health(this.logger, this.module_name):
+        raise Exception('skv cluster not healthy!')
+    # 2. 不支持单机
+    if get_skv_cluster_type(this.module_name) == SKVClusterType.ONE_NODE:
+        raise Exception("simplified skv cluster not support add disk")
+    # 3. 检查磁盘类型
+    check_disk_type(this.module_name, this.dir_type)
+    # 4. 获取已有的 data_dirs, 并检查是否冲突
+    old_dir_set = get_data_dir_set_by_host(this.scale_host, this.module_name, this.logger)
+    new_dir_set = {os.path.join(dir, this.module_name) for dir in this.change_dirs}
+    if not old_dir_set.isdisjoint(new_dir_set):
+        raise Exception('data_dir conflict: old data_dirs {} VS new data_dir {}.'.format(old_dir_set, new_dir_set))
+    # 4. 检查新盘skv模块是否为空
+    for new_dir in new_dir_set:
+        if os.path.isdir(new_dir):
+            raise Exception('path {} is exist, please check!'.format(new_dir))
+
+
+def pre_add_dirs(context):
+    # 由云平台来控制停掉当前加节点的replica_server
+    this = init_scale_disk_context(context, 'pre_add_dirs')
+    # 会重启，所以这里会先执行 move_primary
+    this.api.set_meta_level(this.api.META_LEVEL_STEADY)
+    # 1. 禁掉meta server的add secondary操作
+    this.api.set_add_secondary_max_count_for_one_node(0)
+    # 2. 将replica server上的primary replica迁走
+    move_primary(this.module_name, this.logger, this.replica_server_ip_addr)
+    # 3. meta server的add secondary操作设置为
+    this.api.set_add_secondary_max_count_for_one_node('DEFAULT')
+
+
+def add_dirs(context):
+    # 在 pre_add_dirs 和 add_dirs 两步间captain 会停掉当前加减节点上的replica, 并完成了配置的更新
+    # 所以这一步检查配置是否正确以及状态是否为 UNALIVE
+    this = init_scale_disk_context(context, 'add_dirs')
+    wait_replica_server(this.module_name, this.logger, [this.replica_server_ip_addr], 'UNALIVE')
+    new_dir_set = {os.path.join(dir, this.module_name) for dir in this.change_dirs}
+    after_add_data_dir_set = get_data_dir_set_by_host(this.scale_host, this.module_name, this.logger)
+    if not new_dir_set.issubset(after_add_data_dir_set):
+        raise Exception("new disks {} not in data_dirs {}, please check!".format(new_dir_set, after_add_data_dir_set))
+
+
+def post_add_dirs(context):
+    # 在这一步前会将 skv 拉起来, 这一步检查状态是否为 ALIVE
+    this = init_scale_disk_context(context, 'post_add_dirs')
+    wait_replica_server(this.module_name, this.logger, [this.replica_server_ip_addr], 'ALIVE')
+
+
+def post_add_dirs_check(context):
+    # 这一步将会检查集群是否健康，以及 balance 操作
+    this = init_scale_disk_context(context, 'post_add_dirs_check')
+    # 1. 检查集群健康
+    if not check_health(this.logger, this.module_name):
+        raise Exception('skv cluster not healthy!')
+    # 2. 获取集群类型,并执行 balance
+    skv_cluster_type = get_skv_cluster_type(this.module_name)
+    if SKVClusterType.GE_THREE_NODE == skv_cluster_type:
+        balance_and_wait(this.module_name, this.logger)
+
+
+def pre_remove_dirs_check(context):
+    this = init_scale_disk_context(context, 'pre_remove_dirs_check')
+    # 1. 检查服务是否正常. -> scale_node
+    if not check_health(this.logger, this.module_name):
+        raise Exception('skv cluster not healthy!')
+    # 2. 不支持单机
+    if get_skv_cluster_type(this.module_name) == SKVClusterType.ONE_NODE:
+        raise Exception("simplified skv cluster not support add disk")
+    # 3. 检查是否存在单副本表
+    this.api.check_all_avaliable_table_replica_count(3)
+    # 4. 获取已有的data_dirs, 并检查是否存在
+    old_data_dir_set = get_data_dir_set_by_host(this.scale_host, this.module_name, this.logger)
+    remove_dir_set = {os.path.join(dir, this.module_name) for dir in this.change_dirs}
+    if not remove_dir_set.issubset(old_data_dir_set):
+        raise Exception("remove disks {} not in data_dirs {}, please check!".format(remove_dir_set, old_data_dir_set))
+    # 5. 不能是slog
+    slog_dir = get_slog_dir_by_host(this.scale_host, this.module_name, this.logger)
+    if slog_dir in remove_dir_set:
+        raise Exception("slog {} can not remove, please check!".format(slog_dir))
+    # 6. 检查 reps下是否为空
+    for dir in remove_dir_set:
+        ret = check_output('ls %s' % os.path.join(dir, 'replica', 'reps'), this.logger.info)
+        if len(ret) != 0:
+            raise Exception('%s delete dir %s not empty!!!' % (this.scale_host, dir))
+    # 7. 检查是否 remove 掉所有盘
+    if not len(old_data_dir_set.difference(remove_dir_set)):
+        raise Exception('remove dirs {} contains all old data_dirs {}!!!'.format(remove_dir_set, old_data_dir_set))
+
+
+def pre_remove_dirs(context):
+    # 由云平台来控制停掉当前减节点的replica_server
+    this = init_scale_disk_context(context, 'pre_remove_dirs')
+    # 会重启，所以这里会先执行 move_primary
+    this.api.set_meta_level(this.api.META_LEVEL_STEADY)
+    # 1. 禁掉meta server的add secondary操作
+    this.api.set_add_secondary_max_count_for_one_node(0)
+    # 2. 将replica server上的primary replica迁走
+    move_primary(this.module_name, this.logger, this.replica_server_ip_addr)
+    # 3. meta server的add secondary操作设置为
+    this.api.set_add_secondary_max_count_for_one_node('DEFAULT')
+
+
+def remove_dirs(context):
+    # 在 pre_remove_dirs 和 remove_dirs 两步间 captain 会停掉当前减节点上的replica,并完成了配置的更新
+    # 所以这一步检查配置是否正确以及状态是否为 UNALIVE
+    this = init_scale_disk_context(context, 'remove_dirs')
+    wait_replica_server(this.module_name, this.logger, [this.replica_server_ip_addr], 'UNALIVE')
+    remove_dir_set = {os.path.join(dir, this.module_name) for dir in this.change_dirs}
+    after_remove_data_dir_set = get_data_dir_set_by_host(this.scale_host, this.module_name, this.logger)
+    if remove_dir_set.issubset(after_remove_data_dir_set):
+        raise Exception("remove disks {} still exists in new data_dirs {}, please check!".format(remove_dir_set, after_remove_data_dir_set))
+
+
+def post_remove_dirs(context):
+    # 在这一步前会将 skv 拉起来, 这一步检查状态是否为 ALIVE
+    this = init_scale_disk_context(context, 'post_remove_dirs')
+    wait_replica_server(this.module_name, this.logger, [this.replica_server_ip_addr], 'ALIVE')
+
+
+def post_remove_dirs_check(context):
+    # 这一步将会检查集群是否健康，以及 balance 操作
+    this = init_scale_disk_context(context, 'post_remove_dirs_check')
+    # 1. 检查集群健康
+    if not check_health(this.logger, this.module_name):
+        raise Exception('skv cluster not healthy!')
+    # 2. 获取集群类型,并执行 balance
+    skv_cluster_type = get_skv_cluster_type(this.module_name)
+    if SKVClusterType.GE_THREE_NODE == skv_cluster_type:
         balance_and_wait(this.module_name, this.logger)

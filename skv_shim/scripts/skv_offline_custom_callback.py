@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-skv_offline 扩缩容回调
+skv_offline 扩缩容 & 加减盘 回调
 """
 
 import os

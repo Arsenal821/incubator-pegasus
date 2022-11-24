@@ -21,9 +21,13 @@ spec:
             - PREPARE_NON_ROLLING_UPGRADE
             - FINALIZE_NON_ROLLING_UPGRADE
           scale_up:
-            support: False  # 必填，表示该 role 支持扩容
+            support: False  # 必填, 表示该 role 是否支持扩容
           scale_down:
-            support: False  # 必填，表示该 role 支持扩容
+            support: False  # 必填, 表示该 role 是否支持缩容
+          add_dirs:
+            support: False  # 必填, 表示该 role 是否支持加盘
+          remove_dirs:
+            support: False  # 必填, 表示该 role 是否支持减盘
         replica_server:
           deploy:
             available_in_cluster: True  # 集群(非单机)是否部署
@@ -67,6 +71,36 @@ spec:
               - callback: POST_SCALE_DOWN_CHECK
                 target_role: replica_server
                 target_node: single_node  # 可填 all_node || single_node || scale_node，填写 single_node 表示在符合部署的机器上随机一台机器执行
+          add_dirs:
+            support: True  # 必填, 表示该 role 是否支持加盘
+            callbacks:
+              - callback: PRE_ADD_DIRS_CHECK
+                target_node: scale_node  # 可填 all_node || single_node || scale_node，填写 scale_node 表示在加减盘的机器上执行
+              - callback: PRE_ADD_DIRS
+                target_role: replica_server  # target_role 可不填表示所有机器上均可执行，当填写时需指定角色，表示只在部署该角色的机器上执行
+                target_node: scale_node  # 可填 all_node || single_node || scale_node, 填写 scale_node 表示在加减盘的机器上执行
+              - callback: ADD_DIRS
+                target_role: replica_server
+                target_node: scale_node
+              - callback: POST_ADD_DIRS
+                target_node: scale_node
+              - callback: POST_ADD_DIRS_CHECK
+                target_node: scale_node  # 可填 all_node || single_node || scale_node，填写 single_node 表示在符合部署的机器上随机一台机
+          remove_dirs:
+            support: True  # 必填, 表示该 role 是否支持减盘
+            callbacks:
+              - callback: PRE_REMOVE_DIRS_CHECK
+                target_node: scale_node  # 可填 all_node || single_node || scale_node，填写 scale_node 表示在加减盘的机器上执行
+              - callback: PRE_REMOVE_DIRS
+                target_role: replica_server  # target_role 可不填表示所有机器上均可执行，当填写时需指定角色，表示只在部署该角色的机器上执行
+                target_node: scale_node  # 可填 all_node || single_node || scale_node, 填写 scale_node 表示在加减盘的机器上执行
+              - callback: REMOVE_DIRS
+                target_role: replica_server
+                target_node: scale_node
+              - callback: POST_REMOVE_DIRS
+                target_node: scale_node  # 可填 all_node || single_node || scale_node, 填写 scale_node 表示在加减盘的机器上执行
+              - callback: POST_REMOVE_DIRS_CHECK
+                target_node: scale_node  # 可填 all_node || single_node || scale_node, 填写 scale_node 表示在加减盘的机器上执行
   modules:
     skv_offline:
       source_type: skv
