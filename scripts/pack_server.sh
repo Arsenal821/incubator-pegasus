@@ -110,32 +110,34 @@ while [[ $# > 0 ]]; do
 done
 
 mkdir -p ${pack}/bin
-copy_file ./DSN_ROOT/bin/pegasus_server/pegasus_server ${pack}/bin
-copy_file ./DSN_ROOT/lib/libdsn_meta_server.so ${pack}/bin
-copy_file ./DSN_ROOT/lib/libdsn_replica_server.so ${pack}/bin
-copy_file ./DSN_ROOT/lib/libdsn_utils.so ${pack}/bin
-copy_file ./thirdparty/output/lib/libPoco*.so.* ${pack}/bin
+mkdir -p ${pack}/conf
+mkdir -p ${pack}/lib
+
+copy_file ./src/server/bin/start_server.sh ${pack}/bin
+copy_file ./DSN_ROOT/bin/pegasus_meta_server/pegasus_meta_server ${pack}/bin/meta_server
+copy_file ./DSN_ROOT/bin/pegasus_replica_server/pegasus_replica_server ${pack}/bin/replica_server
+copy_file ./DSN_ROOT/lib/libdsn_meta_server.so ${pack}/lib
+copy_file ./DSN_ROOT/lib/libdsn_replica_server.so ${pack}/lib
+copy_file ./DSN_ROOT/lib/libdsn_utils.so ${pack}/lib
+copy_file ./thirdparty/output/lib/libPoco*.so.* ${pack}/lib
 
 if [ "$use_jemalloc" == "on" ]; then
-    copy_file ./thirdparty/output/lib/libjemalloc.so.2 ${pack}/bin
-    copy_file ./thirdparty/output/lib/libprofiler.so.0 ${pack}/bin
+    copy_file ./thirdparty/output/lib/libjemalloc.so.2 ${pack}/lib
+    copy_file ./thirdparty/output/lib/libprofiler.so.0 ${pack}/lib
 else
-    copy_file ./thirdparty/output/lib/libtcmalloc_and_profiler.so.4 ${pack}/bin
+    copy_file ./thirdparty/output/lib/libtcmalloc_and_profiler.so.4 ${pack}/lib
 fi
 
-copy_file ./thirdparty/output/lib/libboost*.so.1.69.0 ${pack}/bin
-copy_file ./thirdparty/output/lib/libhdfs* ${pack}/bin
-copy_file ./thirdparty/output/lib/libsasl*.so.* ${pack}/bin
-copy_file ./thirdparty/output/lib/libcom_err*.so.* ${pack}/bin
-copy_file ./scripts/sendmail.sh ${pack}/bin
-copy_file ./src/server/config.ini ${pack}/bin
-copy_file ./src/server/config.min.ini ${pack}/bin
+copy_file ./thirdparty/output/lib/libboost*.so.1.69.0 ${pack}/lib
+copy_file ./thirdparty/output/lib/libhdfs* ${pack}/lib
+copy_file ./thirdparty/output/lib/libsasl*.so.* ${pack}/lib
+copy_file ./thirdparty/output/lib/libcom_err*.so.* ${pack}/lib
 copy_file ./scripts/config_hdfs.sh ${pack}/bin
 
-copy_file "$(get_stdcpp_lib $custom_gcc)" "${pack}/bin"
+copy_file "$(get_stdcpp_lib $custom_gcc)" "${pack}/lib"
 
 pack_server_lib() {
-    pack_system_lib "${pack}/bin" server "$1"
+    pack_system_lib "${pack}/lib" server "$1"
 }
 
 pack_server_lib snappy
@@ -182,10 +184,11 @@ if [ -n "$DISTRIB_ID" ] && [ -n "$DISTRIB_RELEASE" ]; then
     # more cases can be added here.
 fi
 
-chmod +x ${pack}/bin/pegasus_* ${pack}/bin/*.sh
-chmod -x ${pack}/bin/lib*
+chmod +x ${pack}/bin/*
+chmod -x ${pack}/lib/lib*
 
-echo "Pegasus Server $version ($commit_id) $platform $build_type" >${pack}/VERSION
+echo "Meta Server $version ($commit_id) $platform $build_type" >${pack}/META_SERVER_VERSION
+echo "Replica Server $version ($commit_id) $platform $build_type" >${pack}/REPLICA_SERVER_VERSION
 
 tar cfz ${pack}.tar.gz ${pack}
 

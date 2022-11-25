@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+add_subdirectory(meta_server)
+add_subdirectory(replica_server)
 
 set(MY_PROJ_NAME "pegasus_server")
 

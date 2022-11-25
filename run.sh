@@ -19,12 +19,24 @@
 set -e
 
 PID=$$
-ROOT=`pwd`
+ROOT=$(cd "$(dirname "$0")"; pwd)
 LOCAL_HOSTNAME=`hostname -f`
 export REPORT_DIR="$ROOT/test_report"
 export DSN_ROOT=$ROOT/DSN_ROOT
 export THIRDPARTY_ROOT=$ROOT/thirdparty
-export LD_LIBRARY_PATH=$DSN_ROOT/lib:$THIRDPARTY_ROOT/output/lib:$LD_LIBRARY_PATH
+export SKV_LIB_PATH=$ROOT/../lib
+
+ARCH_TYPE=''
+output=`arch`
+if [ "$output"x == "x86_64"x ]; then
+    ARCH_TYPE="amd64"
+elif [ "$output"x == "aarch64"x ]; then
+    ARCH_TYPE="aarch64"
+else
+    echo not support arch "$output"
+fi
+
+export LD_LIBRARY_PATH=${JAVA_HOME}/jre/lib/$ARCH_TYPE/server:${JAVA_HOME}/jre/lib/$ARCH_TYPE:$SKV_LIB_PATH:$DSN_ROOT/lib:$THIRDPARTY_ROOT/output/lib:$LD_LIBRARY_PATH
 
 function usage()
 {
