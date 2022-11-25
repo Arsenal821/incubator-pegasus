@@ -21,6 +21,8 @@
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <netdb.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -189,6 +191,22 @@ int c_unescape_string(const std::string &src, std::string &dest)
     if (len >= 0 && len < dest.length())
         dest.resize(len);
     return len;
+}
+
+int get_max_open_files()
+{
+#if defined(RLIMIT_NOFILE)
+    struct rlimit no_files_limit;
+    if (getrlimit(RLIMIT_NOFILE, &no_files_limit) != 0) {
+        return -1;
+    }
+    // protect against overflow
+    if (no_files_limit.rlim_cur >= std::numeric_limits<int>::max()) {
+        return std::numeric_limits<int>::max();
+    }
+    return static_cast<int>(no_files_limit.rlim_cur);
+#endif
+    return -1;
 }
 
 } // namespace utils

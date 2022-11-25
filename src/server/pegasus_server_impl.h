@@ -316,7 +316,9 @@ private:
                                       rocksdb::ColumnFamilyOptions *target_opts);
 
     // return true if successfully set
-    bool set_options(const std::unordered_map<std::string, std::string> &new_options);
+    bool set_options(const std::unordered_map<std::string, std::string> &new_options,
+                     const std::unordered_map<std::string, std::string> &new_db_options,
+                     const std::unordered_map<std::string, std::string> &old_db_options);
 
     // return random value in range of [0.75,1.25] * base_value
     uint64_t get_random_nearby(uint64_t base_value)

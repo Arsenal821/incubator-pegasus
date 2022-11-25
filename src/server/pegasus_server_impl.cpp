@@ -68,6 +68,12 @@ static bool chkpt_init_from_dir(const char *name, int64_t &decree)
            std::string(name) == chkpt_get_dir_name(decree);
 }
 
+static int get_max_open_files_for_bulk_load()
+{
+    int max_open_files = ::pegasus::utils::get_max_open_files();
+    return std::max(1 << 5, max_open_files >> 8);
+}
+
 std::shared_ptr<rocksdb::RateLimiter> pegasus_server_impl::_s_rate_limiter;
 int64_t pegasus_server_impl::_rocksdb_limiter_last_total_through;
 std::shared_ptr<rocksdb::Cache> pegasus_server_impl::_s_block_cache;
@@ -2925,6 +2931,8 @@ bool pegasus_server_impl::set_usage_scenario(const std::string &usage_scenario)
         return false;
     std::string old_usage_scenario = _usage_scenario;
     std::unordered_map<std::string, std::string> new_options;
+    std::unordered_map<std::string, std::string> new_db_options;
+    std::unordered_map<std::string, std::string> old_db_options;
     if (usage_scenario == ROCKSDB_ENV_USAGE_SCENARIO_NORMAL ||
         usage_scenario == ROCKSDB_ENV_USAGE_SCENARIO_PREFER_WRITE) {
         if (_usage_scenario == ROCKSDB_ENV_USAGE_SCENARIO_BULK_LOAD) {
@@ -2945,6 +2953,9 @@ bool pegasus_server_impl::set_usage_scenario(const std::string &usage_scenario)
             new_options["write_buffer_size"] = std::to_string(_data_cf_opts.write_buffer_size);
             new_options["max_write_buffer_number"] =
                 std::to_string(_data_cf_opts.max_write_buffer_number);
+
+            new_db_options["max_open_files"] = std::to_string(_db_opts.max_open_files);
+            old_db_options["max_open_files"] = std::to_string(get_max_open_files_for_bulk_load());
         }
 
         if (usage_scenario == ROCKSDB_ENV_USAGE_SCENARIO_NORMAL) {
@@ -2970,14 +2981,17 @@ bool pegasus_server_impl::set_usage_scenario(const std::string &usage_scenario)
         new_options["disable_auto_compactions"] = "true";
         new_options["max_compaction_bytes"] = std::to_string(static_cast<uint64_t>(1) << 60);
         new_options["write_buffer_size"] =
-            std::to_string(get_random_nearby(_data_cf_opts.write_buffer_size * 4));
+            std::to_string(get_random_nearby(_data_cf_opts.write_buffer_size * 2));
         new_options["max_write_buffer_number"] =
-            std::to_string(std::max(_data_cf_opts.max_write_buffer_number, 6));
+            std::to_string(std::max(_data_cf_opts.max_write_buffer_number, 4));
+
+        new_db_options["max_open_files"] = std::to_string(get_max_open_files_for_bulk_load());
+        old_db_options["max_open_files"] = std::to_string(_db_opts.max_open_files);
     } else {
         derror("%s: invalid usage scenario: %s", replica_name(), usage_scenario.c_str());
         return false;
     }
-    if (set_options(new_options)) {
+    if (set_options(new_options, new_db_options, old_db_options)) {
         _meta_store->set_usage_scenario(usage_scenario);
         _usage_scenario = usage_scenario;
         ddebug_replica(
@@ -3007,36 +3021,65 @@ void pegasus_server_impl::reset_usage_scenario_options(
     target_opts->max_write_buffer_number = base_opts.max_write_buffer_number;
 }
 
+#define CHECK_SET_OPTIONS(set_options, options)                                                    \
+    do {                                                                                           \
+        status = rocksdb::Status::OK();                                                            \
+        if (options.empty()) {                                                                     \
+            break;                                                                                 \
+        }                                                                                          \
+        status = set_options(options);                                                             \
+        if (status == rocksdb::Status::OK()) {                                                     \
+            ddebug("%s: rocksdb set options returns %s: {%s}",                                     \
+                   replica_name(),                                                                 \
+                   status.ToString().c_str(),                                                      \
+                   oss.str().c_str());                                                             \
+        } else {                                                                                   \
+            derror("%s: rocksdb set options returns %s: {%s}",                                     \
+                   replica_name(),                                                                 \
+                   status.ToString().c_str(),                                                      \
+                   oss.str().c_str());                                                             \
+        }                                                                                          \
+    } while (0)
+
 bool pegasus_server_impl::set_options(
-    const std::unordered_map<std::string, std::string> &new_options)
+    const std::unordered_map<std::string, std::string> &new_options,
+    const std::unordered_map<std::string, std::string> &new_db_options,
+    const std::unordered_map<std::string, std::string> &old_db_options)
 {
     if (!_is_open) {
         dwarn_replica("set_options failed, db is not open");
         return false;
     }
 
+    auto options = new_options;
+    options.insert(new_db_options.begin(), new_db_options.end());
+
     std::ostringstream oss;
     int i = 0;
-    for (auto &kv : new_options) {
+    for (auto &kv : options) {
         if (i > 0)
             oss << ",";
         oss << kv.first << "=" << kv.second;
         i++;
     }
-    rocksdb::Status status = _db->SetOptions(_data_cf, new_options);
-    if (status == rocksdb::Status::OK()) {
-        ddebug("%s: rocksdb set options returns %s: {%s}",
-               replica_name(),
-               status.ToString().c_str(),
-               oss.str().c_str());
-        return true;
-    } else {
-        derror("%s: rocksdb set options returns %s: {%s}",
-               replica_name(),
-               status.ToString().c_str(),
-               oss.str().c_str());
+
+    rocksdb::Status status;
+
+    CHECK_SET_OPTIONS(_db->SetDBOptions, new_db_options);
+    if (status != rocksdb::Status::OK()) {
         return false;
     }
+
+    auto do_set_options = std::bind<rocksdb::Status (rocksdb::DB::*)(
+        rocksdb::ColumnFamilyHandle *, const std::unordered_map<std::string, std::string> &)>(
+        &rocksdb::DB::SetOptions, _db, _data_cf, std::placeholders::_1);
+    CHECK_SET_OPTIONS(do_set_options, new_options);
+    if (status != rocksdb::Status::OK()) {
+        CHECK_SET_OPTIONS(_db->SetDBOptions, old_db_options);
+        return false;
+    }
+
+    return true;
 }
 
 ::dsn::error_code pegasus_server_impl::check_column_families(const std::string &path,
