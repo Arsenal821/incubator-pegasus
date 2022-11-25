@@ -279,6 +279,7 @@ void pegasus_counter_reporter::update()
                                                       {"host_name", hostname},
                                                       {"cluster", _cluster_name},
                                                       {"pegasus_job", _app_name},
+                                                      {"skv_job", _app_name},
                                                       {"port", std::to_string(_local_port)}})
                                              .Register(*_registry);
                 it = _gauge_family_map
