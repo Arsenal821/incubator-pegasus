@@ -29,6 +29,7 @@
 #include <dsn/tool-api/auto_codes.h>
 #include <dsn/utility/flags.h>
 #include <dsn/utility/smart_pointers.h>
+#include <dsn/utils/time_utils.h>
 #include "simple_logger.h"
 
 DSN_API dsn_log_level_t dsn_log_start_level = dsn_log_level_t::LOG_LEVEL_INFORMATION;
@@ -61,6 +62,7 @@ static void log_on_sys_exit(::dsn::sys_exit_type)
 
 void dsn_log_init(const std::string &logging_factory_name,
                   const std::string &dir_log,
+                  const std::string &role_name,
                   std::function<std::string()> dsn_log_prefixed_message_func)
 {
     dsn_log_start_level =
@@ -75,7 +77,8 @@ void dsn_log_init(const std::string &logging_factory_name,
     }
 
     dsn::logging_provider *logger = dsn::utils::factory_store<dsn::logging_provider>::create(
-        logging_factory_name.c_str(), dsn::PROVIDER_TYPE_MAIN, dir_log.c_str());
+        logging_factory_name.c_str(), dsn::PROVIDER_TYPE_MAIN, dir_log.c_str(), role_name.c_str());
+    logger->set_log_prefixed_message_func(dsn_log_prefixed_message_func);
     dsn::logging_provider::set_logger(logger);
 
     // register command for logging
@@ -170,6 +173,24 @@ logging_provider *logging_provider::create_default_instance()
 }
 
 void logging_provider::set_logger(logging_provider *logger) { _logger.reset(logger); }
+
+int logging_provider::print_header(FILE *fp, dsn_log_level_t log_level)
+{
+    static char s_level_char[] = "IDWEF";
+
+    uint64_t ts = dsn::utils::get_current_physical_time_ns();
+    char str[24];
+    dsn::utils::time_ms_to_string(ts / 1000000, str);
+
+    int tid = dsn::utils::get_current_tid();
+    return fprintf(fp,
+                   "%c%s (%" PRIu64 " %04x) %s",
+                   s_level_char[log_level],
+                   str,
+                   ts,
+                   tid,
+                   _log_prefixed_message_func().c_str());
+}
 
 namespace tools {
 namespace internal_use_only {

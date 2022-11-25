@@ -28,7 +28,7 @@ GTEST_API_ int main(int argc, char **argv)
 
     command_manager_module_init();
     // init logging
-    dsn_log_init("dsn::tools::simple_logger", "./", nullptr);
+    dsn_log_init("dsn::tools::simple_logger", "./", "test", nullptr);
 
     dsn::flags_initialize();
 

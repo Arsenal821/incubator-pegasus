@@ -32,6 +32,7 @@
 
 #include <fstream>
 
+#include <boost/algorithm/string/join.hpp>
 #include <dsn/service_api_c.h>
 #include <dsn/tool_api.h>
 #include <dsn/tool-api/command_manager.h>
@@ -288,6 +289,11 @@ tool_app *get_current_tool() { return dsn_all.tool.get(); }
 } // namespace tools
 } // namespace dsn
 
+extern void dsn_log_init(const std::string &logging_factory_name,
+                         const std::string &dir_log,
+                         const std::string &role_name,
+                         std::function<std::string()> dsn_log_prefixed_message_func);
+
 extern void dsn_core_init();
 
 inline void dsn_global_init()
@@ -410,7 +416,15 @@ bool run(const char *config_file,
     ::dsn::utils::coredump::init();
 
     // setup log dir
-    spec.dir_log = ::dsn::utils::filesystem::path_combine(cdir, "log");
+    if (spec.dir_log.empty()) {
+        spec.dir_log = ::dsn::utils::filesystem::path_combine(cdir, "log");
+        printf("log_dir is not set, using %s\n", spec.dir_log.c_str());
+    }
+    if (!dsn::utils::filesystem::is_absolute_path(spec.dir_log)) {
+        printf("log_dir(%s) should be set with an absolute path\n",
+               spec.dir_log.c_str());
+        dsn_exit(1);
+    }
     dsn::utils::filesystem::create_directory(spec.dir_log);
 
     // init tools
@@ -434,8 +448,19 @@ bool run(const char *config_file,
     ::MallocExtension::instance()->SetMemoryReleaseRate(tcmalloc_release_rate);
 #endif
 
+    // split app_name and app_index
+    std::list<std::string> applistkvs;
+    ::dsn::utils::split_args(app_list.c_str(), applistkvs, ';');
+
     // init logging
-    dsn_log_init(spec.logging_factory_name, spec.dir_log, dsn_log_prefixed_message_func);
+    std::vector<std::string> app_name_list;
+    for (const auto &kv : applistkvs) {
+        std::list<std::string> argskvs;
+        ::dsn::utils::split_args(kv.c_str(), argskvs, '@');
+        app_name_list.push_back(argskvs.front());
+    }
+    std::string role_name(boost::algorithm::join(app_name_list, "."));
+    dsn_log_init(spec.logging_factory_name, spec.dir_log, role_name, dsn_log_prefixed_message_func);
 
     // prepare minimum necessary
     ::dsn::service_engine::instance().init_before_toollets(spec);
@@ -478,10 +503,6 @@ bool run(const char *config_file,
             return false;
         }
     }
-
-    // split app_name and app_index
-    std::list<std::string> applistkvs;
-    ::dsn::utils::split_args(app_list.c_str(), applistkvs, ';');
 
     // init apps
     for (auto &sp : spec.app_specs) {

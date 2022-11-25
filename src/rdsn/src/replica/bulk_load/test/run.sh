@@ -27,7 +27,7 @@
 ./dsn_replica_bulk_load_test
 
 if [ $? -ne 0 ]; then
-    tail -n 100 data/log/log.1.txt
+    tail -n 100 `find . -name skv.log.*`
     if [ -f core ]; then
         gdb ./dsn_replica_bulk_load_test core -ex "bt"
     fi

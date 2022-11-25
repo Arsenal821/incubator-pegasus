@@ -57,6 +57,8 @@ namespace filesystem {
 
 int get_normalized_path(const std::string &path, std::string &npath);
 
+bool is_absolute_path(const std::string &path);
+
 bool get_absolute_path(const std::string &path1, std::string &path2);
 
 std::string remove_file_name(const std::string &path);

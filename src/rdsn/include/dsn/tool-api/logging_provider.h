@@ -47,15 +47,16 @@ class logging_provider
 {
 public:
     template <typename T>
-    static logging_provider *create(const char *log_dir)
+    static logging_provider *create(const char *log_dir, const char *role_name)
     {
-        return new T(log_dir);
+        return new T(log_dir, role_name);
     }
 
-    typedef logging_provider *(*factory)(const char *);
+    typedef logging_provider *(*factory)(const char *, const char *);
 
 public:
-    logging_provider(const char *) {}
+    logging_provider(const char *log_dir, const char *role_name):
+        _log_prefixed_message_func([]() -> std::string { return ": "; }) {}
 
     virtual ~logging_provider(void) {}
 
@@ -80,10 +81,20 @@ public:
 
     virtual void flush() = 0;
 
+    int print_header(FILE *fp, dsn_log_level_t log_level);
+
+    void set_log_prefixed_message_func(std::function<std::string()> func) {
+        if (func != nullptr) {
+            _log_prefixed_message_func = func;
+        }
+    }
+
 private:
     static std::unique_ptr<logging_provider> _logger;
 
     static logging_provider *create_default_instance();
+
+    std::function<std::string()> _log_prefixed_message_func;
 };
 
 void set_log_prefixed_message_func(std::function<std::string()> func);
@@ -100,4 +111,5 @@ DSN_API bool register_component_provider(const char *name,
 
 extern void dsn_log_init(const std::string &logging_factory_name,
                          const std::string &dir_log,
+                         const std::string &role_name,
                          std::function<std::string()> dsn_log_prefixed_message_func);

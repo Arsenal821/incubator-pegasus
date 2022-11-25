@@ -32,8 +32,8 @@ function run_single()
     echo "${bin} ${prefix}.ini ${prefix}.act"
     ${bin} ${prefix}.ini ${prefix}.act
     ret=$?
-    if find . -name log.1.txt &>/dev/null; then
-        log=`find . -name log.1.txt`
+    if [ `find . -name skv.log.* | wc -l` -ne 0 ]; then
+        log=`find . -name skv.log.*`
         cat ${log} | grep -v FAILURE_DETECT | grep -v BEACON | grep -v beacon | grep -v THREAD_POOL_FD >${prefix}.log
         rm ${log}
     fi

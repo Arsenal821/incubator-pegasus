@@ -179,7 +179,8 @@ struct service_spec
 CONFIG_BEGIN(service_spec)
 CONFIG_FLD_STRING(tool, "", "use what tool to run this process, e.g., native or simulator")
 CONFIG_FLD_STRING_LIST(toollets, "use what toollets, e.g., tracer, profiler, fault_injector")
-CONFIG_FLD_STRING(data_dir, "./data", "where to put the all the data/log/coredump, etc..")
+CONFIG_FLD_STRING(data_dir, "./data", "where to put the all the data/coredump, etc..")
+CONFIG_FLD_STRING_BY_KEY(dir_log, "log_dir", "", "where to put the logs")
 CONFIG_FLD(
     bool,
     bool,

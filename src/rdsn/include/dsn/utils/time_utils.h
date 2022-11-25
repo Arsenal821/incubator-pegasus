@@ -44,6 +44,21 @@ static struct tm *get_localtime(uint64_t ts_ms, struct tm *tm_buf)
 extern void time_ms_to_string(uint64_t ts_ms, char *str);
 extern void time_ms_to_string(uint64_t ts_ms, std::string &str);
 
+inline void time_ms_to_string_for_log_file_name(uint64_t ts_ms, char *str)
+{
+    struct tm tmp;
+    auto ret = get_localtime(ts_ms, &tmp);
+    sprintf(str,
+            "%04d%02d%02d_%02d%02d%02d_%03u",
+            ret->tm_year + 1900,
+            ret->tm_mon + 1,
+            ret->tm_mday,
+            ret->tm_hour,
+            ret->tm_min,
+            ret->tm_sec,
+            static_cast<uint32_t>(ts_ms % 1000));
+}
+
 // get date string with format of 'yyyy-MM-dd' from given timestamp
 inline void time_ms_to_date(uint64_t ts_ms, char *str, int len)
 {

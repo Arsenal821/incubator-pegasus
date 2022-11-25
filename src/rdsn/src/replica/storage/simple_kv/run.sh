@@ -43,9 +43,9 @@ if [ -f core ] || ! grep ERR_OK out > /dev/null ; then
     ls -l
     echo "---- head -n 100 out ----"
     head -n 100 out
-    if [ -f data/logs/log.1.txt ]; then
-        echo "---- tail -n 100 log.1.txt ----"
-        tail -n 100 data/logs/log.1.txt
+    if [ `find data/logs -name skv.log.* | wc -l` -ne 0 ]; then
+        echo "---- tail -n 100 skv.log.* ----"
+        tail -n 100 `find data/logs -name skv.log.*`
     fi
     if [ -f core ]; then
         echo "---- gdb ./dsn.replication.simple_kv core ----"

@@ -34,6 +34,7 @@
  */
 
 #include "utils/simple_logger.h"
+#include <boost/regex.hpp>
 #include <gtest/gtest.h>
 #include <dsn/utility/filesystem.h>
 
@@ -42,32 +43,51 @@ using namespace dsn::tools;
 
 static const int simple_logger_gc_gap = 20;
 
-static void get_log_file_index(std::vector<int> &log_index)
+static void get_log_files(std::set<std::string> &files)
 {
     std::vector<std::string> sub_list;
-    std::string path = "./";
-    if (!utils::filesystem::get_subfiles(path, sub_list, false)) {
-        ASSERT_TRUE(false);
-    }
+    ASSERT_TRUE(utils::filesystem::get_subfiles("./", sub_list, false));
 
-    for (auto &ptr : sub_list) {
-        auto &&name = utils::filesystem::get_file_name(ptr);
-        if (name.length() <= 8 || name.substr(0, 4) != "log.")
-            continue;
-        int index;
-        if (1 != sscanf(name.c_str(), "log.%d.txt", &index))
-            continue;
-        log_index.push_back(index);
+    files.clear();
+    boost::regex pattern(R"(skv\.log\.[0-9]{8}_[0-9]{6}_[0-9]{3})");
+    for (const auto &path : sub_list) {
+        std::string name(utils::filesystem::get_file_name(path));
+        if (boost::regex_match(name, pattern)) {
+            auto ret = files.insert(name);
+            ASSERT_TRUE(ret.second);
+        }
     }
 }
 
-static void clear_files(std::vector<int> &log_index)
+static void compare_log_files(const std::set<std::string> &before_files,
+                              const std::set<std::string> &after_files)
 {
-    char file[256];
-    memset(file, 0, sizeof(file));
-    for (auto i : log_index) {
-        snprintf_p(file, 256, "log.%d.txt", i);
-        dsn::utils::filesystem::remove_path(std::string(file));
+    ASSERT_FALSE(after_files.empty());
+
+    if (after_files.size() == before_files.size() + 1) {
+        for (auto it1 = before_files.begin(), it2 = after_files.begin();
+             it1 != before_files.end(); ++it1, ++it2) {
+            ASSERT_EQ(*it1, *it2);
+        }
+    } else if (after_files.size() == before_files.size()) {
+        auto it1 = before_files.begin();
+        auto it2 = after_files.begin();
+        ASSERT_NE(*it1, *it2);
+
+        for (++it1; it1 != before_files.end(); ++it1, ++it2) {
+            ASSERT_EQ(*it1, *it2);
+        }
+    } else {
+        ASSERT_TRUE(false) << "Invalid number of log files, before="
+                           << before_files.size()
+                           << ", after=" << after_files.size();
+    }
+}
+
+static void clear_files(const std::vector<std::string> &file_name_list)
+{
+    for (const auto &name : file_name_list) {
+        EXPECT_TRUE(dsn::utils::filesystem::remove_path(name));
     }
 }
 
@@ -97,7 +117,8 @@ void log_print(logging_provider *logger, const char *fmt, ...)
 TEST(tools_common, simple_logger)
 {
     // cases for print_header
-    screen_logger *logger = new screen_logger("./");
+    screen_logger *logger = new screen_logger("./", "skv");
+
     log_print(logger, "%s", "test_print");
     std::thread t([](screen_logger *lg) { log_print(lg, "%s", "test_print"); }, logger);
     t.join();
@@ -108,20 +129,33 @@ TEST(tools_common, simple_logger)
     prepare_test_dir();
     // create multiple files
     for (unsigned int i = 0; i < simple_logger_gc_gap + 10; ++i) {
-        simple_logger *logger = new simple_logger("./");
+        std::set<std::string> before_files;
+        get_log_files(before_files);
+
+        simple_logger *logger = new simple_logger("./", "skv");
+
         // in this case stdout is useless
         for (unsigned int i = 0; i != 1000; ++i)
             log_print(logger, "%s", "test_print");
         logger->flush();
 
         delete logger;
+
+        std::set<std::string> after_files;
+        get_log_files(after_files);
+
+        compare_log_files(before_files, after_files);
+
+        ::usleep(2000);
     }
 
-    std::vector<int> index;
-    get_log_file_index(index);
-    EXPECT_TRUE(!index.empty());
-    sort(index.begin(), index.end());
-    EXPECT_EQ(simple_logger_gc_gap, index.size());
-    clear_files(index);
+    std::set<std::string> files;
+    get_log_files(files);
+    EXPECT_TRUE(!files.empty());
+    ASSERT_EQ(simple_logger_gc_gap, files.size());
+
+    std::vector<std::string> file_name_list(files.begin(), files.end());
+    clear_files(file_name_list);
+
     finish_test_dir();
 }

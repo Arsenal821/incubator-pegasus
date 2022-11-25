@@ -25,14 +25,27 @@
  */
 
 #include "simple_logger.h"
+#include <dirent.h>
+#include <errno.h>
+#include <queue>
 #include <sstream>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <dsn/utility/filesystem.h>
+#include <dsn/utility/glob_posix.h>
+#include <dsn/utility/safe_strerror_posix.h>
 #include <dsn/utility/flags.h>
 #include <dsn/utils/time_utils.h>
 #include <fmt/format.h>
 
 namespace dsn {
 namespace tools {
+
+DSN_DEFINE_uint64("tools.simple_logger",
+                  max_log_file_bytes,
+                  64 * 1024 * 1024,
+                  "max bytes of a log file");
 
 DSN_DEFINE_bool("tools.simple_logger", fast_flush, false, "whether to flush immediately");
 
@@ -54,30 +67,13 @@ DSN_DEFINE_validator(stderr_start_level, [](const char *level) -> bool {
     return strcmp(level, "LOG_LEVEL_INVALID") != 0;
 });
 
-static void print_header(FILE *fp, dsn_log_level_t log_level)
-{
-    static char s_level_char[] = "IDWEF";
-
-    uint64_t ts = dsn_now_ns();
-    std::string time_str;
-    dsn::utils::time_ms_to_string(ts / 1000000, time_str);
-
-    int tid = dsn::utils::get_current_tid();
-    fmt::print(fp,
-               "{}{} ({} {}) {}",
-               s_level_char[log_level],
-               time_str,
-               ts,
-               tid,
-               log_prefixed_message_func().c_str());
-}
-
-screen_logger::screen_logger(bool short_header) : logging_provider("./")
+screen_logger::screen_logger(bool short_header) : logging_provider("./", "")
 {
     _short_header = short_header;
 }
 
-screen_logger::screen_logger(const char *log_dir) : logging_provider(log_dir)
+screen_logger::screen_logger(const char *log_dir, const char *role_name)
+        : logging_provider(log_dir, role_name)
 {
     _short_header =
         dsn_config_get_value_bool("tools.screen_logger",
@@ -107,42 +103,40 @@ void screen_logger::dsn_logv(const char *file,
 
 void screen_logger::flush() { ::fflush(stdout); }
 
-simple_logger::simple_logger(const char *log_dir) : logging_provider(log_dir)
+simple_logger::simple_logger(const char *log_dir, const char *role_name)
+        : logging_provider(log_dir, role_name)
 {
     _log_dir = std::string(log_dir);
+    _role_name = std::string(role_name);
+    if (_role_name.empty()) {
+        _role_name =
+            dsn_config_get_value_string("tools.simple_logger",
+                    "base_name",
+                    "skv",
+                    "default base name for log file");
+    }
+
+    std::string symlink_name(_role_name);
+    symlink_name += ".log";
+    _symlink_path = utils::filesystem::path_combine(_log_dir, symlink_name);
+
+    _file_name_prefix = symlink_name;
+    _file_name_prefix += ".";
+    _file_path_pattern = utils::filesystem::path_combine(_log_dir, _file_name_prefix);
+    _file_path_pattern += "*";
+
     // we assume all valid entries are positive
-    _start_index = 0;
-    _index = 1;
-    _lines = 0;
+    _file_bytes = 0;
     _log = nullptr;
     _stderr_start_level = enum_from_string(FLAGS_stderr_start_level, LOG_LEVEL_INVALID);
 
-    // check existing log files
-    std::vector<std::string> sub_list;
-    if (!dsn::utils::filesystem::get_subfiles(_log_dir, sub_list, false)) {
-        dassert(false, "Fail to get subfiles in %s.", _log_dir.c_str());
-    }
-    for (auto &fpath : sub_list) {
-        auto &&name = dsn::utils::filesystem::get_file_name(fpath);
-        if (name.length() <= 8 || name.substr(0, 4) != "log.")
-            continue;
+    dassert(FLAGS_max_log_file_bytes > 0,
+            "invalid [tools.simple_logger] max_log_file_bytes specified "
+            "which should be > 0");
 
-        int index;
-        if (1 != sscanf(name.c_str(), "log.%d.txt", &index) || index <= 0)
-            continue;
-
-        if (index > _index)
-            _index = index;
-
-        if (_start_index == 0 || index < _start_index)
-            _start_index = index;
-    }
-    sub_list.clear();
-
-    if (_start_index == 0)
-        _start_index = _index;
-    else
-        ++_index;
+    dassert(FLAGS_max_number_of_log_files_on_disk > 0,
+            "invalid [tools.simple_logger] max_number_of_log_files_on_disk specified "
+            "which should be > 0");
 
     create_log_file();
 }
@@ -152,22 +146,78 @@ void simple_logger::create_log_file()
     if (_log != nullptr)
         ::fclose(_log);
 
-    _lines = 0;
+     _file_bytes = 0;
 
-    std::stringstream str;
-    str << _log_dir << "/log." << _index++ << ".txt";
-    _log = ::fopen(str.str().c_str(), "w+");
+    uint64_t ts = dsn::utils::get_current_physical_time_ns();
 
-    // TODO: move gc out of criticial path
-    while (_index - _start_index > FLAGS_max_number_of_log_files_on_disk) {
-        std::stringstream str2;
-        str2 << "log." << _start_index++ << ".txt";
-        auto dp = utils::filesystem::path_combine(_log_dir, str2.str());
-        if (utils::filesystem::file_exists(dp)) {
-            if (::remove(dp.c_str()) != 0) {
-                // if remove failed, just print log and ignore it.
-                printf("Failed to remove garbage log file %s\n", dp.c_str());
-            }
+    char time_str[32];
+    ::dsn::utils::time_ms_to_string_for_log_file_name(ts / 1000000, time_str);
+
+    std::string file_name(_file_name_prefix);
+    file_name += time_str;
+
+    std::string path(utils::filesystem::path_combine(_log_dir, file_name));
+    _log = ::fopen(path.c_str(), "w+");
+    if (_log == nullptr) {
+        std::string error(dsn::utils::safe_strerror(errno));
+        dassert(false, "Failed to fopen %s: %s",
+                path.c_str(), error.c_str());
+    }
+
+    if (::unlink(_symlink_path.c_str()) != 0) {
+        if (errno != ENOENT) {
+            std::string error(dsn::utils::safe_strerror(errno));
+            fprintf(stdout, "Failed to unlink %s: %s\n",
+                    _symlink_path.c_str(), error.c_str());
+        }
+    }
+
+    if (::symlink(file_name.c_str(), _symlink_path.c_str()) != 0) {
+        std::string error(dsn::utils::safe_strerror(errno));
+        fprintf(stdout, "Failed to symlink %s as %s: %s\n",
+                file_name.c_str(), _symlink_path.c_str(), error.c_str());
+    }
+
+    remove_redundant_files();
+}
+
+void simple_logger::remove_redundant_files()
+{
+    std::vector<std::string> matching_files;
+    dsn::utils::glob(_file_path_pattern, matching_files);
+    auto max_matches = static_cast<size_t>(FLAGS_max_number_of_log_files_on_disk);
+    if (matching_files.size() <= max_matches) {
+        return;
+    }
+
+    std::vector<std::pair<time_t, std::string>> matching_file_mtimes;
+    for (auto &matching_file_path : matching_files) {
+        struct stat s;
+        if (::stat(matching_file_path.c_str(), &s) != 0) {
+            std::string error(dsn::utils::safe_strerror(errno));
+            fprintf(stdout, "Failed to stat %s: %s\n",
+                    matching_file_path.c_str(), error.c_str());
+            return;
+        }
+
+        int64_t mtime = s.st_mtim.tv_sec * 1000000 + s.st_mtim.tv_nsec / 1000;
+        matching_file_mtimes.emplace_back(mtime, std::move(matching_file_path));
+    }
+
+    // Use mtime to determine which matching files to delete. This could
+    // potentially be ambiguous, depending on the resolution of last-modified
+    // timestamp in the filesystem, but that is part of the contract.
+
+    std::sort(matching_file_mtimes.begin(), matching_file_mtimes.end());
+    matching_file_mtimes.resize(matching_file_mtimes.size() - max_matches);
+
+    for (const auto &matching_file : matching_file_mtimes) {
+        const auto &path = matching_file.second;
+        if (::remove(path.c_str()) != 0) {
+            // if remove failed, just print log and ignore it.
+            std::string error(dsn::utils::safe_strerror(errno));
+            fprintf(stdout, "Failed to remove redundant log file %s: %s\n",
+                    path.c_str(), error.c_str());
         }
     }
 }
@@ -199,12 +249,15 @@ void simple_logger::dsn_logv(const char *file,
 
     utils::auto_lock<::dsn::utils::ex_lock> l(_lock);
 
-    print_header(_log, log_level);
+    dassert(_log != nullptr, "Log file hasn't been initialized yet");
+
+    write_header(log_level);
+
     if (!FLAGS_short_header) {
-        fprintf(_log, "%s:%d:%s(): ", file, line, function);
+        write_log("%s:%d:%s(): ", file, line, function);
     }
-    vfprintf(_log, fmt, args);
-    fprintf(_log, "\n");
+    write_logv(fmt, args);
+    write_log("\n");
     if (FLAGS_fast_flush || log_level >= LOG_LEVEL_ERROR) {
         ::fflush(_log);
     }
@@ -218,7 +271,7 @@ void simple_logger::dsn_logv(const char *file,
         printf("\n");
     }
 
-    if (++_lines >= 200000) {
+    if (_file_bytes >= FLAGS_max_log_file_bytes) {
         create_log_file();
     }
 }
@@ -231,10 +284,15 @@ void simple_logger::dsn_log(const char *file,
 {
     utils::auto_lock<::dsn::utils::ex_lock> l(_lock);
 
-    print_header(_log, log_level);
+    dassert(_log != nullptr, "Log file hasn't been initialized yet");
+
+    write_header(log_level);
+
     if (!FLAGS_short_header) {
-        fprintf(_log, "%s:%d:%s(): ", file, line, function);
+        write_log("%s:%d:%s(): ", file, line, function);
     }
+    write_log("%s\n", str);
+
     fprintf(_log, "%s\n", str);
     if (FLAGS_fast_flush || log_level >= LOG_LEVEL_ERROR) {
         ::fflush(_log);
@@ -248,7 +306,7 @@ void simple_logger::dsn_log(const char *file,
         printf("%s\n", str);
     }
 
-    if (++_lines >= 200000) {
+    if (_file_bytes >= FLAGS_max_log_file_bytes) {
         create_log_file();
     }
 }
