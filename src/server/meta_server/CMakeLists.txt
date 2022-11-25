@@ -11,8 +11,6 @@ set(MY_PROJ_SRC
 # "GLOB" for non-recursive search
 set(MY_SRC_SEARCH_MODE "GLOB")
 
-message(STATUS "For ${MY_PROJ_NAME} ZOOKEEPER_LIBRARIES=${ZOOKEEPER_LIBRARIES}")
-
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../")
 
 set(MY_PROJ_LIBS
@@ -20,7 +18,6 @@ set(MY_PROJ_LIBS
     dsn.failure_detector
     dsn.replication.zookeeper_provider
     dsn_utils
-    dsn.block_service
     pegasus_reporter
     pegasus_base
     zookeeper_mt
