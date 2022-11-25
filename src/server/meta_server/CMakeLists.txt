@@ -20,8 +20,8 @@ set(MY_PROJ_LIBS
     dsn_utils
     pegasus_reporter
     pegasus_base
-    zookeeper_mt
     event
+    hashtable
     )
 
 set(MY_BOOST_LIBS Boost::system Boost::filesystem Boost::regex)

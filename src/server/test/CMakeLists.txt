@@ -58,6 +58,7 @@ set(MY_PROJ_LIBS
         pegasus_base
         gtest
         gmock
+        hashtable
         )
 add_definitions(-DPEGASUS_UNIT_TEST)
 add_definitions(-DENABLE_FAIL)
