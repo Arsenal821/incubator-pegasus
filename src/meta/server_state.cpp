@@ -1310,7 +1310,7 @@ void server_state::update_partition_configuration_ballot_on_remote_reply(
     auto &old_partition_config = app->partitions[gpid.get_partition_index()];
     const auto old_ballot = old_partition_config.ballot;
 
-    dassert_f(old_ballot + 1 == new_ballot,
+    CHECK(old_ballot + 1 == new_ballot,
               "invalid ballot while updating local max_replica_count: app_name={}, app_id={}, "
               "partition_id={}, old_ballot={}, new_ballot={}",
               app->app_name,
@@ -1427,7 +1427,7 @@ void server_state::update_partition_configuration_ballot(std::shared_ptr<app_sta
         return;
     }
 
-    dassert_f(context.stage == config_status::not_pending,
+    CHECK(context.stage == config_status::not_pending,
               "invalid config status while updating ballot for rename: context.stage={}, "
               "app_id={}, partition_index={}",
               enum_to_string(context.stage),
@@ -1489,7 +1489,7 @@ void server_state::check_app_info_rename_finished_on_replica(int32_t app_id,
                             do_update_app_info(app_path, ainfo, [this, target_app](error_code ec) mutable {
                                 {
                                     zauto_write_lock l(_lock);
-                                    dassert_f(ec == ERR_OK,
+                                    CHECK(ec == ERR_OK,
                                               "An error that can't be handled occurs while updating "
                                               "remote app environment variable "
                                               "app_name: error_code={}, app_id={}, app_name={}, {}={}",
@@ -1548,7 +1548,7 @@ void server_state::update_app_name(std::shared_ptr<app_state> &app, configuratio
         {
             zauto_write_lock l(_lock);
 
-            dassert_f(ec == ERR_OK,
+            CHECK(ec == ERR_OK,
                       "An error that can't be handled occurs while updating remote app app_name "
                       "app_name: error_code={}, app_id={}, app_name={}, new_app_name={}",
                       ec.to_string(),
@@ -1614,7 +1614,7 @@ void server_state::do_app_rename(std::shared_ptr<app_state> &app, configuration_
             zauto_write_lock l(_lock);
             app->envs[replica_envs::UPDATE_APP_NAME] = fmt::format("updating;{}", new_app_name);
 
-            dassert_f(ec == ERR_OK,
+            CHECK(ec == ERR_OK,
                       "An error that can't be handled occurs while updating remote app environment variable "
                       "app_name: error_code={}, app_id={}, app_name={}, new_app_name={}, {}={}",
                       ec.to_string(),
@@ -1676,7 +1676,7 @@ void server_state::rename_app(configuration_rename_app_rpc rpc)
                 } else {
                     std::vector<std::string> args;
                     utils::split_args(iter->second.c_str(), args, ';');
-                    dassert_f(args[0] == "updating", "invalid app env, env = {}:{}",
+                    CHECK(args[0] == "updating", "invalid app env, env = {}:{}",
                               replica_envs::UPDATE_APP_NAME,
                               args[0]);
 
