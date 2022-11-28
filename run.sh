@@ -374,7 +374,7 @@ function run_test()
     # download bulk load test data
     if [[ "$test_modules" =~ "pegasus_function_test" && "$on_travis" == "" && ! -d "$ROOT/src/test/function_test/pegasus-bulk-load-function-test-files" ]]; then
         echo "Start to download files used for bulk load function test"
-        wget "https://github.com/XiaoMi/pegasus-common/releases/download/deps/pegasus-bulk-load-function-test-files.zip"
+        wget "https://jfrog-internal.sensorsdata.cn:443/artifactory/dragon-internal/inf/skv/pegasus-bulk-load-function-test-files.zip"
         unzip "pegasus-bulk-load-function-test-files.zip" -d "$ROOT/src/test/function_test"
         rm "pegasus-bulk-load-function-test-files.zip"
         echo "Prepare files used for bulk load function test succeed"
@@ -391,6 +391,7 @@ function run_test()
             echo "ERROR: unable to continue on testing because starting onebox failed"
             exit 1
         fi
+        cp $ROOT/src/server/test/config.ini $ROOT/src/builder/src/server/test/config.ini
         sed -i "s/@LOCAL_HOSTNAME@/${LOCAL_HOSTNAME}/g"  $ROOT/src/builder/src/server/test/config.ini
     fi
 
@@ -716,6 +717,7 @@ function run_start_onebox()
         echo "cd `pwd` && $PWD/pegasus_server config.ini -app_list meta &>result &"
         $PWD/pegasus_server config.ini -app_list meta &>result &
         PID=$!
+        sleep 1
         ps -ef | grep '/pegasus_server config.ini' | grep "\<$PID\>"
         cd ..
     done
@@ -730,6 +732,7 @@ function run_start_onebox()
         echo "cd `pwd` && $PWD/pegasus_server config.ini -app_list replica &>result &"
         $PWD/pegasus_server config.ini -app_list replica &>result &
         PID=$!
+        sleep 1
         ps -ef | grep '/pegasus_server config.ini' | grep "\<$PID\>"
         cd ..
     done
@@ -742,6 +745,7 @@ function run_start_onebox()
         echo "cd `pwd` && $PWD/pegasus_server config.ini -app_list collector &>result &"
         $PWD/pegasus_server config.ini -app_list collector &>result &
         PID=$!
+        sleep 1
         ps -ef | grep '/pegasus_server config.ini' | grep "\<$PID\>"
         cd ..
     fi
@@ -791,6 +795,7 @@ function run_stop_onebox()
         shift
     done
     ps -ef | grep '/pegasus_server config.ini' | grep -E 'app_list meta|app_list replica|app_list collector' | awk '{print $2}' | xargs kill &>/dev/null || true
+    run_stop_zk
 }
 
 #####################

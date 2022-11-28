@@ -84,10 +84,32 @@ struct throttle_test_recorder
     std::string test_name;
     std::vector<std::string> parameter_seq = {"total_qps",
                                               "total_size_per_sec",
+                                              "total_query_times",
+                                              "first_10_ms_query_times",
+                                              "first_100_ms_query_times",
+                                              "first_1000_ms_query_times",
+                                              "first_5000_ms_query_times",
+                                              "total_query_size",
+                                              "first_10_ms_query_size",
+                                              "first_100_ms_query_size",
+                                              "first_1000_ms_query_size",
+                                              "first_5000_ms_query_size",
+                                              "total_reject_times",
+                                              "first_10_ms_reject_times",
+                                              "first_100_ms_reject_times",
+                                              "first_1000_ms_reject_times",
+                                              "first_5000_ms_reject_times",
+                                              "total_reject_size",
+                                              "first_10_ms_reject_size",
+                                              "first_100_ms_reject_size",
+                                              "first_1000_ms_reject_size",
+                                              "first_5000_ms_reject_size",
+                                              "total_successful_times",
                                               "first_10_ms_successful_times",
                                               "first_100_ms_successful_times",
                                               "first_1000_ms_successful_times",
                                               "first_5000_ms_successful_times",
+                                              "total_successful_size",
                                               "first_10_ms_successful_size",
                                               "first_100_ms_successful_size",
                                               "first_1000_ms_successful_size",
@@ -96,6 +118,9 @@ struct throttle_test_recorder
     void start_test(const std::string &test_case, uint64_t time_duration_s)
     {
         test_name = test_case;
+        for (const auto &iter : parameter_seq) {
+            records.emplace(std::make_pair(iter, 0));
+        }
         start_time_ms = dsn_now_ms();
         duration_ms = time_duration_s * 1000;
         records.emplace(std::make_pair("duration_ms", duration_ms));

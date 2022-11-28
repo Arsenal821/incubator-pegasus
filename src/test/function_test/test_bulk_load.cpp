@@ -300,6 +300,8 @@ TEST_F(bulk_load_test, bulk_load_tests)
 ///
 TEST_F(bulk_load_test, bulk_load_ingest_behind_tests)
 {
+    update_allow_ingest_behind("false");
+
     // app envs allow_ingest_behind = false, request ingest_behind = true
     ASSERT_EQ(start_bulk_load(true), ERR_INCONSISTENT_STATE);
 

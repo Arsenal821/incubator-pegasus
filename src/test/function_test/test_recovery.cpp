@@ -58,7 +58,7 @@ protected:
                "meta_state_service_simple\" config-server-test-recovery.ini");
         system("sed -i \"/^\\s*distributed_lock_service_type/c distributed_lock_service_type = "
                "distributed_lock_service_simple\" config-server-test-recovery.ini");
-        system("sed -i \"/^\\s*server_list/c server_list = @LOCAL_IP@:34601\" "
+        system("sed -i \"/^\\s*server_list/c server_list = 127.0.0.1:34601\" "
                "config-server-test-recovery.ini");
         system("sed -i \"/^\\s*perf_counter_enable_logging/c perf_counter_enable_logging = false\" "
                "config-server-test-recovery.ini");
