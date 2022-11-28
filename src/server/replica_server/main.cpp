@@ -18,7 +18,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-
 using namespace dsn;
 using namespace dsn::replication;
 
@@ -34,7 +33,9 @@ int main(int argc, char **argv)
             dsn_exit(0);
         }
     }
-    ddebug("replica server starting, pid(%d), version(%s)", (int)getpid(), get_pegasus_server_rcsid("Replica").c_str());
+    ddebug("replica server starting, pid(%d), version(%s)",
+           (int)getpid(),
+           get_pegasus_server_rcsid("Replica").c_str());
 
     service_app::register_factory<pegasus::server::pegasus_replication_service_app>("replica");
     pegasus::server::pegasus_server_impl::register_service();

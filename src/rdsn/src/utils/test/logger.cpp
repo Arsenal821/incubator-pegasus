@@ -65,8 +65,8 @@ static void compare_log_files(const std::set<std::string> &before_files,
     ASSERT_FALSE(after_files.empty());
 
     if (after_files.size() == before_files.size() + 1) {
-        for (auto it1 = before_files.begin(), it2 = after_files.begin();
-             it1 != before_files.end(); ++it1, ++it2) {
+        for (auto it1 = before_files.begin(), it2 = after_files.begin(); it1 != before_files.end();
+             ++it1, ++it2) {
             ASSERT_EQ(*it1, *it2);
         }
     } else if (after_files.size() == before_files.size()) {
@@ -78,8 +78,7 @@ static void compare_log_files(const std::set<std::string> &before_files,
             ASSERT_EQ(*it1, *it2);
         }
     } else {
-        ASSERT_TRUE(false) << "Invalid number of log files, before="
-                           << before_files.size()
+        ASSERT_TRUE(false) << "Invalid number of log files, before=" << before_files.size()
                            << ", after=" << after_files.size();
     }
 }

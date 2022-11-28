@@ -541,7 +541,8 @@ bool create_file(const std::string &path)
     return true;
 }
 
-bool is_absolute_path(const std::string &path) {
+bool is_absolute_path(const std::string &path)
+{
     boost::filesystem::path p(path);
     return p.is_absolute();
 }

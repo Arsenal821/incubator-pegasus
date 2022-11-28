@@ -93,29 +93,32 @@ private:
 
     void remove_redundant_files();
 
-    inline void add_bytes_if_valid(int bytes) {
+    inline void add_bytes_if_valid(int bytes)
+    {
         if (dsn_likely(bytes > 0)) {
             _file_bytes += static_cast<uint64_t>(bytes);
         }
     }
 
-    inline void write_header(dsn_log_level_t log_level) {
+    inline void write_header(dsn_log_level_t log_level)
+    {
         int bytes = print_header(_log, log_level);
         add_bytes_if_valid(bytes);
     }
 
-    inline void write_logv(const char *fmt, va_list args) {
+    inline void write_logv(const char *fmt, va_list args)
+    {
         int bytes = vfprintf(_log, fmt, args);
         add_bytes_if_valid(bytes);
     }
 
-    inline void write_log(const char *fmt, ...) {
+    inline void write_log(const char *fmt, ...)
+    {
         va_list args;
         va_start(args, fmt);
         write_logv(fmt, args);
         va_end(args);
     }
-
 
 private:
     std::string _log_dir;

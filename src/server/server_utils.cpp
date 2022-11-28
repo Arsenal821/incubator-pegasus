@@ -37,12 +37,13 @@ std::string get_pegasus_server_rcsid(const std::string &app_name)
     char const rcsid[] =
         "$Version: " STR(app_name) " Server " PEGASUS_VERSION " (" PEGASUS_GIT_COMMIT ")"
 #if defined(DSN_BUILD_TYPE)
-        " " STR(DSN_BUILD_TYPE)
+                                   " " STR(DSN_BUILD_TYPE)
 #endif
-            ", built by gcc " STR(__GNUC__) "." STR(__GNUC_MINOR__) "." STR(__GNUC_PATCHLEVEL__)
+                                       ", built by gcc " STR(__GNUC__) "." STR(
+                                           __GNUC_MINOR__) "." STR(__GNUC_PATCHLEVEL__)
 #if defined(DSN_BUILD_HOSTNAME)
-                ", built on " STR(DSN_BUILD_HOSTNAME)
+                                           ", built on " STR(DSN_BUILD_HOSTNAME)
 #endif
-                    ", built at " __DATE__ " " __TIME__ " $";
+                                               ", built at " __DATE__ " " __TIME__ " $";
     return static_cast<std::string>(rcsid);
 }

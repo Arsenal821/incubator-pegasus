@@ -55,8 +55,10 @@ public:
     typedef logging_provider *(*factory)(const char *, const char *);
 
 public:
-    logging_provider(const char *log_dir, const char *role_name):
-        _log_prefixed_message_func([]() -> std::string { return ": "; }) {}
+    logging_provider(const char *log_dir, const char *role_name)
+        : _log_prefixed_message_func([]() -> std::string { return ": "; })
+    {
+    }
 
     virtual ~logging_provider(void) {}
 
@@ -83,7 +85,8 @@ public:
 
     int print_header(FILE *fp, dsn_log_level_t log_level);
 
-    void set_log_prefixed_message_func(std::function<std::string()> func) {
+    void set_log_prefixed_message_func(std::function<std::string()> func)
+    {
         if (func != nullptr) {
             _log_prefixed_message_func = func;
         }

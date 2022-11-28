@@ -34,23 +34,22 @@ void glob(const std::string &path_pattern, std::vector<std::string> &path_list)
     auto cleanup = dsn::defer([&] { globfree(&result); });
 
     errno = 0;
-    int ret = ::glob(path_pattern.c_str(), GLOB_TILDE | GLOB_ERR , NULL, &result);
+    int ret = ::glob(path_pattern.c_str(), GLOB_TILDE | GLOB_ERR, NULL, &result);
     switch (ret) {
-        case 0:
-            break;
+    case 0:
+        break;
 
-        case GLOB_NOMATCH:
-            return;
+    case GLOB_NOMATCH:
+        return;
 
-        case GLOB_NOSPACE:
-            fprintf(stdout, "glob out of memory");
-            return;
+    case GLOB_NOSPACE:
+        fprintf(stdout, "glob out of memory");
+        return;
 
-        default:
-            std::string error(errno == 0 ? "unknown error" : safe_strerror(errno));
-            fprintf(stdout, "glob failed for %s: %s\n",
-                    path_pattern.c_str(), error.c_str());
-            return;
+    default:
+        std::string error(errno == 0 ? "unknown error" : safe_strerror(errno));
+        fprintf(stdout, "glob failed for %s: %s\n", path_pattern.c_str(), error.c_str());
+        return;
     }
 
     for (size_t i = 0; i < result.gl_pathc; ++i) {

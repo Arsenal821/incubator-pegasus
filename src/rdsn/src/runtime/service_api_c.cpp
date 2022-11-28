@@ -421,8 +421,7 @@ bool run(const char *config_file,
         printf("log_dir is not set, using %s\n", spec.dir_log.c_str());
     }
     if (!dsn::utils::filesystem::is_absolute_path(spec.dir_log)) {
-        printf("log_dir(%s) should be set with an absolute path\n",
-               spec.dir_log.c_str());
+        printf("log_dir(%s) should be set with an absolute path\n", spec.dir_log.c_str());
         dsn_exit(1);
     }
     dsn::utils::filesystem::create_directory(spec.dir_log);

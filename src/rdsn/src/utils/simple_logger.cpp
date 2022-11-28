@@ -73,7 +73,7 @@ screen_logger::screen_logger(bool short_header) : logging_provider("./", "")
 }
 
 screen_logger::screen_logger(const char *log_dir, const char *role_name)
-        : logging_provider(log_dir, role_name)
+    : logging_provider(log_dir, role_name)
 {
     _short_header =
         dsn_config_get_value_bool("tools.screen_logger",
@@ -104,16 +104,13 @@ void screen_logger::dsn_logv(const char *file,
 void screen_logger::flush() { ::fflush(stdout); }
 
 simple_logger::simple_logger(const char *log_dir, const char *role_name)
-        : logging_provider(log_dir, role_name)
+    : logging_provider(log_dir, role_name)
 {
     _log_dir = std::string(log_dir);
     _role_name = std::string(role_name);
     if (_role_name.empty()) {
-        _role_name =
-            dsn_config_get_value_string("tools.simple_logger",
-                    "base_name",
-                    "skv",
-                    "default base name for log file");
+        _role_name = dsn_config_get_value_string(
+            "tools.simple_logger", "base_name", "skv", "default base name for log file");
     }
 
     std::string symlink_name(_role_name);
@@ -146,7 +143,7 @@ void simple_logger::create_log_file()
     if (_log != nullptr)
         ::fclose(_log);
 
-     _file_bytes = 0;
+    _file_bytes = 0;
 
     uint64_t ts = dsn::utils::get_current_physical_time_ns();
 
@@ -160,22 +157,23 @@ void simple_logger::create_log_file()
     _log = ::fopen(path.c_str(), "w+");
     if (_log == nullptr) {
         std::string error(dsn::utils::safe_strerror(errno));
-        dassert(false, "Failed to fopen %s: %s",
-                path.c_str(), error.c_str());
+        dassert(false, "Failed to fopen %s: %s", path.c_str(), error.c_str());
     }
 
     if (::unlink(_symlink_path.c_str()) != 0) {
         if (errno != ENOENT) {
             std::string error(dsn::utils::safe_strerror(errno));
-            fprintf(stdout, "Failed to unlink %s: %s\n",
-                    _symlink_path.c_str(), error.c_str());
+            fprintf(stdout, "Failed to unlink %s: %s\n", _symlink_path.c_str(), error.c_str());
         }
     }
 
     if (::symlink(file_name.c_str(), _symlink_path.c_str()) != 0) {
         std::string error(dsn::utils::safe_strerror(errno));
-        fprintf(stdout, "Failed to symlink %s as %s: %s\n",
-                file_name.c_str(), _symlink_path.c_str(), error.c_str());
+        fprintf(stdout,
+                "Failed to symlink %s as %s: %s\n",
+                file_name.c_str(),
+                _symlink_path.c_str(),
+                error.c_str());
     }
 
     remove_redundant_files();
@@ -195,8 +193,7 @@ void simple_logger::remove_redundant_files()
         struct stat s;
         if (::stat(matching_file_path.c_str(), &s) != 0) {
             std::string error(dsn::utils::safe_strerror(errno));
-            fprintf(stdout, "Failed to stat %s: %s\n",
-                    matching_file_path.c_str(), error.c_str());
+            fprintf(stdout, "Failed to stat %s: %s\n", matching_file_path.c_str(), error.c_str());
             return;
         }
 
@@ -216,8 +213,10 @@ void simple_logger::remove_redundant_files()
         if (::remove(path.c_str()) != 0) {
             // if remove failed, just print log and ignore it.
             std::string error(dsn::utils::safe_strerror(errno));
-            fprintf(stdout, "Failed to remove redundant log file %s: %s\n",
-                    path.c_str(), error.c_str());
+            fprintf(stdout,
+                    "Failed to remove redundant log file %s: %s\n",
+                    path.c_str(),
+                    error.c_str());
         }
     }
 }
