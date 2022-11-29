@@ -1123,17 +1123,21 @@ void replica_stub::on_query_app_info(query_app_info_rpc rpc)
 
 void replica_stub::on_query_app_name_on_replica(query_app_name_on_replica_rpc rpc)
 {
-    const query_replica_app_mame_on_replica_request &req = rpc.request();
-    query_replica_app_mame_on_replica_reponse &resp = rpc.response();
+    const auto &req = rpc.request();
+    auto &resp = rpc.response();
 
-    LOG_DEBUG_F("got query app name on replica request from {} to gpid {}",
-                req.node.to_string(),
-                req.pid.to_string());
     replica_ptr replica = get_replica(req.pid);
-    if (replica != nullptr) {
+    if (replica == nullptr) {
+        LOG_INFO_F("got query_app_name rpc from {} for gpid {}, but not found.",
+                    req.node.to_string(),
+                    req.pid.to_string());
         resp.err = ERR_OBJECT_NOT_FOUND;
     } else {
         resp.app_name = replica->get_app_info()->app_name;
+        LOG_INFO_F("got query_app_name rpc from {} for gpid {}, will return {}.",
+                    req.node.to_string(),
+                    req.pid.to_string(),
+                    resp.app_name);
         resp.err = ERR_OK;
     }
 }

@@ -1272,7 +1272,7 @@ void server_state::update_partition_configuration_ballot_on_remote_reply(
 
     zauto_write_lock l(_lock);
 
-    LOG_DEBUG_F("reply for updating partition-level max_replica_count on remote storage: "
+    LOG_INFO_F("reply for updating partition-level max_replica_count on remote storage: "
              "error_code={}, app_name={}, app_id={}, partition_id={}, new_ballot={}",
              ec.to_string(),
              app->app_name,
@@ -1324,7 +1324,7 @@ void server_state::update_partition_configuration_ballot_on_remote_reply(
 
     old_partition_config = new_partition_config;
 
-    LOG_DEBUG_F("local partition-level max_replica_count has been changed successfully: ",
+    LOG_INFO_F("local partition-level max_replica_count has been changed successfully: ",
              "app_name={}, app_id={}, partition_id={}, old_partition_config={}, "
              "new_partition_config={}",
              app->app_name,
@@ -1379,7 +1379,7 @@ task_ptr server_state::update_partition_configuration_ballot_on_remote(
                                 std::chrono::seconds(1));
     }
 
-    LOG_DEBUG_F("request for updating partition-level max_replica_count on remote storage: "
+    LOG_INFO_F("request for updating ballot on remote storage: "
              "app_name={}, app_id={}, partition_id={}, new_ballot={}",
              app->app_name,
              app->app_id,
@@ -1410,7 +1410,7 @@ void server_state::update_partition_configuration_ballot(std::shared_ptr<app_sta
     const auto &old_partition_config = app->partitions[partition_index];
     auto &context = app->helpers->contexts[partition_index];
     if (context.stage == config_status::pending_remote_sync) {
-        LOG_DEBUG_F("have to wait until another request which is syncing with remote storage "
+        LOG_INFO_F("have to wait until another request which is syncing with remote storage "
                  "is finished, then process the current request of updating ballot for rename: "
                  "app_id={}, partition_index={}",
                  app->app_name,
@@ -1459,10 +1459,11 @@ void server_state::check_app_info_rename_finished_on_replica(int32_t app_id,
         id = partition_config.pid;
     }
 
-    LOG_DEBUG_F("send rpc query gpid({}.{}) app_name on .app_info to {}.", app_id, partition_index, node.to_string());
+    LOG_INFO_F("send rpc query gpid({}.{}) app_name on .app_info to {}.", app_id, partition_index, node.to_string());
 
-    auto req = std::make_unique<query_replica_app_mame_on_replica_request>();
+    auto req = std::make_unique<query_app_name_on_replica_request>();
     req->pid = id;
+    req->node = dsn_primary_address();
     query_app_name_on_replica_rpc rpc(std::move(req), RPC_QUERY_APP_NAME_ON_REPLICA);
     dsn::task_tracker tracker;
 
@@ -1470,15 +1471,15 @@ void server_state::check_app_info_rename_finished_on_replica(int32_t app_id,
              &tracker,
              [this, rpc, target_app, &node, &tracker, partition_index](error_code err) mutable {
                 auto resp = rpc.response();
+                LOG_INFO_F("received app_name {} response from node({}), gpid({}), err({})",
+                         resp.app_name,
+                         node.to_string(),
+                         rpc.request().pid.to_string(),
+                         err.to_string());
                 if (resp.err == dsn::ERR_OK) {
-                    LOG_DEBUG_F("received app_name {} response from node({}), gpid({}), err({})",
-                             resp.app_name,
-                             node.to_string(),
-                             rpc.request().pid.to_string(),
-                             err.to_string());
                     if (target_app->app_name == resp.app_name) {
                         auto uncompleted = --target_app->helpers->partitions_in_progress;
-                        LOG_DEBUG_F("gpid {} received app_name {} equal expected app_name {}.",
+                        LOG_INFO_F("gpid {} received app_name {} equal expected app_name {}.",
                                  target_app->app_id,
                                  resp.app_name,
                                  target_app->app_name);
@@ -1501,7 +1502,7 @@ void server_state::check_app_info_rename_finished_on_replica(int32_t app_id,
 
                                     target_app->envs.erase(replica_envs::UPDATE_APP_NAME);
 
-                                    LOG_DEBUG_F("both remote and local env of app_name have been deleted "
+                                    LOG_INFO_F("both remote and local env of app_name have been deleted "
                                              "successfully: app_id={}, app_name={}, new_app_name={}",
                                              target_app->app_id,
                                              target_app->app_name);
@@ -1511,9 +1512,8 @@ void server_state::check_app_info_rename_finished_on_replica(int32_t app_id,
                         return;
                     }
                 }
-                LOG_DEBUG_F("response err {}, gpid {} received app_name {} not equal expected app_name {}, ",
+                LOG_INFO_F("gpid {} received app_name {} not equal expected app_name {}, ",
                         "try again later.",
-                         err.to_string(),
                          target_app->app_id,
                          resp.app_name,
                          target_app->app_name);
@@ -1536,7 +1536,7 @@ void server_state::update_app_name(std::shared_ptr<app_state> &app, configuratio
 
     app->helpers->partitions_in_progress.store(app->partition_count);
 
-    LOG_DEBUG_F("ready to update remote app_name: app_id={}, app_name={}",
+    LOG_INFO_F("ready to update remote app_name: app_id={}, app_name={}",
              app->app_id,
              new_app_name);
 
@@ -1561,7 +1561,7 @@ void server_state::update_app_name(std::shared_ptr<app_state> &app, configuratio
             _exist_apps.emplace(app->app_name, app);
             _exist_apps.erase(old_app_name);
 
-            LOG_DEBUG_F("both remote and local env of app_name have been updated "
+            LOG_INFO_F("both remote and local env of app_name have been updated "
                      "successfully: app_id={}, new_app_name={}",
                      app->app_id,
                      app->app_name);
@@ -1597,7 +1597,7 @@ void server_state::do_app_rename(std::shared_ptr<app_state> &app, configuration_
     zauto_write_lock l(_lock);
     const auto &new_app_name = rpc.request().new_app_name;
 
-    LOG_DEBUG_F("ready to update remote env of app_name: app_id={}, "
+    LOG_INFO_F("ready to update remote env of app_name: app_id={}, "
              "app_name={}, new_app_name={}, {}={}",
              app->app_id,
              app->app_name,
@@ -1626,7 +1626,7 @@ void server_state::do_app_rename(std::shared_ptr<app_state> &app, configuration_
 
             app->envs[replica_envs::UPDATE_APP_NAME] = fmt::format("updating;{}", new_app_name);
 
-            LOG_DEBUG_F("both remote and local env of app_name have been updated "
+            LOG_INFO_F("both remote and local env of app_name have been updated "
                      "successfully: app_id={}, app_name={}, new_app_name={}, {}={}",
                      app->app_id,
                      app->app_name,
@@ -1646,7 +1646,7 @@ void server_state::rename_app(configuration_rename_app_rpc rpc)
     auto &response = rpc.response();
 
     std::shared_ptr<app_state> target_app;
-    LOG_DEBUG_F("rename app request, app_id({}), new_app_name({})", app_id, new_app_name);
+    LOG_INFO_F("rename app request, app_id({}), new_app_name({})", app_id, new_app_name);
 
     bool do_rename = false;
     {

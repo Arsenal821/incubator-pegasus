@@ -209,13 +209,13 @@ struct query_app_info_response
 
 struct query_replica_app_mame_on_app_info_request
 {
-    1:dsn.rpc_address     node;
+    1:dsn.rpc_address node;
     2:dsn.gpid pid;
 }
 
 struct query_replica_app_mame_on_app_info_reponse
 {
-    1:dsn.error_code      err;
+    1:dsn.error_code err;
     2:string app_name;
 }
 
