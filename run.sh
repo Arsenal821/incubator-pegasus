@@ -215,12 +215,20 @@ function run_build()
     CMAKE_OPTIONS="-DCMAKE_C_COMPILER=${C_COMPILER}
                    -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
                    -DUSE_JEMALLOC=${USE_JEMALLOC}
-                   -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
                    -DENABLE_GCOV=${ENABLE_GCOV}
                    -DENABLE_GPERF=${ENABLE_GPERF}
                    -DBoost_NO_BOOST_CMAKE=ON
                    -DBOOST_ROOT=${THIRDPARTY_ROOT}/output
                    -DBoost_NO_SYSTEM_PATHS=ON"
+
+    if [ "$BUILD_TYPE" == "debug" ]
+    then
+        echo "BUILD_TYPE=debug"
+        CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_BUILD_TYPE=Debug"
+    else
+        echo "BUILD_TYPE=release"
+        CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_BUILD_TYPE=Release"
+    fi
 
     if [ "$(uname)" == "Darwin" ]; then
         CMAKE_OPTIONS="${CMAKE_OPTIONS} -DMACOS_OPENSSL_ROOT_DIR=/usr/local/opt/openssl"
@@ -278,6 +286,7 @@ function run_build()
         echo "Running cmake Pegasus..."
         pushd $BUILD_DIR
         CMAKE_OPTIONS="${CMAKE_OPTIONS} -DBUILD_TEST=${BUILD_TEST}"
+        echo "CMAKE_OPTIONS $CMAKE_OPTIONS"
         cmake ../.. -DCMAKE_INSTALL_PREFIX=$BUILD_DIR/output $CMAKE_OPTIONS
         exit_if_fail $?
     fi
