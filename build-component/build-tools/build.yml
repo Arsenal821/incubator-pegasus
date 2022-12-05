@@ -1,0 +1,42 @@
+build_modules:
+  bootstrap:
+    # 一般情况下，bootstrap 不需要单独写任何 COPY 命令.
+    - type: dragon
+
+  construction_blueprint:
+    - type: dragon
+      add_cmds:
+        - [ "COPY", "../construction_blueprint/*", "./" ]
+  admintools:
+    - type: dragon
+      add_cmds:
+        - [ "COPY", "../admintools/*", "./" ]
+        - [ "RUN", "go env -w GOPROXY=https://jfrog-internal.sensorsdata.cn/artifactory/api/go/go"] #使用内部代理
+        - [ "RUN", "cd ../admin-cli && make"]
+        - [ "COPY", "../admin-cli/bin/admin-cli", "./bin/admin-cli" ]
+        - [ "RUN", "cd ../pegic && make"]
+        - [ "COPY", "../pegic/bin/pegic", "./bin/pegic" ]
+  upgrader:
+    - type: dragon
+      add_cmds:
+        - [ "COPY", "../upgrader/*", "./" ]
+  scheduler_job:
+    - type: dragon
+      add_cmds:
+        - [ "COPY", "../scheduler_job/*", "./" ]
+  sdk:
+    - type: dragon
+      add_cmds:
+        - [ "COPY", "../sdk/*", "./" ]
+  skv_shim:
+    - type: dragon
+      add_cmds:
+       -  ["COPY", "../skv_shim/*", "./"]
+  skv_guidance:
+    - type: dragon
+      add_cmds:
+        -  ["COPY", "../skv_guidance/*", "./"]
+  skv_offline:
+    - type: dragon
+  skv_online:
+    - type: dragon

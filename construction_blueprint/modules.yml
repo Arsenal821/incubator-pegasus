@@ -1,0 +1,173 @@
+product_spec:
+    product_name: skv
+    product_full_name: skv 
+    product_global_conf:
+modules:
+    skv_offline:
+        module_desc:
+            module_type: custom
+            module_installer_type: custom
+            service_continuous_level: offline
+        client_conf:
+            meta_server_list: CALL generate_skv_client_conf(meta_server_list)
+            table_prefix: CALL generate_skv_client_conf(table_prefix)
+            partition_factor: CALL generate_skv_client_conf(partition_factor)
+            major_version: CALL generate_skv_client_conf(major_version)
+        server_conf:
+            meta_server_list: CALL generate_skv_server_conf(meta_server_list)
+            replica_server_list: CALL generate_skv_server_conf(replica_server_list)
+            meta_server: CALL generate_skv_server_conf(meta_server)
+            replica_server: CALL generate_skv_server_conf(replica_server)
+            host_group: CALL generate_skv_server_conf(host_group)
+        module_monitor_conf:
+            # 默认false, 在混部 skv 时自动设为 true
+            detached: CALL generate_skv_monitor_conf(detached)
+        roles:
+            meta_server:
+                role_desc:
+                    port: 8170
+                    role_group: meta
+                role_monitor_conf:
+                    stop_policy:
+                        timeout: 20
+                        retry_times: 1
+                        retry_interval: 0
+                    start_policy:
+                        timeout: 20
+                        retry_times: 1
+                        retry_interval: 0
+                    check_alive_policy:
+                        timeout: 10
+                        retry_times: 3
+                        retry_interval: 1
+                    fix_strategy:
+                        max_num: 3
+                        min_num: 1
+                        restart_all_role: False
+                        restart_module: False
+                    process_keyword: meta
+                    force_stop_cmd: ""
+                    stop_cmd: ""
+                    start_cmd: CALL generate_start_cmd(meta_server)
+                    stateful: True
+                    mutual_role: False
+                addition_conf:
+                    # 是否跟随机器扩容自动进行角色扩容
+                    auto_scale_up_by_host_scale_up: true
+            replica_server:
+                role_desc:
+                    port: 8171
+                    role_group: store
+                role_monitor_conf:
+                    stop_policy:
+                        timeout: 20
+                        retry_times: 1
+                        retry_interval: 0
+                    start_policy:
+                        timeout: 20
+                        retry_times: 1
+                        retry_interval: 0
+                    check_alive_policy:
+                        timeout: 10
+                        retry_times: 3
+                        retry_interval: 1
+                    fix_strategy:
+                        max_num: -1
+                        min_num: -1
+                        restart_all_role: False
+                        restart_module: False
+                    process_keyword: replica
+                    force_stop_cmd: ""
+                    stop_cmd: ""
+                    start_cmd: CALL generate_start_cmd(replica_server)
+                    stateful: True
+                    mutual_role: False
+                addition_conf:
+                    # 是否支持缩容
+                    support_scale_down: true
+                    # 是否跟随机器扩容自动进行角色扩容
+                    auto_scale_up_by_host_scale_up: true
+    skv_online:
+        module_desc:
+            module_type: custom
+            module_installer_type: custom
+            service_continuous_level: online
+        client_conf:
+            meta_server_list: CALL generate_skv_client_conf(meta_server_list)
+            table_prefix: CALL generate_skv_client_conf(table_prefix)
+            partition_factor: CALL generate_skv_client_conf(partition_factor)
+            major_version: CALL generate_skv_client_conf(major_version)
+        server_conf:
+            meta_server_list: CALL generate_skv_server_conf(meta_server_list)
+            replica_server_list: CALL generate_skv_server_conf(replica_server_list)
+            meta_server: CALL generate_skv_server_conf(meta_server)
+            replica_server: CALL generate_skv_server_conf(replica_server)
+            host_group: CALL generate_skv_server_conf(host_group)
+        module_monitor_conf:
+            # online默认是false
+            detached: CALL generate_skv_monitor_conf(detached)
+        roles:
+            meta_server:
+                role_desc:
+                    port: 8160
+                    role_group: online
+                role_monitor_conf:
+                    stop_policy:
+                        timeout: 20
+                        retry_times: 1
+                        retry_interval: 0
+                    start_policy:
+                        timeout: 20
+                        retry_times: 1
+                        retry_interval: 0
+                    check_alive_policy:
+                        timeout: 10
+                        retry_times: 3
+                        retry_interval: 1
+                    fix_strategy:
+                        max_num: 3
+                        min_num: 1
+                        restart_all_role: False
+                        restart_module: False
+                    process_keyword: meta
+                    force_stop_cmd: ""
+                    stop_cmd: ""
+                    start_cmd: CALL generate_start_cmd(meta_server)
+                    stateful: True
+                    mutual_role: False
+                addition_conf:
+                    # 是否跟随机器扩容自动进行角色扩容
+                    auto_scale_up_by_host_scale_up: true
+            replica_server:
+                role_desc:
+                    port: 8161
+                    role_group: online
+                role_monitor_conf:
+                    stop_policy:
+                        timeout: 20
+                        retry_times: 1
+                        retry_interval: 0
+                    start_policy:
+                        timeout: 20
+                        retry_times: 1
+                        retry_interval: 0
+                    check_alive_policy:
+                        timeout: 10
+                        retry_times: 3
+                        retry_interval: 1
+                    fix_strategy:
+                        max_num: -1
+                        min_num: -1
+                        restart_all_role: False
+                        restart_module: False
+                    process_keyword: replica
+                    force_stop_cmd: ""
+                    stop_cmd: ""
+                    start_cmd: CALL generate_start_cmd(replica_server)
+                    stateful: True
+                    mutual_role: False
+                addition_conf:
+                    # 是否支持缩容
+                    support_scale_down: true
+                    # 是否跟随机器扩容自动进行角色扩容
+                    auto_scale_up_by_host_scale_up: true

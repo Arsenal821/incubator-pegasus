@@ -1,0 +1,19 @@
+api_version: v1
+kind: platform_component
+metadata:
+  name: skv
+spec:
+  version: 1.0.0.0
+  modules: {}
+  platform_component_artifacts:
+    skv_offline:
+      version: 2.0.0.0
+  simplified_artifacts:
+    - artifact_name: admintools
+    - artifact_name: bootstrap
+    - artifact_name: construction_blueprint
+    - artifact_name: scheduler_job
+    - artifact_name: sdk
+    - artifact_name: skv_guidance
+    - artifact_name: skv_shim
+    - artifact_name: upgrader

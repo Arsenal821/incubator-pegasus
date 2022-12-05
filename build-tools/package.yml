@@ -1,0 +1,18 @@
+package_modules:
+  skv_offline:
+    source: local
+    variants:
+      - os_distro: el7
+    version: "2.4.0"
+    pub:
+      - type: dragon
+      - type: docker
+
+  skv_online:
+    source: local
+    variants:
+      - os_distro: el7
+    version: "2.4.0"
+    pub:
+      - type: dragon
+      - type: docker

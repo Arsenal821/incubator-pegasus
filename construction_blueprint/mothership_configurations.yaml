@@ -1,0 +1,4605 @@
+api_version: v1
+kind: ms_configurations
+metadata:
+  name: skv
+spec:
+  modules:
+    skv_offline:
+      config:
+        # config for inner information transfer
+        role_group_hardware_config:
+          mem:
+            tag: ''
+            desc: ''
+            type: int
+
+        # skv_offline meta_server.ini : normal config
+        meta_server.ini:
+          app.meta|pools:
+            default_value: 'THREAD_POOL_XXX'
+            tag: ''
+            desc: ''
+            type: str
+          app.meta|ports:
+            default_value: '8170'
+            tag: ''
+            desc: ''
+            type: str
+          core|data_dir:
+            tag: ''
+            desc: ''
+            type: str
+          core|log_dir:
+            tag: ''
+            desc: ''
+            type: str
+          meta_server|max_allowed_replica_count:
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|server_list:
+            tag: ''
+            desc: ''
+            type: str
+          meta_server|cluster_root:
+            tag: ''
+            desc: ''
+            type: str
+          meta_server|distributed_lock_service_parameters:
+            tag: ''
+            desc: ''
+            type: str
+          meta_server|min_live_node_count_for_unfreeze:
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|recover_from_replica_server:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          meta_server|partition_guardian_type:
+            default_value: 'partition_guardian'
+            tag: ''
+            desc: ''
+            type: str
+          meta_server|hold_seconds_for_dropped_app:
+            default_value: 604800
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|add_secondary_max_count_for_one_node:
+            default_value: 10
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|stable_rs_min_running_seconds:
+            default_value: 600000000
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|max_succssive_unstable_restart:
+            default_value: 5
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|replica_assign_delay_ms_for_dropouts:
+            default_value: 600000
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|balancer_in_turn:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          meta_server|only_primary_balancer:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          meta_server|only_move_primary:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          meta_server.apps.__detect|max_replica_count:
+            tag: ''
+            desc: ''
+            type: int
+          meta_server.apps.__detect|partition_count:
+            tag: ''
+            desc: ''
+            type: int
+          meta_server.apps.__stat|max_replica_count:
+            tag: ''
+            desc: ''
+            type: int
+          meta_server.apps.__stat|partition_count:
+            tag: ''
+            desc: ''
+            type: int
+          network|send_queue_threshold:
+            default_value: 4096
+            tag: ''
+            desc: ''
+            type: int
+          network|explicit_host_address:
+            tag: ''
+            desc: ''
+            type: str
+          network|io_service_worker_count:
+            default_value: 4
+            tag: ''
+            desc: ''
+            type: int
+          network|conn_threshold_per_ip:
+            default_value: 0
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.clusters|skv_offline:
+            tag: ''
+            desc: ''
+            type: str
+          pegasus.server|perf_counter_update_interval_seconds:
+            default_value: 10
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|perf_counter_enable_logging:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|prometheus_port:
+            tag: ''
+            desc: ''
+            type: str
+          replication.app|max_replica_count:
+            tag: ''
+            desc: ''
+            type: int
+          replication.app|partition_count:
+            tag: ''
+            desc: ''
+            type: int
+          tools.simple_logger|max_number_of_log_files_on_disk:
+            default_value: 20
+            tag: ''
+            desc: ''
+            type: int
+          tools.simple_logger|stderr_start_level:
+            default_value: 'LOG_LEVEL_ERROR'
+            tag: ''
+            desc: ''
+            type: str
+          tools.simple_logger|max_log_file_bytes:
+            default_value: 524288000
+            tag: ''
+            desc: ''
+            type: int
+          zookeeper|hosts_list:
+            tag: ''
+            desc: ''
+            type: str
+          zookeeper|timeout_ms:
+            default_value: 10000
+            tag: ''
+            desc: ''
+            type: int
+          # skv_offline meta_server.ini : thread pool config
+          threadpool.THREAD_POOL_DEFAULT|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_DEFAULT|worker_count:
+            default_value: 8
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_DLOCK|partitioned:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_DLOCK|worker_count:
+            default_value: 1
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_FD|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_FD|worker_count:
+            default_value: 2
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_INVALID|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_INVALID|worker_count:
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_META_SERVER|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_META_SERVER|worker_count:
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_META_STATE|partitioned:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_META_STATE|worker_count:
+            default_value: 1
+            tag: ''
+            desc: ''
+            type: int
+          # skv_offline meta_server.ini : task config
+          task.LPC_CONTROL_SERVICE_APP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DEFAULT_CALLBACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DELAY_RPC_REQUEST_RATE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DIST_LOCK_SVC_RANDOM_EXPIRE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_META_CALLBACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_META_SERVER_LEADER_LOCK_CALLBACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_META_STATE_HIGH|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_META_STATE_NORMAL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_META_STATE_SERVICE_SIMPLE_INTERNAL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_RESTORE_BACKGROUND|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_RPC_TIMEOUT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_MESSAGE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_MESSAGE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_SESSION_DISCONNECT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_SESSION_DISCONNECT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CLI_CLI_CALL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CLI_CLI_CALL_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_ADD_BACKUP_POLICY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_ADD_BACKUP_POLICY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_ADD_DUPLICATION|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_ADD_DUPLICATION_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_APP_PARTITION_SPLIT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_APP_PARTITION_SPLIT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CLUSTER_INFO|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CLUSTER_INFO_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CONFIG_SYNC|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CONFIG_SYNC_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CONTROL_META|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CONTROL_META_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CREATE_APP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CREATE_APP_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_DDD_DIAGNOSE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_DDD_DIAGNOSE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_DROP_APP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_DROP_APP_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_DUPLICATION_SYNC|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_DUPLICATION_SYNC_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_GET_MAX_REPLICA_COUNT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_GET_MAX_REPLICA_COUNT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_LIST_APPS|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_LIST_APPS_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_LIST_NODES|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_LIST_NODES_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_MODIFY_BACKUP_POLICY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_MODIFY_BACKUP_POLICY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_MODIFY_DUPLICATION|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_MODIFY_DUPLICATION_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_PROPOSE_BALANCER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_PROPOSE_BALANCER_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_BACKUP_POLICY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_BACKUP_POLICY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_DUPLICATION|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_DUPLICATION_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_NODE_PARTITIONS|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_NODE_PARTITIONS_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_RESTORE_STATUS|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_RESTORE_STATUS_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_RECALL_APP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_RECALL_APP_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_REGISTER_CHILD_REPLICA|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_REGISTER_CHILD_REPLICA_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_REPORT_RESTORE_STATUS|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_REPORT_RESTORE_STATUS_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_SET_MAX_REPLICA_COUNT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_SET_MAX_REPLICA_COUNT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_START_BULK_LOAD|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_START_BULK_LOAD_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_START_RECOVERY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_START_RECOVERY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_START_RESTORE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_START_RESTORE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_UPDATE_APP_ENV|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_UPDATE_APP_ENV_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_UPDATE_PARTITION_CONFIGURATION|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_UPDATE_PARTITION_CONFIGURATION_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_HTTP_SERVICE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_HTTP_SERVICE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.TASK_CODE_DLOCK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.TASK_CODE_EXEC_INLINED|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+
+        # skv_offline replica_server.ini :  normal  config
+        replica_server.ini:
+          app.replica|ports:
+            default_value: '8171'
+            tag: ''
+            desc: ''
+            type: str
+          app.replica|pools:
+            default_value: 'THREAD_POOL_XXX'
+            tag: ''
+            desc: ''
+            type: str
+          core|data_dir:
+            tag: ''
+            desc: ''
+            type: str
+          core|log_dir:
+            tag: ''
+            desc: ''
+            type: str
+          network|send_queue_threshold:
+            default_value: 4096
+            tag: ''
+            desc: ''
+            type: int
+          network|explicit_host_address:
+            tag: ''
+            desc: ''
+            type: str
+          network|io_service_worker_count:
+            default_value: 4
+            tag: ''
+            desc: ''
+            type: int
+          network|conn_threshold_per_ip:
+            default_value: 0
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_bloom_filter_bits_per_key:
+            default_value: 10
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_compaction_readahead_size:
+            default_value: 2097152
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_limiter_enable_auto_tune:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_limiter_max_write_megabytes_per_sec:
+            default_value: 500
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_use_direct_io_for_flush_and_compaction:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_use_direct_reads:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_writable_file_max_buffer_size:
+            default_value: 1048576
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_verbose_log:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_slow_query_threshold_ns:
+            default_value: 100000000
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_abnormal_get_size_threshold:
+            default_value: 10000000
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_abnormal_multi_get_size_threshold:
+            default_value: 100000000
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_write_buffer_size:
+            default_value: 20971520
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_write_buffer_number:
+            default_value: 2
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_background_flushes:
+            default_value: 4
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_background_compactions:
+            default_value: 12
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_num_levels:
+            default_value: 6
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_target_file_size_base:
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_target_file_size_multiplier:
+            default_value: 1
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_bytes_for_level_base:
+            default_value: 83886080
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_bytes_for_level_multiplier:
+            default_value: 10
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_level0_file_num_compaction_trigger:
+            default_value: 4
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_level0_slowdown_writes_trigger:
+            default_value: 30
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_level0_stop_writes_trigger:
+            default_value: 60
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_compression_type:
+            default_value: 'lz4'
+            tag: ''
+            desc: ''
+            type: str
+          pegasus.server|rocksdb_disable_table_block_cache:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_block_cache_capacity:
+            default_value: 2147483648
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_block_cache_num_shard_bits:
+            default_value: -1
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_disable_bloom_filter:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_filter_type:
+            default_value: 'common'
+            tag: ''
+            desc: ''
+            type: str
+          pegasus.server|rocksdb_format_version:
+            default_value: 2
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_periodic_compaction_seconds:
+            default_value: 0
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_multi_get_max_iteration_count:
+            default_value: 3000
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_multi_get_max_iteration_size:
+            default_value: 31457280
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_iteration_count:
+            default_value: 1000
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_iteration_threshold_time_ms:
+            default_value: 30000 
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_enable_write_buffer_manager:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_total_size_across_write_buffer:
+            default_value:
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_open_files:
+            default_value: 256
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_log_file_size:
+            default_value: 8388608 
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_log_file_time_to_roll:
+            default_value: 86400 
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_keep_log_file_num:
+            default_value: 32
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_index_type:
+            default_value: 'binary_search'
+            tag: ''
+            desc: ''
+            type: str
+          pegasus.server|rocksdb_partition_filters:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_metadata_block_size:
+            default_value: 4096
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_cache_index_and_filter_blocks:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_pin_top_level_index_and_filter:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_cache_index_and_filter_blocks_with_high_priority:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|checkpoint_reserve_min_count:
+            default_value: 2
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|checkpoint_reserve_time_seconds:
+            default_value: 1800
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|update_rdb_stat_interval:
+            default_value: 600
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|manual_compact_min_interval_seconds:
+            default_value: 600
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|perf_counter_cluster_name:
+            tag: ''
+            desc: ''
+            type: str
+          pegasus.server|perf_counter_update_interval_seconds:
+            default_value: 10
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|perf_counter_enable_logging:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|prometheus_port:
+            tag: ''
+            desc: ''
+            type: str
+          replication|data_dirs:
+            tag: ''
+            desc: ''
+            type: str
+          replication|data_dirs_black_list_file:
+            tag: ''
+            desc: ''
+            type: str
+          replication|slog_dir:
+            tag: ''
+            desc: ''
+            type: str
+          replication|cluster_name:
+            tag: ''
+            desc: ''
+            type: str
+          replication|deny_client_on_start:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          replication|verbose_client_log_on_start:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          replication|verbose_commit_log_on_start:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          replication|delay_for_fd_timeout_on_start:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          replication|prepare_timeout_ms_for_secondaries:
+            default_value: 6000
+            tag: ''
+            desc: ''
+            type: int
+          replication|prepare_timeout_ms_for_potential_secondaries:
+            default_value: 5000
+            tag: ''
+            desc: ''
+            type: int
+          replication|prepare_decree_gap_for_debug_logging:
+            default_value: 10000
+            tag: ''
+            desc: ''
+            type: int
+          replication|max_mutation_count_in_prepare_list:
+            default_value: 110
+            tag: ''
+            desc: ''
+            type: int
+          replication|mutation_2pc_min_replica_count:
+            tag: ''
+            desc: ''
+            type: int
+          replication|group_check_interval_ms:
+            default_value: 100000
+            tag: ''
+            desc: ''
+            type: int
+          replication|checkpoint_interval_seconds:
+            default_value: 300
+            tag: ''
+            desc: ''
+            type: int
+          replication|checkpoint_max_interval_hours:
+            default_value: 1
+            tag: ''
+            desc: ''
+            type: int
+          replication|gc_interval_ms:
+            default_value: 30000
+            tag: ''
+            desc: ''
+            type: int
+          replication|gc_memory_replica_interval_ms:
+            default_value: 300000
+            tag: ''
+            desc: ''
+            type: int
+          replication|gc_disk_error_replica_interval_seconds:
+            default_value: 86400
+            tag: ''
+            desc: ''
+            type: int
+          replication|gc_disk_garbage_replica_interval_seconds:
+            default_value: 86400
+            tag: ''
+            desc: ''
+            type: int
+          replication|fd_check_interval_seconds:
+            default_value: 2
+            tag: ''
+            desc: ''
+            type: int
+          replication|fd_beacon_interval_seconds:
+            default_value: 3
+            tag: ''
+            desc: ''
+            type: int
+          replication|fd_lease_seconds:
+            default_value: 20
+            tag: ''
+            desc: ''
+            type: int
+          replication|fd_grace_seconds:
+            default_value: 22
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_private_file_size_mb:
+            default_value: 64
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_private_reserve_max_size_mb:
+            default_value: 500
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_private_reserve_max_time_seconds:
+            default_value: 36000
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_private_block_bytes:
+            default_value: 262144
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_shared_file_size_mb:
+            default_value: 128
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_shared_file_count_limit:
+            default_value: 100
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_shared_batch_buffer_kb:
+            default_value: 0
+            tag: ''
+            desc: ''
+            type: int
+          replication|config_sync_interval_ms:
+            default_value: 30000
+            tag: ''
+            desc: ''
+            type: int
+          replication|mem_release_enabled:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          replication|mem_release_check_interval_ms:
+            default_value: 10000
+            tag: ''
+            desc: ''
+            type: int
+          replication|mem_release_max_reserved_mem_percentage:
+            default_value: 5
+            tag: ''
+            desc: ''
+            type: int
+          replication|lb_interval_ms:
+            default_value: 10000
+            tag: ''
+            desc: ''
+            type: int
+          replication|learn_app_max_concurrent_count:
+            default_value: 5
+            tag: ''
+            desc: ''
+            type: int
+          replication.app|max_replica_count:
+            tag: ''
+            desc: ''
+            type: int
+          replication.app|partition_count:
+            tag: ''
+            desc: ''
+            type: int
+          tools.simple_logger|max_number_of_log_files_on_disk:
+            default_value: 20
+            tag: ''
+            desc: ''
+            type: int
+          tools.simple_logger|stderr_start_level:
+            default_value: 'LOG_LEVEL_ERROR'
+            tag: ''
+            desc: ''
+            type: str
+          tools.simple_logger|max_log_file_bytes:
+            default_value: 524288000
+            tag: ''
+            desc: ''
+            type: int
+        # skv_offline replica_server.ini : thread pool config
+          threadpool.THREAD_POOL_BLOCK_SERVICE|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_BLOCK_SERVICE|worker_count:
+            default_value: 8
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_COMPACT|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_COMPACT|worker_count:
+            default_value: 8
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_DEFAULT|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_DEFAULT|worker_count:
+            default_value: 8
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_FD|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_FD|worker_count:
+            default_value: 2
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_INVALID|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_INVALID|worker_count:
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_LOCAL_APP|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_LOCAL_APP|worker_count:
+            default_value: 24
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_REPLICATION|partitioned:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_REPLICATION|worker_count:
+            default_value: 24
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_REPLICATION_LONG|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_REPLICATION_LONG|worker_count:
+            default_value: 8
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_SLOG|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_SLOG|worker_count:
+            default_value: 1
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_PLOG|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_PLOG|worker_count:
+            default_value: 4
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_INGESTION|worker_count:
+            default_value: 24
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_INGESTION|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_SCAN|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_SCAN|worker_count:
+            default_value: 24
+            tag: ''
+            desc: ''
+            type: int
+        # skv_offline replica_server.ini : task config
+          task.LPC_AIO_BATCH_WRITE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_AIO_IMMEDIATE_CALLBACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_BACKGROUND_COLD_BACKUP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_BEACON_CHECK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_BEACON_SEND|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CATCHUP_WITH_PRIVATE_LOGS|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CHECKPOINT_REPLICA|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CHECKPOINT_REPLICA_COMPLETED|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CLOSE_REPLICA|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CM_DISCONNECTED_SCATTER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CONTROL_SERVICE_APP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CREATE_CHILD|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DELAY_LEARN|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DELAY_PREPARE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DELAY_RPC_REQUEST_RATE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DELAY_UPDATE_CONFIG|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DISK_STAT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DUPLICATION_SYNC_TIMER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_EXEC_COMMAND_ON_REPLICA|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_FDS_CALL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_GARBAGE_COLLECT_LOGS_AND_REPLICAS|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_GROUP_CHECK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_LEARN_REMOTE_DELTA_FILES|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_LEARN_REMOTE_DELTA_FILES_COMPLETED|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_LOCAL_SERVICE_CALL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_MANUAL_COMPACT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_MEM_RELEASE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_NFS_COPY_FILE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_NFS_FILE_CLOSE_TIMER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_NFS_READ|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_NFS_REQUEST_TIMER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_NFS_WRITE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_OPEN_REPLICA|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_PARTITION_SPLIT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_PARTITION_SPLIT_ASYNC_LEARN|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_PARTITION_SPLIT_ERROR|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_PER_REPLICA_CHECKPOINT_TIMER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_PER_REPLICA_COLLECT_INFO_TIMER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_QUERY_CONFIGURATION_ALL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_QUERY_NODE_CONFIGURATION_SCATTER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_QUERY_NODE_CONFIGURATION_SCATTER2|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_CLIENT_REQUEST_TIMEOUT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_COLD_BACKUP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_COPY_REMOTE_FILES|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_DELAY_QUERY_CONFIG|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_ERROR|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_INIT_LOAD|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_LONG_COMMON|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_LONG_HIGH|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_LONG_LOW|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_LOW|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICA_COPY_LAST_CHECKPOINT_DONE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICA_SERVER_DELAY_START|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICA_STATE_CHANGE_NOTIFICATION|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_RPC_DELAY_CALL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_RPC_TIMEOUT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_WRITE_REPLICATION_LOG|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_WRITE_REPLICATION_LOG_COMMON|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_WRITE_REPLICATION_LOG_PRIVATE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_WRITE_REPLICATION_LOG_SHARED|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_WRITE_THROTTLING_DELAY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_BULK_LOAD|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_BULK_LOAD_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_MESSAGE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_MESSAGE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_SESSION_DISCONNECT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_SESSION_DISCONNECT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CLEAR_COLD_BACKUP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CLEAR_COLD_BACKUP_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CLI_CLI_CALL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CLI_CLI_CALL_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_COLD_BACKUP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_COLD_BACKUP_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CONFIG_PROPOSAL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CONFIG_PROPOSAL_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_GROUP_CHECK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_GROUP_CHECK_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_HTTP_SERVICE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_HTTP_SERVICE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_LEARN|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_LEARN_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_LEARN_ADD_LEARNER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_LEARN_ADD_LEARNER_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_LEARN_COMPLETION_NOTIFY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_LEARN_COMPLETION_NOTIFY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_NFS_COPY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_NFS_COPY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_NFS_GET_FILE_SIZE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_NFS_GET_FILE_SIZE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_PREPARE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_PREPARE|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_PREPARE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_PREPARE_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_QUERY_APP_INFO|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_APP_INFO_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_DISK_INFO|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_DISK_INFO_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_PN_DECREE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_PN_DECREE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_REPLICA_INFO|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_REPLICA_INFO_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_REMOVE_REPLICA|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_REMOVE_REPLICA_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_REPLICATION_WRITE_EMPTY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_REPLICATION_WRITE_EMPTY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_REPLICA_COPY_LAST_CHECKPOINT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_REPLICA_COPY_LAST_CHECKPOINT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_CHECK_AND_SET|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_SET|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_SET|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_SET|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_SET|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_CHECK_AND_SET_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_SET_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_SET_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_SET_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_SET_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_DUPLICATE|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_DUPLICATE|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_DUPLICATE|is_profile:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_DUPLICATE|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_DUPLICATE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_DUPLICATE_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_DUPLICATE_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_DUPLICATE_ACK|is_profile:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_DUPLICATE_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_DUPLICATE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_GET|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET|profiler::size.request.server:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_GET_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_GET_SCANNER|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET_SCANNER|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET_SCANNER|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET_SCANNER|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET_SCANNER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_GET_SCANNER_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET_SCANNER_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET_SCANNER_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET_SCANNER_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET_SCANNER_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_INCR|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_INCR|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_INCR|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_INCR|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_INCR|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_INCR_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_INCR_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_INCR_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_INCR_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_INCR_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_MULTI_GET|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_GET|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_GET|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_GET|profiler::size.request.server:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_GET|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_MULTI_GET_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_GET_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_GET_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_GET_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_GET_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_MULTI_PUT|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_PUT|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_PUT|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_PUT|profiler::size.request.server:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_PUT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_MULTI_PUT_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_PUT_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_PUT_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_PUT_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_PUT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_MULTI_REMOVE|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_REMOVE|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_REMOVE|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_REMOVE|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_REMOVE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_MULTI_REMOVE_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_REMOVE_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_REMOVE_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_REMOVE_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_REMOVE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_PUT|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_PUT|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_PUT|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_PUT|profiler::size.request.server:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_PUT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_PUT_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_PUT_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_PUT_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_PUT_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_PUT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_REMOVE|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_REMOVE|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_REMOVE|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_REMOVE|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_REMOVE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_REMOVE_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_REMOVE_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_REMOVE_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_REMOVE_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_REMOVE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_SCAN|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SCAN|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SCAN|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SCAN|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SCAN|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_SCAN_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SCAN_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SCAN_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SCAN_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SCAN_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_TTL|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_TTL|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_TTL|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_TTL|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_TTL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_TTL_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_TTL_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_TTL_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_TTL_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_TTL_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_SPLIT_NOTIFY_CATCH_UP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_SPLIT_NOTIFY_CATCH_UP_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.TASK_CODE_EXEC_INLINED|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+
+    skv_online:
+      config:
+        # config for inner information transfer
+        role_group_hardware_config:
+          mem:
+            tag: ''
+            desc: ''
+            type: int
+
+        # skv_online meta_server.ini : normal config
+        meta_server.ini:
+          app.meta|pools:
+            default_value: 'THREAD_POOL_XXX'
+            tag: ''
+            desc: ''
+            type: str
+          app.meta|ports:
+            default_value: '8160'
+            tag: ''
+            desc: ''
+            type: str
+          core|data_dir:
+            tag: ''
+            desc: ''
+            type: str
+          core|log_dir:
+            tag: ''
+            desc: ''
+            type: str
+          meta_server|max_allowed_replica_count:
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|server_list:
+            tag: ''
+            desc: ''
+            type: str
+          meta_server|cluster_root:
+            tag: ''
+            desc: ''
+            type: str
+          meta_server|distributed_lock_service_parameters:
+            tag: ''
+            desc: ''
+            type: str
+          meta_server|min_live_node_count_for_unfreeze:
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|recover_from_replica_server:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          meta_server|partition_guardian_type:
+            default_value: 'partition_guardian'
+            tag: ''
+            desc: ''
+            type: str
+          meta_server|hold_seconds_for_dropped_app:
+            default_value: 604800
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|add_secondary_max_count_for_one_node:
+            default_value: 10
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|stable_rs_min_running_seconds:
+            default_value: 600000000
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|max_succssive_unstable_restart:
+            default_value: 5
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|replica_assign_delay_ms_for_dropouts:
+            default_value: 600000
+            tag: ''
+            desc: ''
+            type: int
+          meta_server|balancer_in_turn:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          meta_server|only_primary_balancer:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          meta_server|only_move_primary:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          meta_server.apps.__detect|max_replica_count:
+            tag: ''
+            desc: ''
+            type: int
+          meta_server.apps.__detect|partition_count:
+            tag: ''
+            desc: ''
+            type: int
+          meta_server.apps.__stat|max_replica_count:
+            tag: ''
+            desc: ''
+            type: int
+          meta_server.apps.__stat|partition_count:
+            tag: ''
+            desc: ''
+            type: int
+          network|send_queue_threshold:
+            default_value: 4096
+            tag: ''
+            desc: ''
+            type: int
+          network|explicit_host_address:
+            tag: ''
+            desc: ''
+            type: str
+          network|io_service_worker_count:
+            default_value: 4
+            tag: ''
+            desc: ''
+            type: int
+          network|conn_threshold_per_ip:
+            default_value: 0
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.clusters|skv_online:
+            tag: ''
+            desc: ''
+            type: str
+          pegasus.server|perf_counter_update_interval_seconds:
+            default_value: 10
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|perf_counter_enable_logging:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|prometheus_port:
+            tag: ''
+            desc: ''
+            type: str
+          replication.app|max_replica_count:
+            tag: ''
+            desc: ''
+            type: int
+          replication.app|partition_count:
+            tag: ''
+            desc: ''
+            type: int
+          tools.simple_logger|max_number_of_log_files_on_disk:
+            default_value: 20
+            tag: ''
+            desc: ''
+            type: int
+          tools.simple_logger|stderr_start_level:
+            default_value: 'LOG_LEVEL_ERROR'
+            tag: ''
+            desc: ''
+            type: str
+          tools.simple_logger|max_log_file_bytes:
+            default_value: 524288000
+            tag: ''
+            desc: ''
+            type: int
+          zookeeper|hosts_list:
+            tag: ''
+            desc: ''
+            type: str
+          zookeeper|timeout_ms:
+            default_value: 10000
+            tag: ''
+            desc: ''
+            type: int
+          # skv_online meta_server.ini : thread pool config
+          threadpool.THREAD_POOL_DEFAULT|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_DEFAULT|worker_count:
+            default_value: 8
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_DLOCK|partitioned:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_DLOCK|worker_count:
+            default_value: 1
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_FD|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_FD|worker_count:
+            default_value: 2
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_INVALID|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_INVALID|worker_count:
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_META_SERVER|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_META_SERVER|worker_count:
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_META_STATE|partitioned:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_META_STATE|worker_count:
+            default_value: 1
+            tag: ''
+            desc: ''
+            type: int
+          # skv_online meta_server.ini : task config
+          task.LPC_CONTROL_SERVICE_APP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DEFAULT_CALLBACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DELAY_RPC_REQUEST_RATE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DIST_LOCK_SVC_RANDOM_EXPIRE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_META_CALLBACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_META_SERVER_LEADER_LOCK_CALLBACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_META_STATE_HIGH|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_META_STATE_NORMAL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_META_STATE_SERVICE_SIMPLE_INTERNAL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_RESTORE_BACKGROUND|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_RPC_TIMEOUT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_MESSAGE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_MESSAGE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_SESSION_DISCONNECT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_SESSION_DISCONNECT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CLI_CLI_CALL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CLI_CLI_CALL_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_ADD_BACKUP_POLICY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_ADD_BACKUP_POLICY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_ADD_DUPLICATION|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_ADD_DUPLICATION_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_APP_PARTITION_SPLIT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_APP_PARTITION_SPLIT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CLUSTER_INFO|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CLUSTER_INFO_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CONFIG_SYNC|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CONFIG_SYNC_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CONTROL_META|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CONTROL_META_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CREATE_APP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_CREATE_APP_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_DDD_DIAGNOSE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_DDD_DIAGNOSE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_DROP_APP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_DROP_APP_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_DUPLICATION_SYNC|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_DUPLICATION_SYNC_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_GET_MAX_REPLICA_COUNT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_GET_MAX_REPLICA_COUNT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_LIST_APPS|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_LIST_APPS_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_LIST_NODES|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_LIST_NODES_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_MODIFY_BACKUP_POLICY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_MODIFY_BACKUP_POLICY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_MODIFY_DUPLICATION|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_MODIFY_DUPLICATION_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_PROPOSE_BALANCER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_PROPOSE_BALANCER_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_BACKUP_POLICY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_BACKUP_POLICY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_DUPLICATION|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_DUPLICATION_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_NODE_PARTITIONS|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_NODE_PARTITIONS_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_RESTORE_STATUS|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_QUERY_RESTORE_STATUS_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_RECALL_APP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_RECALL_APP_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_REGISTER_CHILD_REPLICA|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_REGISTER_CHILD_REPLICA_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_REPORT_RESTORE_STATUS|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_REPORT_RESTORE_STATUS_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_SET_MAX_REPLICA_COUNT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_SET_MAX_REPLICA_COUNT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_START_BULK_LOAD|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_START_BULK_LOAD_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_START_RECOVERY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_START_RECOVERY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_START_RESTORE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_START_RESTORE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_UPDATE_APP_ENV|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_UPDATE_APP_ENV_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_UPDATE_PARTITION_CONFIGURATION|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CM_UPDATE_PARTITION_CONFIGURATION_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_HTTP_SERVICE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_HTTP_SERVICE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.TASK_CODE_DLOCK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.TASK_CODE_EXEC_INLINED|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+
+        # skv_online replica_server.ini :  normal  config
+        replica_server.ini:
+          app.replica|ports:
+            default_value: '8161'
+            tag: ''
+            desc: ''
+            type: str
+          app.replica|pools:
+            default_value: 'THREAD_POOL_XXX'
+            tag: ''
+            desc: ''
+            type: str
+          core|data_dir:
+            tag: ''
+            desc: ''
+            type: str
+          core|log_dir:
+            tag: ''
+            desc: ''
+            type: str
+          network|send_queue_threshold:
+            default_value: 4096
+            tag: ''
+            desc: ''
+            type: int
+          network|explicit_host_address:
+            tag: ''
+            desc: ''
+            type: str
+          network|io_service_worker_count:
+            default_value: 4
+            tag: ''
+            desc: ''
+            type: int
+          network|conn_threshold_per_ip:
+            default_value: 0
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_bloom_filter_bits_per_key:
+            default_value: 10
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_compaction_readahead_size:
+            default_value: 2097152
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_limiter_enable_auto_tune:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_limiter_max_write_megabytes_per_sec:
+            default_value: 500
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_use_direct_io_for_flush_and_compaction:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_use_direct_reads:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_writable_file_max_buffer_size:
+            default_value: 1048576
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_verbose_log:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_slow_query_threshold_ns:
+            default_value: 100000000
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_abnormal_get_size_threshold:
+            default_value: 10000000
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_abnormal_multi_get_size_threshold:
+            default_value: 100000000
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_write_buffer_size:
+            default_value: 20971520
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_write_buffer_number:
+            default_value: 2
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_background_flushes:
+            default_value: 4
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_background_compactions:
+            default_value: 12
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_num_levels:
+            default_value: 6
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_target_file_size_base:
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_target_file_size_multiplier:
+            default_value: 1
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_bytes_for_level_base:
+            default_value: 83886080
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_bytes_for_level_multiplier:
+            default_value: 10
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_level0_file_num_compaction_trigger:
+            default_value: 4
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_level0_slowdown_writes_trigger:
+            default_value: 30
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_level0_stop_writes_trigger:
+            default_value: 60
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_compression_type:
+            default_value: 'lz4'
+            tag: ''
+            desc: ''
+            type: str
+          pegasus.server|rocksdb_disable_table_block_cache:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_block_cache_capacity:
+            default_value: 2147483648
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_block_cache_num_shard_bits:
+            default_value: -1
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_disable_bloom_filter:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_filter_type:
+            default_value: 'common'
+            tag: ''
+            desc: ''
+            type: str
+          pegasus.server|rocksdb_format_version:
+            default_value: 2
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_periodic_compaction_seconds:
+            default_value: 0
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_multi_get_max_iteration_count:
+            default_value: 3000
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_multi_get_max_iteration_size:
+            default_value: 31457280
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_iteration_count:
+            default_value: 1000
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_iteration_threshold_time_ms:
+            default_value: 30000 
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_enable_write_buffer_manager:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_total_size_across_write_buffer:
+            default_value:
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_open_files:
+            default_value: 256
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_max_log_file_size:
+            default_value: 8388608 
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_log_file_time_to_roll:
+            default_value: 86400 
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_keep_log_file_num:
+            default_value: 32
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_index_type:
+            default_value: 'binary_search'
+            tag: ''
+            desc: ''
+            type: str
+          pegasus.server|rocksdb_partition_filters:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_metadata_block_size:
+            default_value: 4096
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|rocksdb_cache_index_and_filter_blocks:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_pin_top_level_index_and_filter:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|rocksdb_cache_index_and_filter_blocks_with_high_priority:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|checkpoint_reserve_min_count:
+            default_value: 2
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|checkpoint_reserve_time_seconds:
+            default_value: 1800
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|update_rdb_stat_interval:
+            default_value: 600
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|manual_compact_min_interval_seconds:
+            default_value: 600
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|perf_counter_cluster_name:
+            tag: ''
+            desc: ''
+            type: str
+          pegasus.server|perf_counter_update_interval_seconds:
+            default_value: 10
+            tag: ''
+            desc: ''
+            type: int
+          pegasus.server|perf_counter_enable_logging:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          pegasus.server|prometheus_port:
+            tag: ''
+            desc: ''
+            type: str
+          replication|data_dirs:
+            tag: ''
+            desc: ''
+            type: str
+          replication|data_dirs_black_list_file:
+            tag: ''
+            desc: ''
+            type: str
+          replication|slog_dir:
+            tag: ''
+            desc: ''
+            type: str
+          replication|cluster_name:
+            tag: ''
+            desc: ''
+            type: str
+          replication|deny_client_on_start:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          replication|verbose_client_log_on_start:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          replication|verbose_commit_log_on_start:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          replication|delay_for_fd_timeout_on_start:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          replication|prepare_timeout_ms_for_secondaries:
+            default_value: 6000
+            tag: ''
+            desc: ''
+            type: int
+          replication|prepare_timeout_ms_for_potential_secondaries:
+            default_value: 5000
+            tag: ''
+            desc: ''
+            type: int
+          replication|prepare_decree_gap_for_debug_logging:
+            default_value: 10000
+            tag: ''
+            desc: ''
+            type: int
+          replication|max_mutation_count_in_prepare_list:
+            default_value: 110
+            tag: ''
+            desc: ''
+            type: int
+          replication|mutation_2pc_min_replica_count:
+            tag: ''
+            desc: ''
+            type: int
+          replication|group_check_interval_ms:
+            default_value: 100000
+            tag: ''
+            desc: ''
+            type: int
+          replication|checkpoint_interval_seconds:
+            default_value: 300
+            tag: ''
+            desc: ''
+            type: int
+          replication|checkpoint_max_interval_hours:
+            default_value: 1
+            tag: ''
+            desc: ''
+            type: int
+          replication|gc_interval_ms:
+            default_value: 30000
+            tag: ''
+            desc: ''
+            type: int
+          replication|gc_memory_replica_interval_ms:
+            default_value: 300000
+            tag: ''
+            desc: ''
+            type: int
+          replication|gc_disk_error_replica_interval_seconds:
+            default_value: 86400
+            tag: ''
+            desc: ''
+            type: int
+          replication|gc_disk_garbage_replica_interval_seconds:
+            default_value: 86400
+            tag: ''
+            desc: ''
+            type: int
+          replication|fd_check_interval_seconds:
+            default_value: 2
+            tag: ''
+            desc: ''
+            type: int
+          replication|fd_beacon_interval_seconds:
+            default_value: 3
+            tag: ''
+            desc: ''
+            type: int
+          replication|fd_lease_seconds:
+            default_value: 20
+            tag: ''
+            desc: ''
+            type: int
+          replication|fd_grace_seconds:
+            default_value: 22
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_private_file_size_mb:
+            default_value: 64
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_private_reserve_max_size_mb:
+            default_value: 500
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_private_reserve_max_time_seconds:
+            default_value: 36000
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_private_block_bytes:
+            default_value: 262144
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_shared_file_size_mb:
+            default_value: 128
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_shared_file_count_limit:
+            default_value: 100
+            tag: ''
+            desc: ''
+            type: int
+          replication|log_shared_batch_buffer_kb:
+            default_value: 0
+            tag: ''
+            desc: ''
+            type: int
+          replication|config_sync_interval_ms:
+            default_value: 30000
+            tag: ''
+            desc: ''
+            type: int
+          replication|mem_release_enabled:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          replication|mem_release_check_interval_ms:
+            default_value: 10000
+            tag: ''
+            desc: ''
+            type: int
+          replication|mem_release_max_reserved_mem_percentage:
+            default_value: 5
+            tag: ''
+            desc: ''
+            type: int
+          replication|lb_interval_ms:
+            default_value: 10000
+            tag: ''
+            desc: ''
+            type: int
+          replication|learn_app_max_concurrent_count:
+            default_value: 5
+            tag: ''
+            desc: ''
+            type: int
+          replication.app|max_replica_count:
+            tag: ''
+            desc: ''
+            type: int
+          replication.app|partition_count:
+            tag: ''
+            desc: ''
+            type: int
+          tools.simple_logger|max_number_of_log_files_on_disk:
+            default_value: 20
+            tag: ''
+            desc: ''
+            type: int
+          tools.simple_logger|stderr_start_level:
+            default_value: 'LOG_LEVEL_ERROR'
+            tag: ''
+            desc: ''
+            type: str
+          tools.simple_logger|max_log_file_bytes:
+            default_value: 524288000
+            tag: ''
+            desc: ''
+            type: int
+        # skv_online replica_server.ini : thread pool config
+          threadpool.THREAD_POOL_BLOCK_SERVICE|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_BLOCK_SERVICE|worker_count:
+            default_value: 8
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_COMPACT|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_COMPACT|worker_count:
+            default_value: 8
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_DEFAULT|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_DEFAULT|worker_count:
+            default_value: 8
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_FD|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_FD|worker_count:
+            default_value: 2
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_INVALID|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_INVALID|worker_count:
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_LOCAL_APP|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_LOCAL_APP|worker_count:
+            default_value: 24
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_REPLICATION|partitioned:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_REPLICATION|worker_count:
+            default_value: 24
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_REPLICATION_LONG|partitioned:
+            default_value: 'false'
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_REPLICATION_LONG|worker_count:
+            default_value: 8
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_SLOG|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_SLOG|worker_count:
+            default_value: 1
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_PLOG|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_PLOG|worker_count:
+            default_value: 4
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_INGESTION|worker_count:
+            default_value: 24
+            tag: ''
+            desc: ''
+            type: int
+          threadpool.THREAD_POOL_INGESTION|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_SCAN|partitioned:
+            tag: ''
+            desc: ''
+            type: bool
+          threadpool.THREAD_POOL_SCAN|worker_count:
+            default_value: 24
+            tag: ''
+            desc: ''
+            type: int
+        # skv_online replica_server.ini : task config
+          task.LPC_AIO_BATCH_WRITE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_AIO_IMMEDIATE_CALLBACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_BACKGROUND_COLD_BACKUP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_BEACON_CHECK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_BEACON_SEND|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CATCHUP_WITH_PRIVATE_LOGS|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CHECKPOINT_REPLICA|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CHECKPOINT_REPLICA_COMPLETED|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CLOSE_REPLICA|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CM_DISCONNECTED_SCATTER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CONTROL_SERVICE_APP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_CREATE_CHILD|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DELAY_LEARN|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DELAY_PREPARE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DELAY_RPC_REQUEST_RATE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DELAY_UPDATE_CONFIG|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DISK_STAT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_DUPLICATION_SYNC_TIMER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_EXEC_COMMAND_ON_REPLICA|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_FDS_CALL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_GARBAGE_COLLECT_LOGS_AND_REPLICAS|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_GROUP_CHECK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_LEARN_REMOTE_DELTA_FILES|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_LEARN_REMOTE_DELTA_FILES_COMPLETED|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_LOCAL_SERVICE_CALL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_MANUAL_COMPACT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_MEM_RELEASE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_NFS_COPY_FILE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_NFS_FILE_CLOSE_TIMER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_NFS_READ|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_NFS_REQUEST_TIMER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_NFS_WRITE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_OPEN_REPLICA|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_PARTITION_SPLIT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_PARTITION_SPLIT_ASYNC_LEARN|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_PARTITION_SPLIT_ERROR|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_PER_REPLICA_CHECKPOINT_TIMER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_PER_REPLICA_COLLECT_INFO_TIMER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_QUERY_CONFIGURATION_ALL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_QUERY_NODE_CONFIGURATION_SCATTER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_QUERY_NODE_CONFIGURATION_SCATTER2|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_CLIENT_REQUEST_TIMEOUT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_COLD_BACKUP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_COPY_REMOTE_FILES|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_DELAY_QUERY_CONFIG|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_ERROR|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_INIT_LOAD|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_LONG_COMMON|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_LONG_HIGH|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_LONG_LOW|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICATION_LOW|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICA_COPY_LAST_CHECKPOINT_DONE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICA_SERVER_DELAY_START|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_REPLICA_STATE_CHANGE_NOTIFICATION|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_RPC_DELAY_CALL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_RPC_TIMEOUT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_WRITE_REPLICATION_LOG|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_WRITE_REPLICATION_LOG_COMMON|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_WRITE_REPLICATION_LOG_PRIVATE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_WRITE_REPLICATION_LOG_SHARED|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.LPC_WRITE_THROTTLING_DELAY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_BULK_LOAD|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_BULK_LOAD_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_MESSAGE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_MESSAGE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_SESSION_DISCONNECT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CALL_RAW_SESSION_DISCONNECT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CLEAR_COLD_BACKUP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CLEAR_COLD_BACKUP_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CLI_CLI_CALL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CLI_CLI_CALL_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_COLD_BACKUP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_COLD_BACKUP_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CONFIG_PROPOSAL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_CONFIG_PROPOSAL_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_GROUP_CHECK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_GROUP_CHECK_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_HTTP_SERVICE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_HTTP_SERVICE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_LEARN|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_LEARN_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_LEARN_ADD_LEARNER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_LEARN_ADD_LEARNER_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_LEARN_COMPLETION_NOTIFY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_LEARN_COMPLETION_NOTIFY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_NFS_COPY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_NFS_COPY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_NFS_GET_FILE_SIZE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_NFS_GET_FILE_SIZE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_PREPARE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_PREPARE|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_PREPARE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_PREPARE_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_QUERY_APP_INFO|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_APP_INFO_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_DISK_INFO|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_DISK_INFO_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_PN_DECREE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_PN_DECREE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_REPLICA_INFO|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_QUERY_REPLICA_INFO_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_REMOVE_REPLICA|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_REMOVE_REPLICA_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_REPLICATION_WRITE_EMPTY|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_REPLICATION_WRITE_EMPTY_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_REPLICA_COPY_LAST_CHECKPOINT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_REPLICA_COPY_LAST_CHECKPOINT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_MUTATE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_CHECK_AND_SET|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_SET|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_SET|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_SET|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_SET|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_CHECK_AND_SET_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_SET_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CHECK_AND_SET_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_SET_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CHECK_AND_SET_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_CLEAR_SCANNER_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_DUPLICATE|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_DUPLICATE|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_DUPLICATE|is_profile:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_DUPLICATE|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_DUPLICATE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_DUPLICATE_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_DUPLICATE_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_DUPLICATE_ACK|is_profile:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_DUPLICATE_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_DUPLICATE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_GET|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET|profiler::size.request.server:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_GET_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_GET_SCANNER|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET_SCANNER|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET_SCANNER|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET_SCANNER|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET_SCANNER|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_GET_SCANNER_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET_SCANNER_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_GET_SCANNER_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET_SCANNER_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_GET_SCANNER_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_INCR|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_INCR|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_INCR|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_INCR|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_INCR|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_INCR_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_INCR_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_INCR_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_INCR_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_INCR_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_MULTI_GET|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_GET|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_GET|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_GET|profiler::size.request.server:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_GET|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_MULTI_GET_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_GET_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_GET_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_GET_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_GET_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_MULTI_PUT|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_PUT|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_PUT|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_PUT|profiler::size.request.server:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_PUT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_MULTI_PUT_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_PUT_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_PUT_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_PUT_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_PUT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_MULTI_REMOVE|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_REMOVE|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_REMOVE|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_REMOVE|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_REMOVE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_MULTI_REMOVE_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_REMOVE_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_MULTI_REMOVE_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_REMOVE_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_MULTI_REMOVE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_PUT|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_PUT|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_PUT|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_PUT|profiler::size.request.server:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_PUT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_PUT_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_PUT_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_PUT_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_PUT_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_PUT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_REMOVE|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_REMOVE|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_REMOVE|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_REMOVE|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_REMOVE|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_REMOVE_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_REMOVE_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_REMOVE_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_REMOVE_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_REMOVE_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_SCAN|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SCAN|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SCAN|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SCAN|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SCAN|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_SCAN_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SCAN_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SCAN_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SCAN_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SCAN_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_SORTKEY_COUNT_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_TTL|rpc_request_throttling_mode:
+            default_value: 'TM_DELAY'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_TTL|rpc_request_delays_milliseconds:
+            default_value: '50, 50, 50, 50, 50, 100'
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_TTL|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_TTL|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_TTL|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_RRDB_RRDB_TTL_ACK|rpc_request_throttling_mode:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_TTL_ACK|rpc_request_delays_milliseconds:
+            tag: ''
+            desc: ''
+            type: str
+          task.RPC_RRDB_RRDB_TTL_ACK|is_profile:
+            default_value: 'true'
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_TTL_ACK|profiler::size.request.server:
+            tag: ''
+            desc: ''
+            type: bool
+          task.RPC_RRDB_RRDB_TTL_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_SPLIT_NOTIFY_CATCH_UP|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.RPC_SPLIT_NOTIFY_CATCH_UP_ACK|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int
+          task.TASK_CODE_EXEC_INLINED|rpc_timeout_milliseconds:
+            tag: ''
+            desc: ''
+            type: int

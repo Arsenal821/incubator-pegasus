@@ -1,0 +1,76 @@
+threadpool.THREAD_POOL_COMPACT|partitioned:
+  default_value: 'false'
+  tag: ''
+  desc: ''
+  type: bool
+threadpool.THREAD_POOL_COMPACT|worker_count:
+  default_value: 8
+  tag: ''
+  desc: ''
+  type: int
+threadpool.THREAD_POOL_DEFAULT|partitioned:
+  default_value: 'false'
+  tag: ''
+  desc: ''
+  type: bool
+threadpool.THREAD_POOL_DEFAULT|worker_count:
+  default_value: 8
+  tag: ''
+  desc: ''
+  type: int
+threadpool.THREAD_POOL_FD|partitioned:
+  default_value: 'false'
+  tag: ''
+  desc: ''
+  type: bool
+threadpool.THREAD_POOL_FD|worker_count:
+  default_value: 2
+  tag: ''
+  desc: ''
+  type: int
+threadpool.THREAD_POOL_INVALID|partitioned:
+  tag: ''
+  desc: ''
+  type: bool
+threadpool.THREAD_POOL_INVALID|worker_count:
+  tag: ''
+  desc: ''
+  type: int
+threadpool.THREAD_POOL_LOCAL_APP|partitioned:
+  default_value: 'false'
+  tag: ''
+  desc: ''
+  type: bool
+threadpool.THREAD_POOL_LOCAL_APP|worker_count:
+  default_value: 24
+  tag: ''
+  desc: ''
+  type: int
+threadpool.THREAD_POOL_REPLICATION|partitioned:
+  default_value: 'true'
+  tag: ''
+  desc: ''
+  type: bool
+threadpool.THREAD_POOL_REPLICATION|worker_count:
+  default_value: 24
+  tag: ''
+  desc: ''
+  type: int
+threadpool.THREAD_POOL_REPLICATION_LONG|partitioned:
+  default_value: 'false'
+  tag: ''
+  desc: ''
+  type: bool
+threadpool.THREAD_POOL_REPLICATION_LONG|worker_count:
+  default_value: 8
+  tag: ''
+  desc: ''
+  type: int
+threadpool.THREAD_POOL_SLOG|partitioned:
+  tag: ''
+  desc: ''
+  type: bool
+threadpool.THREAD_POOL_SLOG|worker_count:
+  tag: ''
+  desc: ''
+  type: int

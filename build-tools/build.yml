@@ -1,0 +1,28 @@
+build_modules:
+  skv_offline:
+    variants:
+      - os_distro: el7
+    types:
+      - type: dragon
+        add_cmds:
+          - ["RUN", "sh ./prebuild-tools/get_prebuid_package.sh"]
+          - ["COPY", "./skv_binary/*", "./"]
+      - type: docker
+        args:
+          DOCKERFILE_PATH: build-tools/dockerfiles/skv_offline
+        add_cmds:
+          - ["RUN", "sh ./prebuild-tools/collect_artifacts.sh skv_offline"]
+
+  skv_online:
+    variants:
+      - os_distro: el7
+    types:
+      - type: dragon
+        add_cmds:
+          - ["RUN", "sh ./prebuild-tools/get_prebuid_package.sh"]
+          - ["COPY", "./skv_binary/*", "./"]
+      - type: docker
+        args:
+          DOCKERFILE_PATH: build-tools/dockerfiles/skv_online
+        add_cmds:
+          - ["RUN", "sh ./prebuild-tools/collect_artifacts.sh skv_online"]

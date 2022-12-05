@@ -1,0 +1,194 @@
+[apps..default]
+  run = true
+  count = 1
+
+[apps.meta]
+  type = meta
+  name = meta
+  arguments =
+  ports = ${meta_server_port}
+  pools = THREAD_POOL_DEFAULT,THREAD_POOL_META_SERVER,THREAD_POOL_META_STATE,THREAD_POOL_FD,THREAD_POOL_DLOCK
+  run = true
+  count = 1
+
+[apps.mimic]
+  name = mimic
+  type = dsn.app.mimic
+  arguments =
+  pools = THREAD_POOL_DEFAULT
+  run = true
+  count = 1
+  delay_seconds = 30
+
+[core]
+  data_dir = ${app_dir}
+
+  tool = nativerun
+  ;toollets = tracer, profiler, fault_injector
+  toollets = profiler
+
+  pause_on_start = false
+  enable_default_app_mimic = true
+
+  tls_trans_memory_KB = 64
+  tcmalloc_release_rate = 10.0
+
+; logging_start_level = LOG_LEVEL_INFORMATION
+  logging_start_level = LOG_LEVEL_DEBUG
+  logging_factory_name = dsn::tools::simple_logger
+  logging_flush_on_exit = true
+
+[tools.simple_logger]
+  short_header = false
+  fast_flush = false
+  max_number_of_log_files_on_disk = 500
+; stderr_start_level = LOG_LEVEL_INFORMATION
+  stderr_start_level = LOG_LEVEL_ERROR
+
+[network]
+  explicit_host_address =
+  primary_interface =
+  ; how many network threads for network library(used by asio)
+  io_service_worker_count = 4
+  ; how many connections can be established from one ip address to a server(both replica and meta), 0 means no threshold
+  conn_threshold_per_ip = 0
+
+; specification for each thread pool
+[threadpool..default]
+  worker_count = 4
+
+[threadpool.THREAD_POOL_DEFAULT]
+  name = default
+  partitioned = false
+  worker_priority = THREAD_xPRIORITY_NORMAL
+  # The worker count in THREAD_POOL_DEFAULT must be >= 5.
+  # Because in info collector server, there are four timer tasks(LPC_PEGASUS_APP_STAT_TIMER, LPC_PEGASUS_STORAGE_SIZE_STAT_TIMER,
+  # LPC_DETECT_AVAILABLE and LPC_PEGASUS_CAPACITY_UNIT_STAT_TIMER). Each of these timer tasks occupies a thread in THREAD_POOL_DEFAULT.
+  # Each of these timer tasks calls remote procedure to meta server(which produce a callback), and waits for the rpc's callback to execute.
+  # If the worker_count <= 4, all of these threads are occupied by these timer tasks. so their rpc's callbacks can't get a thread to run.
+  # it comes to be a deadlock(timer task wait for rpc's callback to execute, and rpc's callback wait for the timer task to release the thread).
+  worker_count = 8
+
+[threadpool.THREAD_POOL_META_STATE]
+  name = meta_state
+  partitioned = true
+  worker_priority = THREAD_xPRIORITY_NORMAL
+  worker_count = 1
+
+[threadpool.THREAD_POOL_META_SERVER]
+  name = meta_server
+  partitioned = false
+  worker_priority = THREAD_xPRIORITY_NORMAL
+  worker_count = 8
+
+[threadpool.THREAD_POOL_DLOCK]
+  name = dist_lock
+  partitioned = true
+  worker_priority = THREAD_xPRIORITY_NORMAL
+  worker_count = 1
+
+[threadpool.THREAD_POOL_FD]
+  name = fd
+  partitioned = false
+  worker_priority = THREAD_xPRIORITY_NORMAL
+  worker_count = 2
+
+[meta_server]
+  server_list = ${meta_server_list}
+  cluster_root = ${cluster_root}
+
+  distributed_lock_service_type = distributed_lock_service_zookeeper
+  distributed_lock_service_parameters = ${cluster_root}/lock
+
+  meta_state_service_type = meta_state_service_zookeeper
+  meta_state_service_parameters =
+
+  node_live_percentage_threshold_for_update = 50
+  min_live_node_count_for_unfreeze = ${min_live_node_count_for_unfreeze}
+  meta_function_level_on_start = steady
+  recover_from_replica_server = false
+  hold_seconds_for_dropped_app = 604800
+  add_secondary_enable_flow_control = true
+  add_secondary_max_count_for_one_node = 20
+  stable_rs_min_running_seconds = 600
+  max_succssive_unstable_restart = 5
+
+  server_load_balancer_type = greedy_load_balancer
+  # partition guardian is used to keep partitions healthy. 
+  # e.g. if max_replicas_in_group = 3, one primary and two secondaries must be kept for each partition 
+  partition_guardian_type = partition_guardian
+  replica_assign_delay_ms_for_dropouts = 600000
+  max_replicas_in_group = 3
+  max_reserved_dropped_replicas = 0
+  balancer_in_turn = false
+  only_primary_balancer = false
+  only_move_primary = false
+
+  cold_backup_disabled = false
+
+  enable_white_list = false
+  replica_white_list =
+
+;;;; 集群在bootstrap时默认要创建的表
+[replication.app]
+;表名
+app_name = temp
+;type表征了存储引擎，pegasus表示我们基于rocksdb实现的存储引擎
+app_type = pegasus
+;分片数
+partition_count = 8
+;每个分片的副本个数
+max_replica_count = ${max_replica_count}
+;rDSN参数，对于app_type = pegasus需要设置为true
+stateful = true
+package_id =
+
+[pegasus.server]
+  perf_counter_update_interval_seconds = 10
+  perf_counter_enable_logging = false
+  # Where the metrics are collected. If no value is given, no sink is used.
+  # Options:
+  #   - falcon
+  #   - prometheus
+  perf_counter_sink =
+  perf_counter_read_capacity_unit_size = 4096
+  perf_counter_write_capacity_unit_size = 4096
+
+  falcon_host = 127.0.0.1
+  falcon_port = 1988
+  falcon_path = /v1/push
+
+  # The HTTP port exposed to Prometheus for pulling metrics from pegasus server.
+  prometheus_port = 9091
+
+[pegasus.clusters]
+
+[components.pegasus_perf_counter_number_percentile_atomic]
+  counter_computation_interval_seconds = 10
+
+[zookeeper]
+  hosts_list = ${zookeeper_server_list}
+  timeout_ms = 10000
+  logfile = zoo.log
+
+[task..default]
+  is_trace = false
+  is_profile = false
+  allow_inline = false
+  rpc_call_channel = RPC_CHANNEL_TCP
+  rpc_call_header_format = NET_HDR_DSN
+  rpc_message_crc_required = false
+  rpc_call_header_format_name = dsn
+  rpc_timeout_milliseconds = 5000
+
+[task.RPC_FD_FAILURE_DETECTOR_PING]
+  rpc_call_header_format = NET_HDR_DSN
+  rpc_call_channel = RPC_CHANNEL_UDP
+  rpc_message_crc_required = true
+  ;is_profile = true
+
+[task.RPC_FD_FAILURE_DETECTOR_PING_ACK]
+  rpc_call_header_format = NET_HDR_DSN
+  rpc_call_channel = RPC_CHANNEL_UDP
+  rpc_message_crc_required = true
+  ;is_profile = true

@@ -1,0 +1,13 @@
+|thread_pool_name|usage|partitioned|worker_count|
+
+THREAD_POOL_COMPACT, replica, false, 8
+THREAD_POOL_DEFAULT, both, false, 8
+THREAD_POOL_DLOCK, meta, true, 1
+THREAD_POOL_FD, both, false, 2
+THREAD_POOL_INVALID, both
+THREAD_POOL_LOCAL_APP, replica, false, 24
+THREAD_POOL_META_SERVER, meta
+THREAD_POOL_META_STATE, meta, true, 1
+THREAD_POOL_REPLICATION, replica, true, 24
+THREAD_POOL_REPLICATION_LONG, replica, false, 8
+THREAD_POOL_SLOG, replica

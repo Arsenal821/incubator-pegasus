@@ -1,0 +1,31 @@
+api_version: v1
+kind: ms_guidance
+metadata:
+  name: skv
+spec:
+  modules:
+    skv_offline:
+      connection_info:
+        meta_server_list:
+          desc: 'meta server服务端口列表'
+        table_prefix:
+          desc: '建表前缀'
+        partition_factor:
+          desc: '建表因子'
+        major_version:
+          desc: 'skv版本号'
+        replica_server_number:
+          desc: '部署了多少个replica_server'
+
+    skv_online:
+      connection_info:
+        meta_server_list:
+          desc: 'meta server服务端口列表'
+        table_prefix:
+          desc: '建表前缀'
+        partition_factor:
+          desc: '建表因子'
+        major_version:
+          desc: 'skv版本号'
+        replica_server_number:
+          desc: '部署了多少个replica_server'

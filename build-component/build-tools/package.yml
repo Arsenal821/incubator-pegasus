@@ -1,0 +1,63 @@
+package_modules:
+  bootstrap:
+    version: "2.4.0"
+    source: local
+    pub:
+      - type: dragon
+
+  skv_offline:
+    source: pre_pub
+    search_policy: aligned
+    org_path: "com.sensorsdata.skv"
+    containerized: true
+    variants:
+      - os_distro: el6
+      - os_distro: el7
+    version: "2.4.0"
+
+  skv_online:
+    source: pre_pub
+    search_policy: aligned
+    org_path: "com.sensorsdata.skv"
+    containerized: true
+    variants:
+      - os_distro: el6
+      - os_distro: el7
+    version: "2.4.0"
+
+
+  construction_blueprint:
+    source: local
+    pub:
+      - type: dragon
+    version: "2.4.0"
+  admintools:
+    source: local
+    version: "2.4.0"
+    pub:
+      - type: dragon
+  upgrader:
+    source: local
+    version: "2.4.0"
+    pub:
+      - type: dragon
+  scheduler_job:
+    source: local
+    version: "2.4.0"
+    pub:
+      - type: dragon
+  sdk:
+    source: local
+    version: "2.4.0"
+    pub:
+      - type: dragon
+  skv_shim:
+    source: local
+    version: "2.4.0"
+    pub:
+      - type: dragon
+  skv_guidance:
+    source: local
+    version: "2.4.0"
+    pub:
+      - type: dragon

@@ -1,0 +1,199 @@
+app.meta|pools:
+  default_value: 'THREAD_POOL_XXX'
+  tag: ''
+  desc: ''
+  type: str
+app.meta|ports:
+  default_value: '8170'
+  tag: ''
+  desc: ''
+  type: str
+core|data_dir:
+  tag: ''
+  desc: ''
+  type: str
+core|log_dir:
+  tag: ''
+  desc: ''
+  type: str
+meta_server|max_allowed_replica_count:
+  tag: ''
+  desc: ''
+  type: int
+meta_server|server_list:
+  tag: ''
+  desc: ''
+  type: str
+meta_server|cluster_root:
+  tag: ''
+  desc: ''
+  type: str
+meta_server|distributed_lock_service_parameters:
+  tag: ''
+  desc: ''
+  type: str
+meta_server|min_live_node_count_for_unfreeze:
+  tag: ''
+  desc: ''
+  type: int
+meta_server|recover_from_replica_server:
+  default_value: 'false'
+  tag: ''
+  desc: ''
+  type: bool
+meta_server|hold_seconds_for_dropped_app:
+  default_value: 604800
+  tag: ''
+  desc: ''
+  type: int
+meta_server|add_secondary_max_count_for_one_node:
+  default_value: 10
+  tag: ''
+  desc: ''
+  type: int
+meta_server|stable_rs_min_running_seconds:
+  default_value: 600000000
+  tag: ''
+  desc: ''
+  type: int
+meta_server|max_succssive_unstable_restart:
+  default_value: 5
+  tag: ''
+  desc: ''
+  type: int
+meta_server|replica_assign_delay_ms_for_dropouts:
+  default_value: 600000
+  tag: ''
+  desc: ''
+  type: int
+meta_server|balancer_in_turn:
+  default_value: 'false'
+  tag: ''
+  desc: ''
+  type: bool
+meta_server|only_primary_balancer:
+  default_value: 'false'
+  tag: ''
+  desc: ''
+  type: bool
+meta_server|only_move_primary:
+  default_value: 'false'
+  tag: ''
+  desc: ''
+  type: bool
+meta_server.apps.__detect|max_replica_count:
+  tag: ''
+  desc: ''
+  type: int
+meta_server.apps.__detect|partition_count:
+  tag: ''
+  desc: ''
+  type: int
+meta_server.apps.__stat|max_replica_count:
+  tag: ''
+  desc: ''
+  type: int
+meta_server.apps.__stat|partition_count:
+  tag: ''
+  desc: ''
+  type: int
+network|send_queue_threshold:
+  default_value: 4096
+  tag: ''
+  desc: ''
+  type: int
+network|explicit_host_address:
+  tag: ''
+  desc: ''
+  type: str
+network|io_service_worker_count:
+  default_value: 4
+  tag: ''
+  desc: ''
+  type: int
+network|conn_threshold_per_ip:
+  default_value: 0
+  tag: ''
+  desc: ''
+  type: int
+pegasus.clusters|skv_offline:
+  tag: ''
+  desc: ''
+  type: str
+pegasus.server|perf_counter_cluster_name:
+  tag: ''
+  desc: ''
+  type: str
+pegasus.server|perf_counter_update_interval_seconds:
+  default_value: 10
+  tag: ''
+  desc: ''
+  type: int
+pegasus.server|perf_counter_enable_logging:
+  default_value: 'false'
+  tag: ''
+  desc: ''
+  type: bool
+pegasus.server|prometheus_host:
+  tag: ''
+  desc: ''
+  type: str
+pegasus.server|prometheus_port:
+  tag: ''
+  desc: ''
+  type: str
+replication.app|max_replica_count:
+  tag: ''
+  desc: ''
+  type: int
+replication.app|partition_count:
+  tag: ''
+  desc: ''
+  type: int
+tools.simple_logger|max_number_of_log_files_on_disk:
+  default_value: 20
+  tag: ''
+  desc: ''
+  type: int
+tools.simple_logger|stderr_start_level:
+  default_value: 'LOG_LEVEL_ERROR'
+  tag: ''
+  desc: ''
+  type: str
+tools.simple_logger|max_log_file_bytes:
+  default_value: 524288000
+  tag: ''
+  desc: ''
+  type: int
+zookeeper|hosts_list:
+  tag: ''
+  desc: ''
+  type: str
+zookeeper|timeout_ms:
+  default_value: 10000
+  tag: ''
+  desc: ''
+  type: int
+zookeeper|wrapper_log_level:
+  default_value: 'info'
+  tag: ''
+  desc: ''
+  type: str
+zookeeper|wrapper_log_dir:
+  tag: ''
+  desc: ''
+  type: str
+zookeeper|wrapper_log_max_files:
+  default_value: 10
+  tag: ''
+  desc: ''
+  type: int
+zookeeper|helper_log_level:
+  default_value: 'info'
+  tag: ''
+  desc: ''
+  type: str
+zookeeper|helper_log_dir:
+  tag: ''
+  desc: ''
+  type: str

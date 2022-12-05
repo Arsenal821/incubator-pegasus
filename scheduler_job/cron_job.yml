@@ -1,0 +1,14 @@
+- jobName: skv_maintainer
+  jobDesc: skv 的日常维护任务
+  cronTime: 0 0 3 * * ? *
+  executeMode: SYNC
+  executeCmd: '{"runCmd":"cd ${SKV_HOME}/admintools/skv_maintenance_workers && python3 skv_maintenance_main.py"}'
+  retryTimes: 1
+  retryInterval: 10
+  timeout: 30
+  killAfterTimeout: 1
+  alarmAfterTimeout: 1
+  sequence: 1
+  sequenceForceSuccess: 0
+  inUse: 1
+  upstreamTasks: ''

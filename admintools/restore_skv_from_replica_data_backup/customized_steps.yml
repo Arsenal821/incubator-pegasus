@@ -1,0 +1,57 @@
+# 前置检查以及计算数据分片的磁盘分布
+pre_check:
+  class_name: PrepareStep
+  hosts: all
+    # 此处需要检查md5 超时需要设置长一点
+  timeout: 7200
+
+# 停止skv
+stop_skv:
+  class_name: StopSkvStep
+  hosts: execute
+
+# 备份当前zk节点到一个json文件中去 
+backup_zk:
+  class_name: BackupZkStep
+  hosts: execute
+
+# 删除cluster root
+delete_zk_root:
+  class_name: DeleteZkRootStep
+  hosts: execute
+
+# 拷贝replica server数据
+recover_replica_data:
+  class_name: RecoverReplicaDataStep
+  hosts: all
+  # 有tar操作 超时长一些
+  timeout: 7200
+
+# 设置recover模式然后重启
+set_recover_and_restart:
+  class_name: SetRecoverAndRestartStep
+  hosts: execute
+
+# 发送recover命令
+send_recover_replica_cmd:
+  class_name: SendRecoverReplicaCmdStep
+  hosts: execute
+
+# 去掉recover模式然后重启
+unset_recover_and_restart:
+  class_name: UnsetRecoverAndRestartStep
+  hosts: execute
+  # 恢复后加载比较久
+  timeout: 1200
+
+# 发起balance
+balance:
+  class_name: BalanceStep
+  hosts: execute
+
+# 最后检查条数
+post_check:
+  class_name: PostCheckStep
+  hosts: execute
+  # 有count_data操作 超时长一些
+  timeout: 3600

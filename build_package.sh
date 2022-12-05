@@ -5,17 +5,6 @@ set -x
 
 tag=$(date +'%Y-%m-%d %H:%M:%S')
 
-root=$(cd "$(dirname "$0")" && pwd)
-
-os_version=$(cat /etc/centos-release | sed 's/.*release //g' | awk '{print $1}' | awk -F. '{print $1}')
-os_tag=
-if [ $os_version -eq 7 ]; then
-    os_tag=el7
-else
-    echo "os: $os_version not support!"
-    exit 1
-fi
-
 function print_help() {
     echo "USAGE: $0 build release|debug"
 }
@@ -29,7 +18,7 @@ function build() {
     local source_server_dir=$(ls | grep "pegasus-server-.*-${package_type}$")
     local source_tools_dir=$(ls | grep "pegasus-tools-.*-${package_type}$")
 
-    local target_server_dir=PACK_OUT/${os_tag}/skv_server
+    local target_server_dir=PACK_OUT/skv_server
     local target_tools_dir=${target_server_dir}/tools
     mkdir -p ${target_server_dir}/{bin,conf,lib,tools}
     
