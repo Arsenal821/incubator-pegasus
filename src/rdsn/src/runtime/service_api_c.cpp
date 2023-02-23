@@ -40,6 +40,7 @@
 #include <dsn/utility/process_utils.h>
 #include <dsn/utility/flags.h>
 #include <dsn/utils/time_utils.h>
+#include <dsn/utils/transient_memory.h>
 #include <dsn/utility/errors.h>
 #include <dsn/dist/fmt_logging.h>
 
@@ -422,6 +423,14 @@ bool run(const char *config_file,
         printf("error in config file %s, exit ...\n", config_file);
         return false;
     }
+
+        // init tool memory
+    size_t tls_trans_memory_KB = (size_t)dsn_config_get_value_uint64(
+        "core",
+        "tls_trans_memory_KB",
+        1024, // 1 MB
+        "thread local transient memory buffer size (KB), default is 1024");
+    ::dsn::tls_trans_mem_init(tls_trans_memory_KB * 1024);
 
 #ifdef DSN_ENABLE_GPERF
     double_t tcmalloc_release_rate =
