@@ -27,6 +27,7 @@
 #pragma once
 
 #include <memory>
+#include <string.h>
 #include <thrift/protocol/TProtocol.h>
 
 namespace dsn {
