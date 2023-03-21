@@ -135,6 +135,15 @@ rpc_address::~rpc_address() { set_invalid(); }
 
 rpc_address::rpc_address(const rpc_address &another) { *this = another; }
 
+rpc_address::rpc_address(rpc_group_address *group_address)
+{
+    CHECK_NOTNULL(group_address, "invalid group_address!");
+
+    _addr.group.type = HOST_TYPE_GROUP;
+    group_address->add_ref();
+    _addr.group.group = (uint64_t)group_address;
+}
+
 rpc_address &rpc_address::operator=(const rpc_address &another)
 {
     if (this == &another) {
@@ -239,5 +248,13 @@ const char *rpc_address::to_string() const
     }
 
     return (const char *)p;
+}
+
+rpc_address::rpc_address(const struct sockaddr_in &addr)
+{
+    set_invalid();
+    _addr.v4.type = HOST_TYPE_IPV4;
+    _addr.v4.ip = static_cast<uint32_t>(ntohl(addr.sin_addr.s_addr));
+    _addr.v4.port = ntohs(addr.sin_port);
 }
 } // namespace dsn

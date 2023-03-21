@@ -24,37 +24,37 @@
  * THE SOFTWARE.
  */
 
-namespace cpp dsn
-namespace go base
-namespace java org.apache.pegasus.base
-namespace py pypegasus.base
+#pragma once
 
-// place holder
-struct rpc_address
-{
-}
+#include <vector>
+#include <unordered_map>
 
-// place holder
-struct host_port
-{
-}
+#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
+#include "utils/errors.h"
+#include "utils/synchronize.h"
 
-// place holder
-struct blob
-{
-}
+namespace dsn {
 
-// place holder
-struct error_code
+class dns_resolver
 {
-}
+public:
+    dns_resolver() = default;
 
-// place holder
-struct task_code
-{
-}
+    rpc_address resolve_address(const host_port &hp);
 
-// placeholder
-struct gpid
-{
-}
+    void add_item(const host_port &hp, const rpc_address &addr);
+
+private:
+    error_s resolve_addresses(const host_port &hp, std::vector<rpc_address> *addresses);
+
+    bool get_cached_addresses(const host_port &hp, std::vector<rpc_address> *addresses);
+
+    error_s do_resolution(const host_port &hp, std::vector<rpc_address> *addresses);
+
+    // TODO: add a ttl cache
+    mutable utils::rw_lock_nr _lock;
+    std::unordered_map<host_port, rpc_address> _dsn_cache;
+};
+
+} // namespace dsn
