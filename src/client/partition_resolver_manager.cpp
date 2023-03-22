@@ -54,14 +54,14 @@ bool vector_equal(const std::vector<T> &a, const std::vector<T> &b)
 }
 
 partition_resolver_ptr partition_resolver_manager::find_or_create(
-    const char *cluster_name, const std::vector<rpc_address> &meta_list, const char *app_name)
+    const char *cluster_name, const std::vector<host_port> &meta_list, const char *app_name)
 {
     dsn::zauto_lock l(_lock);
     std::map<std::string, partition_resolver_ptr> &app_map = _resolvers[cluster_name];
     partition_resolver_ptr &ptr = app_map[app_name];
 
     if (ptr == nullptr) {
-        dsn::rpc_address meta_group;
+        dsn::host_port meta_group;
         meta_group.assign_group(cluster_name);
         meta_group.group_address()->add_list(meta_list);
         ptr = new partition_resolver_simple(meta_group, app_name);

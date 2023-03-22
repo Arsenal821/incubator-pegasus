@@ -65,7 +65,7 @@ protected:
     int32_t partition_count_ = 8;
     std::vector<dsn::partition_configuration> partitions_;
     pegasus_client *client_ = nullptr;
-    std::vector<dsn::rpc_address> meta_list_;
+    std::vector<dsn::host_port> meta_list_;
     std::shared_ptr<dsn::replication::replication_ddl_client> ddl_client_;
 };
 } // namespace pegasus

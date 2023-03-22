@@ -71,11 +71,12 @@ namespace replication {
 
 using tp_output_format = ::dsn::utils::table_printer::output_format;
 
-replication_ddl_client::replication_ddl_client(const std::vector<dsn::rpc_address> &meta_servers)
+replication_ddl_client::replication_ddl_client(const std::vector<dsn::host_port> &meta_servers)
+    : _dns_resolver(new dns_resolver())
 {
     _meta_server.assign_group("meta-servers");
     for (const auto &m : meta_servers) {
-        if (!_meta_server.group_address()->add(m)) {
+        if (!_meta_server.group_address()->add(_dns_resolver->resolve_address(m))) {
             LOG_WARNING("duplicate adress {}", m);
         }
     }
@@ -1439,7 +1440,7 @@ void replication_ddl_client::end_meta_request(const rpc_response_task_ptr &callb
                                               dsn::message_ex *resp)
 {
     if (err != dsn::ERR_OK && retry_times < 2) {
-        rpc::call(_meta_server,
+        rpc::call(_dns_resolver->resolve_address(_meta_server),
                   request,
                   &_tracker,
                   [this, retry_times, callback](

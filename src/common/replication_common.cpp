@@ -198,7 +198,7 @@ int32_t replication_options::app_mutation_2pc_min_replica_count(int32_t app_max_
     }
 }
 
-bool replica_helper::load_meta_servers(/*out*/ std::vector<dsn::rpc_address> &servers,
+bool replica_helper::load_meta_servers(/*out*/ std::vector<dsn::host_port> &servers,
                                        const char *section,
                                        const char *key)
 {
@@ -208,6 +208,7 @@ bool replica_helper::load_meta_servers(/*out*/ std::vector<dsn::rpc_address> &se
     ::dsn::utils::split_args(server_list.c_str(), lv, ',');
     for (auto &s : lv) {
         ::dsn::rpc_address addr;
+        ::dsn::host_port hp;
         std::vector<std::string> hostname_port;
         uint32_t ip = 0;
         utils::split_args(s.c_str(), hostname_port, ':');
@@ -224,13 +225,15 @@ bool replica_helper::load_meta_servers(/*out*/ std::vector<dsn::rpc_address> &se
               section,
               key);
         if (0 != (ip = ::dsn::rpc_address::ipv4_from_host(hostname_port[0].c_str()))) {
-            addr.assign_ipv4(ip, static_cast<uint16_t>(port_num));
+            hp = host_port(hostname_port[0], static_cast<uint16_t>(port_num));
         } else if (!addr.from_string_ipv4(s.c_str())) {
             LOG_ERROR("invalid address '{}' specified in config [{}].{}", s, section, key);
             return false;
+        } else {
+            hp = host_port(addr);
         }
         // TODO(yingchun): check there is no duplicates
-        servers.push_back(addr);
+        servers.push_back(hp);
     }
     if (servers.empty()) {
         LOG_ERROR("no meta server specified in config [{}].{}", section, key);

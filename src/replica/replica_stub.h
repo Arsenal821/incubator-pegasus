@@ -60,6 +60,7 @@
 #include "replica.h"
 #include "replica/mutation_log.h"
 #include "replica_admin_types.h"
+#include "runtime/rpc/dns_resolver.h"
 #include "runtime/rpc/rpc_address.h"
 #include "runtime/rpc/rpc_holder.h"
 #include "runtime/serverlet.h"
@@ -73,6 +74,7 @@
 
 namespace dsn {
 class command_deregister;
+class dns_resolver;
 class message_ex;
 class nfs_node;
 
@@ -544,6 +546,8 @@ private:
     perf_counter_wrapper _counter_replicas_splitting_recent_split_succ_count;
 
     dsn::task_tracker _tracker;
+
+    std::shared_ptr<dns_resolver> _dns_resolver;
 };
 } // namespace replication
 } // namespace dsn

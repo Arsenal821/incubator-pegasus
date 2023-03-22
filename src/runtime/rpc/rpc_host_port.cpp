@@ -64,6 +64,7 @@ error_s GetAddrInfo(const std::string &hostname, const addrinfo &hints, AddrInfo
 host_port::host_port(std::string host, uint16_t port)
     : _host(std::move(host)), _port(port), _type(HOST_TYPE_IPV4)
 {
+    //CHECK_NE_MSG(rpc_address::ipv4_from_host(host.c_str()), 0, "invalid hostname {}.", host);
 }
 
 host_port::host_port(rpc_group_address *group_address)

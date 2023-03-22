@@ -34,7 +34,7 @@
 #include <vector>
 
 #include "common/gpid.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/rpc/rpc_message.h"
 #include "runtime/rpc/serialization.h"
 #include "runtime/task/async_calls.h"
@@ -53,7 +53,7 @@ class partition_resolver : public ref_counter
 public:
     static dsn::ref_ptr<partition_resolver>
     get_resolver(const char *cluster_name,
-                 const std::vector<dsn::rpc_address> &meta_list,
+                 const std::vector<dsn::host_port> &meta_list,
                  const char *app_name);
 
     template <typename TReq, typename TCallback>

@@ -60,7 +60,7 @@ class geo_client_test : public ::testing::Test
 public:
     geo_client_test()
     {
-        std::vector<dsn::rpc_address> meta_list;
+        std::vector<dsn::host_port> meta_list;
         bool ok = dsn::replication::replica_helper::load_meta_servers(
             meta_list, PEGASUS_CLUSTER_SECTION_NAME.c_str(), "onebox");
         CHECK(ok, "load_meta_servers failed");

@@ -62,7 +62,7 @@ public:
     void SetUp() override
     {
         // initialize ddl_client
-        std::vector<rpc_address> meta_list;
+        std::vector<host_port> meta_list;
         ASSERT_TRUE(replica_helper::load_meta_servers(
             meta_list, PEGASUS_CLUSTER_SECTION_NAME.c_str(), _cluster_name.c_str()));
         ASSERT_FALSE(meta_list.empty());

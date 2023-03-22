@@ -57,6 +57,7 @@
 #include "meta_server_failure_detector.h"
 #include "perf_counter/perf_counter_wrapper.h"
 #include "runtime/api_layer1.h"
+#include "runtime/rpc/dns_resolver.h"
 #include "runtime/rpc/rpc_address.h"
 #include "runtime/rpc/rpc_message.h"
 #include "runtime/rpc/serialization.h"
@@ -365,6 +366,8 @@ private:
 
     // indicate which operation is processeding in meta server
     std::atomic<meta_op_status> _meta_op_status;
+
+    std::shared_ptr<dns_resolver> _dns_resolver;
 };
 
 template <typename TRpcHolder>

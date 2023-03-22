@@ -125,7 +125,11 @@ DSN_DECLARE_int32(fd_lease_seconds);
 DSN_DECLARE_string(cold_backup_root);
 
 meta_service::meta_service()
-    : serverlet("meta_service"), _failure_detector(nullptr), _started(false), _recovering(false)
+    : serverlet("meta_service"),
+      _failure_detector(nullptr),
+      _started(false),
+      _recovering(false),
+      _dns_resolver(new dns_resolver())
 {
     _opts.initialize();
     _meta_opts.initialize();

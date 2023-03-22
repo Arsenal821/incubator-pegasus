@@ -62,7 +62,7 @@ std::unordered_map<int, int> pegasus_client_impl::_server_error_to_client;
 pegasus_client_impl::pegasus_client_impl(const char *cluster_name, const char *app_name)
     : _cluster_name(cluster_name), _app_name(app_name)
 {
-    std::vector<dsn::rpc_address> meta_servers;
+    std::vector<dsn::host_port> meta_servers;
     dsn::replication::replica_helper::load_meta_servers(
         meta_servers, PEGASUS_CLUSTER_SECTION_NAME.c_str(), cluster_name);
     CHECK_GT(meta_servers.size(), 0);

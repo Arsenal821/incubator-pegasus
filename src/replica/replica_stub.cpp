@@ -197,7 +197,8 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _fs_manager(false),
       _bulk_load_downloading_count(0),
       _manual_emergency_checkpointing_count(0),
-      _is_running(false)
+      _is_running(false),
+      _dns_resolver(new dns_resolver())
 {
 #ifdef DSN_ENABLE_GPERF
     _is_releasing_memory = false;

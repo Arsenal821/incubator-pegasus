@@ -39,7 +39,7 @@ namespace dsn {
 namespace replication {
 /*static*/
 partition_resolver_ptr partition_resolver::get_resolver(const char *cluster_name,
-                                                        const std::vector<rpc_address> &meta_list,
+                                                        const std::vector<host_port> &meta_list,
                                                         const char *app_name)
 {
     return partition_resolver_manager::instance().find_or_create(cluster_name, meta_list, app_name);
