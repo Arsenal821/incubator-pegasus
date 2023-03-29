@@ -33,7 +33,6 @@ namespace {
 
 using AddrInfo = std::unique_ptr<addrinfo, std::function<void(addrinfo *)>>;
 
-// TODO: test, copy from Kudu
 error_s GetAddrInfo(const std::string &hostname, const addrinfo &hints, AddrInfo *info)
 {
     addrinfo *res = nullptr;

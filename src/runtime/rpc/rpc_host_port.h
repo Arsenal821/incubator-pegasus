@@ -118,10 +118,7 @@ public:
     void add_list(const std::vector<host_port> &hps)
     {
         for (const auto &hp : hps) {
-            // TODO(yingchun): add LOG_WARNING_IF/LOG_ERROR_IF
-            if (!add(hp)) {
-                LOG_WARNING("duplicate adress {}", hp);
-            }
+            LOG_WARNING_IF(!add(hp), "duplicate adress {}", hp);
         }
     }
     void set_leader(host_port hp);
