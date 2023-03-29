@@ -71,10 +71,6 @@ public:
         return os << hp.to_string();
     }
 
-    // for serialization in thrift format
-    uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
-    uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
-
 private:
     std::string _host = "";
     uint16_t _port = 0;
