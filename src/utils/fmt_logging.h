@@ -43,7 +43,7 @@
 #define LOG_WARNING_IF(x, ...)                                                                     \
     do {                                                                                           \
         if (dsn_unlikely(x)) {                                                                     \
-            LOG_ERROR(__VA_ARGS__);                                                                \
+            LOG_WARNING(__VA_ARGS__);                                                              \
         }                                                                                          \
     } while (false)
 
