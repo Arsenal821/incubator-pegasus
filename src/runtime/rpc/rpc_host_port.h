@@ -57,7 +57,7 @@ public:
 
     void assign_group(const char *name);
     std::string to_string() const;
-    error_s resolve_addresses(std::vector<rpc_address> *addresses) const;
+    error_s resolve_addresses(std::vector<rpc_address> &addresses) const;
 
     friend std::ostream &operator<<(std::ostream &os, const host_port &hp)
     {
@@ -192,7 +192,7 @@ inline bool rpc_group_host_port::add(host_port hp)
 
     alw_t l(_lock);
     if (_members.end() == std::find(_members.begin(), _members.end(), hp)) {
-        _members.push_back(hp);
+        _members.emplace_back(hp);
         return true;
     } else {
         return false;
@@ -224,7 +224,7 @@ inline void rpc_group_host_port::set_leader(host_port hp)
         }
     }
 
-    _members.push_back(hp);
+    _members.emplace_back(hp);
     _leader_index = (int)(_members.size() - 1);
 }
 

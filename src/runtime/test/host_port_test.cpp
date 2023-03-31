@@ -166,19 +166,19 @@ TEST(host_port_test, transfer_rpc_address)
     {
         std::vector<rpc_address> addresses;
         host_port hp("localhost", 8080);
-        ASSERT_EQ(hp.resolve_addresses(&addresses), error_s::ok());
+        ASSERT_EQ(hp.resolve_addresses(addresses), error_s::ok());
         ASSERT_TRUE(rpc_address("127.0.0.1", 8080) == addresses[0] ||
                     rpc_address("127.0.1.1", 8080) == addresses[0]);
     }
     {
         std::vector<rpc_address> addresses;
         host_port hp;
-        hp.resolve_addresses(&addresses);
-        ASSERT_EQ(hp.resolve_addresses(&addresses),
+        hp.resolve_addresses(addresses);
+        ASSERT_EQ(hp.resolve_addresses(addresses),
                   error_s::make(dsn::ERR_INVALID_STATE, "invalid host_port type"));
 
         hp.assign_group("test_group");
-        ASSERT_EQ(hp.resolve_addresses(&addresses),
+        ASSERT_EQ(hp.resolve_addresses(addresses),
                   error_s::make(dsn::ERR_INVALID_STATE, "invalid host_port type"));
     }
 }

@@ -145,17 +145,16 @@ std::string host_port::to_string() const
     }
 }
 
-error_s host_port::resolve_addresses(std::vector<rpc_address> *addresses) const
+error_s host_port::resolve_addresses(std::vector<rpc_address> &addresses) const
 {
+    CHECK(addresses.empty(), "invalid addresses, not empty");
     if (type() != HOST_TYPE_IPV4) {
         return std::move(error_s::make(dsn::ERR_INVALID_STATE, "invalid host_port type"));
     }
 
     rpc_address rpc_addr;
     if (rpc_addr.from_string_ipv4(this->to_string().c_str())) {
-        if (addresses) {
-            addresses->push_back(rpc_addr);
-        }
+        addresses.emplace_back(rpc_addr);
         return error_s::ok();
     }
 
@@ -181,9 +180,7 @@ error_s host_port::resolve_addresses(std::vector<rpc_address> *addresses) const
             result_addresses.emplace_back(rpc_addr);
         }
     }
-    if (addresses) {
-        *addresses = std::move(result_addresses);
-    }
+    addresses = std::move(result_addresses);
     return error_s::ok();
 }
 
