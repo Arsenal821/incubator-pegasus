@@ -224,8 +224,9 @@ private:
 #define RETURN_NOT_OK(s)                                                                           \
     do {                                                                                           \
         const ::dsn::error_s &_s = (s);                                                            \
-        if (dsn_unlikely(!_s.is_ok()))                                                             \
+        if (dsn_unlikely(!_s.is_ok())) {                                                           \
             return _s;                                                                             \
+        }                                                                                          \
     } while (false);
 
 #define CHECK_OK(s, ...)                                                                           \

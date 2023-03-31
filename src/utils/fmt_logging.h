@@ -42,14 +42,14 @@
 
 #define LOG_WARNING_IF(x, ...)                                                                     \
     do {                                                                                           \
-        if (dsn_unlikely(x)) {                                                                    \
+        if (dsn_unlikely(x)) {                                                                     \
             LOG_ERROR(__VA_ARGS__);                                                                \
         }                                                                                          \
     } while (false)
 
 #define LOG_ERROR_IF(x, ...)                                                                       \
     do {                                                                                           \
-        if (dsn_unlikely(x)) {                                                                    \
+        if (dsn_unlikely(x)) {                                                                     \
             LOG_ERROR(__VA_ARGS__);                                                                \
         }                                                                                          \
     } while (false)
