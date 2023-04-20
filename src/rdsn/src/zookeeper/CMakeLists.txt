@@ -29,6 +29,12 @@ set(MY_PROJ_NAME dsn.replication.zookeeper_provider)
 # You can manually set MY_PROJ_SRC to include source files under other directories.
 set(MY_PROJ_SRC "")
 
+if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0)
+    message(STATUS "gcc >= 11.0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
+    message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+endif()
+
 # Search mode for source files under CURRENT project directory?
 # "GLOB_RECURSE" for recursive search
 # "GLOB" for non-recursive search

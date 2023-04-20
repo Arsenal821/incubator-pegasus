@@ -54,7 +54,7 @@ void replica_follower::init_master_info()
 
     const auto &meta_list_str = envs.at(duplication_constants::kDuplicationEnvMasterMetasKey);
     std::vector<std::string> metas;
-    boost::split(metas, meta_list_str, boost::is_any_of(","));
+    ::dsn::utils::split_args(meta_list_str.c_str(), metas, ',');
     dassert_f(!metas.empty(), "master cluster meta list is invalid!");
     for (const auto &meta : metas) {
         dsn::rpc_address node;

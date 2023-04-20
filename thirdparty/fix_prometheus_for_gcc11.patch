@@ -1,0 +1,10 @@
+--- core/src/histogram.cc	2022-07-12 21:21:14.813464265 +0800
++++ histogram.cc	2022-07-12 21:56:28.287909524 +0800
+@@ -3,6 +3,7 @@
+ #include <algorithm>
+ #include <cassert>
+ #include <iterator>
++#include <limits>
+ #include <numeric>
+ 
+ namespace prometheus {

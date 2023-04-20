@@ -1,0 +1,11 @@
+--- src/s2/util/coding/coder.h	2018-09-27 03:22:36.000000000 +0800
++++ coder.h	2022-07-13 18:32:32.938880196 +0800
+@@ -461,7 +461,7 @@ inline void DecoderExtensions::FillArray
+                 "Decoder must be trivially copy-assignable");
+   static_assert(absl::is_trivially_destructible<Decoder>::value,
+                 "Decoder must be trivially destructible");
+-  std::memset(array, 0, num_decoders * sizeof(Decoder));
++  std::memset(reinterpret_cast<void*>(array), 0, num_decoders * sizeof(Decoder));
+ }
+ 
+ inline void Encoder::put8(unsigned char v) {

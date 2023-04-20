@@ -50,12 +50,12 @@ inline void time_ms_to_string_for_log_file_name(uint64_t ts_ms, char *str)
     auto ret = get_localtime(ts_ms, &tmp);
     sprintf(str,
             "%04d%02d%02d_%02d%02d%02d_%03u",
-            ret->tm_year + 1900,
-            ret->tm_mon + 1,
-            ret->tm_mday,
-            ret->tm_hour,
-            ret->tm_min,
-            ret->tm_sec,
+            static_cast<uint32_t>((ret->tm_year + 1900) % 10000),
+            static_cast<uint32_t>((ret->tm_mon + 1) % 100),
+            static_cast<uint32_t>(ret->tm_mday % 100),
+            static_cast<uint32_t>(ret->tm_hour % 100),
+            static_cast<uint32_t>(ret->tm_min % 100),
+            static_cast<uint32_t>(ret->tm_sec % 100),
             static_cast<uint32_t>(ts_ms % 1000));
 }
 

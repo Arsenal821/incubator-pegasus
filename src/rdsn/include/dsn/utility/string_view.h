@@ -40,9 +40,12 @@
 
 #pragma once
 
-#include <cstring>
 #include <algorithm>
 #include <cassert>
+#include <cstring>
+#include <limits>
+#include <stdexcept>
+
 #include <dsn/utility/blob.h>
 #include <dsn/utility/ports.h>
 

@@ -126,6 +126,7 @@ ExternalProject_Add(rapidjson
         URL ${OSS_URL_PREFIX}/rapidjson-1.1.0.tar.gz
         https://codeload.github.com/Tencent/rapidjson/tar.gz/v1.1.0
         URL_MD5 badd12c511e081fec6c89c43a7027bce
+        PATCH_COMMAND patch -p0 < ${TP_DIR}/fix_rapidjson_for_gcc7.patch
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND cp -R include/rapidjson ${TP_OUTPUT}/include
@@ -340,12 +341,13 @@ ExternalProject_Add(prometheus-cpp
         https://codeload.github.com/jupp0r/prometheus-cpp/tar.gz/v0.7.0
         URL_MD5 dc75c31ceaefd160e978365bdca8eb01
         DEPENDS civetweb curl
-        PATCH_COMMAND rm -rf 3rdparty/civetweb && cp -R ${civetweb_SRC} 3rdparty/civetweb # replace the submodule
+        PATCH_COMMAND patch -p0 < ${TP_DIR}/fix_prometheus_for_gcc11.patch && rm -rf 3rdparty/civetweb && cp -R ${civetweb_SRC} 3rdparty/civetweb # replace the submodule
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
         -DENABLE_TESTING=OFF
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         )
+add_dependencies(prometheus-cpp krb5)
 
 # header-only
 ExternalProject_Add(nlohmann_json
@@ -362,7 +364,7 @@ ExternalProject_Add(s2geometry
         URL ${OSS_URL_PREFIX}/s2geometry-e8d16637a467d9f096a92a6d81a50a9b747ca828.zip
         https://github.com/neverchanje/s2geometry/archive/e8d16637a467d9f096a92a6d81a50a9b747ca828.zip
         URL_MD5 75cc44c9c31382083d8a2d0e42590788
-        PATCH_COMMAND patch -p0 < ${TP_DIR}/fix_s2_for_aarch64.patch
+        PATCH_COMMAND patch -p0 < ${TP_DIR}/fix_s2_for_aarch64.patch && patch -p0 < ${TP_DIR}/fix_s2_include_gcc7.patch
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${TP_OUTPUT}
         -DGTEST_ROOT=${googletest_SRC}/googletest
         -DBUILD_SHARED_LIBS=OFF
@@ -412,6 +414,7 @@ ExternalProject_Add(rocksdb
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DPORTABLE=${ROCKSDB_PORTABLE}
         )
+add_dependencies(rocksdb krb5)
 
 ExternalProject_Add(http-parser
         URL ${OSS_URL_PREFIX}/http-parser-2.9.4.zip
