@@ -5,17 +5,18 @@ set -x
 CWD=$(cd "$(dirname "$0")" && pwd)
 
 print_help () {
-    echo "USAGE: $0 TARGET_CONFIG_INI_PATH meta|replica"
+    echo "USAGE: $0 TARGET_CONFIG_INI_PATH meta|replica TARGET_PID_FILE_PATH"
 }
 
 
-if [ $# -lt 2 ]; then
+if [ $# -lt 3 ]; then
     print_help
     exit 1
 fi
 
 TARGET_CONFIG_INI_PATH=$1
 ROLE_NAME=$2
+TARGET_PID_FILE_PATH=$3
 
 BIN_DIR=${CWD}
 MODULE_DIR=$(cd "$(dirname "${BIN_DIR}")" && pwd)
@@ -61,4 +62,4 @@ if [[ ! -f "${BIN_DIR}/${SERVER_BIN}" ]]; then
     exit 1
 fi
 
-${BIN_DIR}/${SERVER_BIN} ${TARGET_CONFIG_INI_PATH} -app_list ${ROLE_NAME}
+echo $BASHPID > $TARGET_PID_FILE_PATH && exec ${BIN_DIR}/${SERVER_BIN} ${TARGET_CONFIG_INI_PATH} -app_list ${ROLE_NAME}
