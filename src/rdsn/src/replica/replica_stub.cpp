@@ -47,6 +47,7 @@
 
 #include <boost/algorithm/string/replace.hpp>
 #include <dsn/c/api_layer1.h>
+#include <dsn/cpp/access_type.h>
 #include <dsn/cpp/json_helper.h>
 #include <dsn/cpp/serialization.h>
 #include <dsn/utility/filesystem.h>
@@ -1238,14 +1239,19 @@ void replica_stub::on_group_check(group_check_rpc rpc)
 
 void replica_stub::on_learn(dsn::message_ex *msg)
 {
+    learn_response response;
     learn_request request;
     ::dsn::unmarshall(msg, request);
 
     replica_ptr rep = get_replica(request.pid);
     if (rep != nullptr) {
+        if (!rep->access_controller_allowed(msg, ranger::access_type::kWrite)) {
+            response.err = ERR_ACL_DENY;
+            reply(msg, response);
+            return;
+        }
         rep->on_learn(msg, request);
     } else {
-        learn_response response;
         response.err = ERR_OBJECT_NOT_FOUND;
         reply(msg, response);
     }
