@@ -39,6 +39,14 @@ $curPath/run.sh build -v -t ${build_type} -c --clear_thirdparty -j ${MAKE_JOB_NU
 release_start_time=`date +%s`
 $curPath/build_package.sh build ${build_type}
 
+# 编译 pegic & admin-cli
+go env -w GOPROXY=https://jfrog-internal.sensorsdata.cn/artifactory/api/go/go
+mkdir ${curPath}/PACK_OUT/skv_server/skv_tools
+cd ${curPath}/admin-cli && make
+cp ${curPath}/admin-cli/bin/admin-cli ${curPath}/PACK_OUT/skv_server/skv_tools
+cd ${curPath}/pegic && make
+cp ${curPath}/pegic/bin/pegic ${curPath}/PACK_OUT/skv_server/skv_tools
+
 finish_time=`date +%s`
 build_used_time=$((release_start_time-build_start_time))
 release_used_time=$((finish_time-release_start_time))
