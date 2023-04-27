@@ -145,7 +145,8 @@ public:
     void drop_app(dsn::message_ex *msg);
     void recall_app(dsn::message_ex *msg);
     void list_apps(const configuration_list_apps_request &request,
-                   configuration_list_apps_response &response);
+                   configuration_list_apps_response &response,
+                   dsn::message_ex *msg = nullptr) const;
     void restore_app(dsn::message_ex *msg);
 
     // app env operations

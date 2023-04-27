@@ -36,12 +36,25 @@
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/dist/replication/replica_envs.h>
+#include <dsn/c/api_layer1.h>
+#include <dsn/cpp/serialization.h>
+#include <dsn/perf_counter/perf_counter.h>
+#include <dsn/utility/autoref_ptr.h>
+#include <dsn/utility/binary_reader.h>
+#include <dsn/utility/binary_writer.h>
+#include <dsn/utility/blob.h>
+#include <dsn/utility/config_api.h>
 #include <dsn/utility/factory_store.h>
+#include <dsn/utility/flags.h>
+#include <dsn/utility/singleton.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/utility/strings.h>
+#include <dsn/tool-api/rpc_address.h>
+#include <dsn/tool-api/rpc_message.h>
 #include <dsn/tool-api/task.h>
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool-api/async_calls.h>
+#include <dsn/tool-api/task_spec.h>
 #include <sstream>
 #include <cinttypes>
 #include <string>
@@ -52,6 +65,9 @@
 #include "dump_file.h"
 #include "app_env_validator.h"
 #include "meta_bulk_load_service.h"
+#include "metadata_types.h"
+#include "replica_admin_types.h"
+#include "runtime/security/access_controller.h"
 
 using namespace dsn;
 
@@ -1338,14 +1354,17 @@ void server_state::recall_app(dsn::message_ex *msg)
 }
 
 void server_state::list_apps(const configuration_list_apps_request &request,
-                             configuration_list_apps_response &response)
+                             configuration_list_apps_response &response,
+                             dsn::message_ex *msg) const
 {
     dinfo("list app request, status(%d)", request.status);
     zauto_read_lock l(_lock);
-    for (auto &kv : _all_apps) {
+    for (const auto &kv : _all_apps) {
         app_state &app = *(kv.second);
         if (request.status == app_status::AS_INVALID || request.status == app.status) {
-            response.infos.push_back(app);
+            if (nullptr == msg || _meta_svc->get_access_controller()->allowed(msg, app.app_name)) {
+                response.infos.push_back(app);
+            }
         }
     }
     response.err = dsn::ERR_OK;
