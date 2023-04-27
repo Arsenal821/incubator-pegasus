@@ -94,6 +94,14 @@ ENUM_REG(meta_op_status::RESTORE)
 ENUM_REG(meta_op_status::MANUAL_COMPACT)
 ENUM_END(meta_op_status)
 
+// The leader status of meta server
+enum class meta_leader_state : int
+{
+    kIsLeader,                     // the meta is leader
+    kNotLeaderAndCanForwardRpc,    // meta isn't leader, and rpc-msg can forward to others
+    kNotLeaderAndCannotForwardRpc, // meta isn't leader, and rpc-msg can't forward to others
+};
+
 class meta_service : public serverlet<meta_service>
 {
 public:
@@ -254,15 +262,11 @@ private:
     void on_get_max_replica_count(configuration_get_max_replica_count_rpc rpc);
     void on_set_max_replica_count(configuration_set_max_replica_count_rpc rpc);
 
-    // common routines
-    // ret:
-    //   1. the meta is leader
-    //   0. meta isn't leader, and rpc-msg can forward to others
-    //  -1. meta isn't leader, and rpc-msg can't forward to others
-    // if return -1 and `forward_address' != nullptr, then return leader by `forward_address'.
-    int check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address);
+    // if return 'kNotLeaderAndCannotForwardRpc' and 'forward_address' != nullptr, then return
+    // leader by 'forward_address'.
+    meta_leader_state check_leader(dsn::message_ex *req, dsn::rpc_address *forward_address);
     template <typename TRpcHolder>
-    int check_leader(TRpcHolder rpc, /*out*/ rpc_address *forward_address);
+    meta_leader_state check_leader(TRpcHolder rpc, /*out*/ rpc_address *forward_address);
     // ret:
     //    false: check failed
     //    true:  check succeed
@@ -344,27 +348,27 @@ private:
 };
 
 template <typename TRpcHolder>
-int meta_service::check_leader(TRpcHolder rpc, rpc_address *forward_address)
+meta_leader_state meta_service::check_leader(TRpcHolder rpc, rpc_address *forward_address)
 {
     dsn::rpc_address leader;
     if (!_failure_detector->get_leader(&leader)) {
         if (!rpc.dsn_request()->header->context.u.is_forward_supported) {
             if (forward_address != nullptr)
                 *forward_address = leader;
-            return -1;
+            return meta_leader_state::kNotLeaderAndCannotForwardRpc;
         }
 
         dinfo("leader address: %s", leader.to_string());
         if (!leader.is_invalid()) {
             rpc.forward(leader);
-            return 0;
+            return meta_leader_state::kNotLeaderAndCanForwardRpc;
         } else {
             if (forward_address != nullptr)
                 forward_address->set_invalid();
-            return -1;
+            return meta_leader_state::kNotLeaderAndCannotForwardRpc;
         }
     }
-    return 1;
+    return meta_leader_state::kIsLeader;
 }
 
 template <typename TRpcHolder>
@@ -376,11 +380,11 @@ bool meta_service::check_status(TRpcHolder rpc, rpc_address *forward_address)
         return false;
     }
 
-    int result = check_leader(rpc, forward_address);
-    if (result == 0)
+    auto result = check_leader(rpc, forward_address);
+    if (result == meta_leader_state::kNotLeaderAndCanForwardRpc)
         return false;
-    if (result == -1 || !_started) {
-        if (result == -1) {
+    if (result == meta_leader_state::kNotLeaderAndCannotForwardRpc || !_started) {
+        if (result == meta_leader_state::kNotLeaderAndCannotForwardRpc) {
             rpc.response().err = ERR_FORWARD_TO_OTHERS;
         } else if (_recovering) {
             rpc.response().err = ERR_UNDER_RECOVERY;
@@ -404,12 +408,12 @@ bool meta_service::check_status_with_msg(message_ex *req, TRespType &response_st
         return false;
     }
 
-    int result = check_leader(req, nullptr);
-    if (result == 0) {
+    auto result = check_leader(req, nullptr);
+    if (result == meta_leader_state::kNotLeaderAndCanForwardRpc) {
         return false;
     }
-    if (result == -1 || !_started) {
-        if (result == -1) {
+    if (result == meta_leader_state::kNotLeaderAndCannotForwardRpc || !_started) {
+        if (result == meta_leader_state::kNotLeaderAndCannotForwardRpc) {
             response_struct.err = ERR_FORWARD_TO_OTHERS;
         } else if (_recovering) {
             response_struct.err = ERR_UNDER_RECOVERY;
