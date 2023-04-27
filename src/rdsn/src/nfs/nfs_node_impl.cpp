@@ -38,7 +38,13 @@
 #include "nfs_server_impl.h"
 
 namespace dsn {
+template <typename TResponse>
+class rpc_replier;
 namespace service {
+class copy_request;
+class copy_response;
+class get_file_size_request;
+class get_file_size_response;
 
 nfs_node_simple::nfs_node_simple() : nfs_node()
 {
@@ -56,10 +62,14 @@ void nfs_node_simple::call(std::shared_ptr<remote_copy_request> rci, aio_task *c
 error_code nfs_node_simple::start()
 {
     _server = new nfs_service_impl();
-    _server->open_service();
 
     _client = new nfs_client_impl();
     return ERR_OK;
+}
+
+void nfs_node_simple::register_async_rpc_handler_for_test()
+{
+    _server->open_nfs_service_for_test();
 }
 
 error_code nfs_node_simple::stop()
@@ -72,5 +82,18 @@ error_code nfs_node_simple::stop()
 
     return ERR_OK;
 }
+
+void nfs_node_simple::on_copy(const copy_request &request, ::dsn::rpc_replier<copy_response> &reply)
+{
+    _server->on_copy(request, reply);
+}
+
+void nfs_node_simple::on_get_file_size(
+    const ::dsn::service::get_file_size_request &request,
+    ::dsn::rpc_replier<::dsn::service::get_file_size_response> &reply)
+{
+    _server->on_get_file_size(request, reply);
+}
+
 } // namespace service
 } // namespace dsn

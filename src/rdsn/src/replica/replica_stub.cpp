@@ -33,6 +33,26 @@
  *     xxxx-xx-xx, author, fix bug about xxx
  */
 
+#include <boost/algorithm/string/replace.hpp>
+// IWYU pragma: no_include <ext/alloc_traits.h>
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <algorithm>
+#include <chrono>
+#include <cstdint>
+#include <mutex>
+#include <ostream>
+#include <set>
+
+#include "common/backup_common.h"
+#include "meta_admin_types.h"
+#include "nfs/nfs_code_definition.h"
+#include <dsn/dist/nfs_node.h>
+#include "nfs_types.h"
 #include "replica.h"
 #include "replica_stub.h"
 #include "mutation_log.h"
@@ -50,12 +70,16 @@
 #include <dsn/cpp/access_type.h>
 #include <dsn/cpp/json_helper.h>
 #include <dsn/cpp/serialization.h>
+#include <dsn/perf_counter/perf_counter.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/rand.h>
 #include <dsn/utility/string_conv.h>
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool-api/rpc_message.h>
+#include <dsn/dist/replication/duplication_common.h>
+#include <dsn/dist/replication/replication_enums.h>
+#include <dsn/dist/replication/replication.codes.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/utility/enum_helper.h>
 #include <vector>
@@ -64,6 +88,7 @@
 #ifdef DSN_ENABLE_GPERF
 #include <gperftools/malloc_extension.h>
 #endif
+
 #include <dsn/utility/fail_point.h>
 #include <dsn/dist/remote_command.h>
 
@@ -1185,6 +1210,23 @@ void replica_stub::on_add_new_disk(add_new_disk_rpc rpc)
     }
 }
 
+void replica_stub::on_nfs_copy(const ::dsn::service::copy_request &request,
+                               ::dsn::rpc_replier<::dsn::service::copy_response> &reply)
+{
+    if (check_status_and_authz_with_reply(request, reply, ranger::access_type::kWrite)) {
+        _nfs->on_copy(request, reply);
+    }
+}
+
+void replica_stub::on_nfs_get_file_size(
+    const ::dsn::service::get_file_size_request &request,
+    ::dsn::rpc_replier<::dsn::service::get_file_size_response> &reply)
+{
+    if (check_status_and_authz_with_reply(request, reply, ranger::access_type::kWrite)) {
+        _nfs->on_get_file_size(request, reply);
+    }
+}
+
 void replica_stub::on_prepare(dsn::message_ex *request)
 {
     gpid id;
@@ -2269,6 +2311,11 @@ void replica_stub::open_service()
         RPC_DETECT_HOTKEY, "detect_hotkey", &replica_stub::on_detect_hotkey);
     register_rpc_handler_with_rpc_holder(
         RPC_ADD_NEW_DISK, "add_new_disk", &replica_stub::on_add_new_disk);
+
+    // nfs
+    register_async_rpc_handler(dsn::service::RPC_NFS_COPY, "copy", &replica_stub::on_nfs_copy);
+    register_async_rpc_handler(
+        dsn::service::RPC_NFS_GET_FILE_SIZE, "get_file_size", &replica_stub::on_nfs_get_file_size);
 
     register_ctrl_command();
 }

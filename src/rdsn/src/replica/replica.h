@@ -508,7 +508,7 @@ private:
     void update_app_max_replica_count(int32_t max_replica_count);
 
     // use Apache Ranger for replica access control
-    bool access_controller_allowed(message_ex *msg, ranger::access_type req_type) const;
+    bool access_controller_allowed(message_ex *msg, const ranger::access_type &ac_type) const;
 
 private:
     friend class ::dsn::replication::test::test_checker;
