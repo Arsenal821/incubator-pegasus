@@ -45,6 +45,13 @@
 #include "replica.h"
 
 namespace dsn {
+class command_deregister;
+class message_ex;
+class nfs_node;
+namespace security {
+class access_controller;
+} // namespace security
+
 namespace replication {
 
 DSN_DECLARE_uint32(max_concurrent_manual_emergency_checkpointing_count);
@@ -416,6 +423,8 @@ private:
     std::atomic_int _manual_emergency_checkpointing_count;
 
     bool _is_running;
+
+    std::unique_ptr<dsn::security::access_controller> _access_controller;
 
 #ifdef DSN_ENABLE_GPERF
     std::atomic_bool _is_releasing_memory{false};

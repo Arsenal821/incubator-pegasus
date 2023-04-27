@@ -31,9 +31,20 @@
 #include "bulk_load/replica_bulk_loader.h"
 #include "split/replica_split_manager.h"
 #include "runtime/security/access_controller.h"
+#include <dsn/c/api_layer1.h>
+#include <dsn/cpp/access_type.h>
+#include <dsn/cpp/rpc_stream.h>
+#include <dsn/cpp/serialization.h>
 #include <dsn/utils/latency_tracer.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/dist/fmt_logging.h>
+#include <dsn/tool-api/async_calls.h>
+#include <dsn/tool-api/network.h>
+#include <dsn/tool-api/rpc_address.h>
+#include <dsn/tool-api/rpc_message.h>
+#include <dsn/tool-api/task.h>
+#include <dsn/tool-api/task_code.h>
+#include <dsn/tool-api/task_spec.h>
 
 namespace dsn {
 namespace replication {
@@ -48,7 +59,7 @@ void replica::on_client_write(dsn::message_ex *request, bool ignore_throttling)
 {
     _checker.only_one_thread_access();
 
-    if (!_access_controller->allowed(request)) {
+    if (!_access_controller->allowed(request, ranger::access_type::kWrite)) {
         response_client_write(request, ERR_ACL_DENY);
         return;
     }

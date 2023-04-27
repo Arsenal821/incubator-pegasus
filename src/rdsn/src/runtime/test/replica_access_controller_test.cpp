@@ -15,9 +15,20 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#include <memory>
+#include <string>
+#include <unordered_set>
+#include <utility>
+
 #include <gtest/gtest.h>
-#include <dsn/utility/flags.h>
+#include <dsn/cpp/access_type.h>
 #include <dsn/dist/replication.h>
+#include <dsn/dist/replication/replication.codes.h>
+#include <dsn/tool-api/network.h>
+#include <dsn/tool-api/rpc_address.h>
+#include <dsn/tool-api/rpc_message.h>
+#include <dsn/utility/flags.h>
+
 #include "runtime/security/replica_access_controller.h"
 #include "runtime/rpc/network.sim.h"
 
@@ -33,11 +44,14 @@ public:
         _replica_access_controller = make_unique<replica_access_controller>("test");
     }
 
-    bool allowed(dsn::message_ex *msg) { return _replica_access_controller->allowed(msg); }
+    bool allowed(dsn::message_ex *msg)
+    {
+        return _replica_access_controller->allowed(msg, dsn::ranger::access_type::kRead);
+    }
 
     void set_replica_users(std::unordered_set<std::string> &&replica_users)
     {
-        _replica_access_controller->_users.swap(replica_users);
+        _replica_access_controller->_allowed_users.swap(replica_users);
     }
 
     std::unique_ptr<replica_access_controller> _replica_access_controller;

@@ -40,16 +40,21 @@
 #include "bulk_load/replica_bulk_loader.h"
 #include "duplication/duplication_sync_timer.h"
 #include "backup/replica_backup_server.h"
+#include "runtime/security/access_controller.h"
 #include "split/replica_split_manager.h"
 #include "replica_disk_migrator.h"
 #include "disk_cleaner.h"
 
 #include <boost/algorithm/string/replace.hpp>
+#include <dsn/c/api_layer1.h>
 #include <dsn/cpp/json_helper.h>
+#include <dsn/cpp/serialization.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/rand.h>
 #include <dsn/utility/string_conv.h>
+#include <dsn/tool-api/async_calls.h>
 #include <dsn/tool-api/command_manager.h>
+#include <dsn/tool-api/rpc_message.h>
 #include <dsn/dist/replication/replication_app_base.h>
 #include <dsn/utility/enum_helper.h>
 #include <vector>
@@ -476,6 +481,7 @@ void replica_stub::initialize(bool clear /* = false*/)
     replication_options opts;
     opts.initialize();
     initialize(opts, clear);
+    _access_controller = std::make_unique<dsn::security::access_controller>();
 }
 
 void replica_stub::initialize(const replication_options &opts, bool clear /* = false*/)

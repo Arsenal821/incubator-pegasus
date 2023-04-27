@@ -42,12 +42,19 @@
 // which is binded to this replication partition
 //
 
+#include <dsn/tool-api/rpc_message.h>
 #include <dsn/tool-api/uniq_timestamp_us.h>
+#include <dsn/tool-api/task.h>
+#include <dsn/tool-api/task_tracker.h>
 #include <dsn/tool-api/thread_access_checker.h>
+#include <dsn/c/api_layer1.h>
+#include <dsn/cpp/access_type.h>
 #include <dsn/cpp/serverlet.h>
-
 #include <dsn/perf_counter/perf_counter_wrapper.h>
 #include <dsn/dist/replication/replica_base.h>
+#include <dsn/utility/autoref_ptr.h>
+#include <dsn/utility/error_code.h>
+#include <dsn/utility/flags.h>
 
 #include "common/replication_common.h"
 #include "mutation.h"
@@ -474,6 +481,9 @@ private:
     // update allowed users for access controller
     void update_ac_allowed_users(const std::map<std::string, std::string> &envs);
 
+    // update replica access controller Ranger policies
+    void update_ac_ranger_policies(const std::map<std::string, std::string> &envs);
+
     // update bool app envs
     void update_bool_envs(const std::map<std::string, std::string> &envs,
                           const std::string &name,
@@ -496,6 +506,9 @@ private:
     clear_on_failure(replica_stub *stub, replica *rep, const std::string &path, const gpid &pid);
 
     void update_app_max_replica_count(int32_t max_replica_count);
+
+    // use Apache Ranger for replica access control
+    bool access_controller_allowed(message_ex *msg, ranger::access_type req_type) const;
 
 private:
     friend class ::dsn::replication::test::test_checker;
