@@ -94,7 +94,7 @@
 
 namespace dsn {
 namespace replication {
-
+DSN_DEFINE_bool("replication", fd_disabled, false, "whether to disable failure detection");
 DSN_DEFINE_bool("replication",
                 ignore_broken_disk,
                 true,
@@ -784,8 +784,8 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     }
 }
 
-void replica_stub::initialize_fs_manager(std::vector<std::string> &data_dirs,
-                                         std::vector<std::string> &data_dir_tags)
+void replica_stub::initialize_fs_manager(const std::vector<std::string> &data_dirs,
+                                         const std::vector<std::string> &data_dir_tags)
 {
     std::string cdir;
     std::string err_msg;
@@ -793,7 +793,7 @@ void replica_stub::initialize_fs_manager(std::vector<std::string> &data_dirs,
     std::vector<std::string> available_dirs;
     std::vector<std::string> available_dir_tags;
     for (auto i = 0; i < data_dir_tags.size(); ++i) {
-        std::string &dir = data_dirs[i];
+        const auto &dir = data_dirs[i];
         if (dsn_unlikely(!utils::filesystem::create_directory(dir, cdir, err_msg) ||
                          !utils::filesystem::check_dir_rw(dir, err_msg))) {
             if (FLAGS_ignore_broken_disk) {
@@ -854,7 +854,7 @@ void replica_stub::initialize_start()
 
     // init liveness monitor
     dassert(NS_Disconnected == _state, "");
-    if (_options.fd_disabled == false) {
+    if (!FLAGS_fd_disabled) {
         _failure_detector = std::make_shared<dsn::dist::slave_failure_detector_with_multimaster>(
             _options.meta_servers,
             [this]() { this->on_meta_server_disconnected(); },
@@ -1606,6 +1606,10 @@ void replica_stub::on_node_query_reply_scatter2(replica_stub_ptr this_, gpid id)
 void replica_stub::remove_replica_on_meta_server(const app_info &info,
                                                  const partition_configuration &config)
 {
+    if (FLAGS_fd_disabled) {
+        return;
+    }
+
     dsn::message_ex *msg = dsn::message_ex::create_request(RPC_CM_UPDATE_PARTITION_CONFIGURATION);
 
     std::shared_ptr<configuration_update_request> request(new configuration_update_request);
@@ -2681,24 +2685,10 @@ void replica_stub::close()
         _mem_release_timer_task = nullptr;
     }
 
+    wait_closing_replicas_finished();
+
     {
         zauto_write_lock l(_replicas_lock);
-        while (!_closing_replicas.empty()) {
-            task_ptr task = std::get<0>(_closing_replicas.begin()->second);
-            gpid tmp_gpid = _closing_replicas.begin()->first;
-            _replicas_lock.unlock_write();
-
-            task->wait();
-
-            _replicas_lock.lock_write();
-            // task will automatically remove this replica from _closing_replicas
-            if (!_closing_replicas.empty()) {
-                dassert(tmp_gpid != _closing_replicas.begin()->first,
-                        "this replica '%s' should have been removed from _closing_replicas",
-                        tmp_gpid.to_string());
-            }
-        }
-
         while (!_opening_replicas.empty()) {
             task_ptr task = _opening_replicas.begin()->second;
             _replicas_lock.unlock_write();
@@ -3054,6 +3044,27 @@ void replica_stub::update_disks_status()
                          replica->name(),
                          enum_to_string(replica->get_disk_status()));
             }
+        }
+    }
+}
+
+void replica_stub::wait_closing_replicas_finished()
+{
+    zauto_write_lock l(_replicas_lock);
+    while (!_closing_replicas.empty()) {
+        auto task = std::get<0>(_closing_replicas.begin()->second);
+        auto first_gpid = _closing_replicas.begin()->first;
+
+        // TODO(yingchun): improve the code
+        _replicas_lock.unlock_write();
+        task->wait();
+        _replicas_lock.lock_write();
+
+        // task will automatically remove this replica from '_closing_replicas'
+        if (!_closing_replicas.empty()) {
+            dassert(first_gpid != _closing_replicas.begin()->first,
+                    "this replica '{}' should has been removed",
+                    first_gpid);
         }
     }
 }

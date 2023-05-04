@@ -81,7 +81,6 @@ public:
     bool disk_stat_disabled;
     int32_t disk_stat_interval_seconds;
 
-    bool fd_disabled;
     int32_t fd_check_interval_seconds;
     int32_t fd_beacon_interval_seconds;
     int32_t fd_lease_seconds;

@@ -123,8 +123,8 @@ public:
     //
     void initialize(const replication_options &opts, bool clear = false);
     void initialize(bool clear = false);
-    void initialize_fs_manager(std::vector<std::string> &data_dirs,
-                               std::vector<std::string> &data_dir_tags);
+    void initialize_fs_manager(const std::vector<std::string> &data_dirs,
+                               const std::vector<std::string> &data_dir_tags);
     void set_options(const replication_options &opts) { _options = opts; }
     void open_service();
     void close();
@@ -287,6 +287,8 @@ public:
     void on_nfs_get_file_size(const ::dsn::service::get_file_size_request &request,
                               ::dsn::rpc_replier<::dsn::service::get_file_size_response> &reply);
 
+    fs_manager *get_fs_manager() { return &_fs_manager; }
+
 private:
     enum replica_node_state
     {
@@ -366,6 +368,9 @@ private:
     uint64_t gc_tcmalloc_memory(bool release_all);
 #endif
 
+    // Wait all replicas in closing state to be finished.
+    void wait_closing_replicas_finished();
+
 private:
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::replica;
@@ -390,6 +395,7 @@ private:
     friend class open_replica_test;
     friend class replica_follower;
     friend class replica_follower_test;
+    FRIEND_TEST(replica_test, test_clear_on_failure);
 
     typedef std::unordered_map<gpid, ::dsn::task_ptr> opening_replicas;
     typedef std::unordered_map<gpid, std::tuple<task_ptr, replica_ptr, app_info, replica_info>>

@@ -35,7 +35,6 @@
 
 namespace dsn {
 namespace replication {
-
 DSN_DEFINE_int32("replication",
                  max_concurrent_bulk_load_downloading_count,
                  5,
@@ -83,7 +82,6 @@ replication_options::replication_options()
     disk_stat_disabled = false;
     disk_stat_interval_seconds = 600;
 
-    fd_disabled = false;
     fd_check_interval_seconds = 2;
     fd_beacon_interval_seconds = 3;
     fd_lease_seconds = 9;
@@ -285,9 +283,6 @@ void replication_options::initialize()
                                          "disk_stat_interval_seconds",
                                          disk_stat_interval_seconds,
                                          "every what period (ms) we do disk stat");
-
-    fd_disabled = dsn_config_get_value_bool(
-        "replication", "fd_disabled", fd_disabled, "whether to disable failure detection");
     fd_check_interval_seconds = (int)dsn_config_get_value_uint64(
         "replication",
         "fd_check_interval_seconds",
