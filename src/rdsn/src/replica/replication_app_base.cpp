@@ -95,7 +95,10 @@ error_code write_blob_to_file(const std::string &file, const blob &data)
 error_code replica_init_info::load(const std::string &dir)
 {
     std::string info_path = utils::filesystem::path_combine(dir, kInitInfo);
-    dassert_f(utils::filesystem::path_exists(info_path), "file({}) not exist", info_path);
+    ERR_LOG_AND_RETURN_NOT_TRUE(utils::filesystem::path_exists(info_path),
+                                ERR_PATH_NOT_FOUND,
+                                "file({}) not exist",
+                                info_path);
     ERR_LOG_AND_RETURN_NOT_OK(
         load_json(info_path), "load replica_init_info from {} failed", info_path);
     ddebug_f("load replica_init_info from {} succeed: {}", info_path, to_string());
