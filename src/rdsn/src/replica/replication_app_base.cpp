@@ -36,6 +36,10 @@
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/crc.h>
 #include <dsn/service_api_c.h>
+#include <alloca.h>
+#include <fcntl.h>
+#include <rocksdb/status.h>
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <memory>
@@ -349,12 +353,11 @@ int replication_app_base::on_batched_write_requests(int64_t decree,
                                                     message_ex **requests,
                                                     int request_length)
 {
-    int storage_error = 0;
+    int storage_error = rocksdb::Status::kOk;
     for (int i = 0; i < request_length; ++i) {
-        // TODO(yingchun): better to return error_code
         int e = on_request(requests[i]);
-        if (e != 0) {
-            derror_replica("got storage error when handler request({})",
+        if (e != rocksdb::Status::kOk) {
+            derror_replica("got storage engine error when handler request({})",
                            requests[i]->header->rpc_name);
             storage_error = e;
         }
@@ -401,7 +404,7 @@ error_code replication_app_base::apply_mutation(const mutation *mu)
         }
     }
 
-    int perror = on_batched_write_requests(
+    int storage_error = on_batched_write_requests(
         mu->data.header.decree, mu->data.header.timestamp, batched_requests, batched_count);
 
     // release faked requests
@@ -409,17 +412,17 @@ error_code replication_app_base::apply_mutation(const mutation *mu)
         faked_requests[i]->release_ref();
     }
 
-    if (perror != 0) {
-        derror_replica("mutation {}: get internal error {}", mu->name(), perror);
-        // for normal write requests, if got rocksdb error, this replica will be set error and evoke
-        // learn for ingestion requests, should not do as normal write requests, there are two
-        // reasons:
-        // 1. all ingestion errors should be handled by meta server in function
-        // `on_partition_ingestion_reply`, rocksdb error will be returned to meta server in
-        // structure `ingestion_response`, not in this function
-        // 2. if replica apply ingestion mutation during learn, it may got error from rocksdb,
-        // because the external sst files may not exist, in this case, we won't consider it as an
-        // error
+    if (storage_error != rocksdb::Status::kOk) {
+        derror_replica("mutation {}: get internal error {}", mu->name(), storage_error);
+        // For normal write requests, if got rocksdb error, this replica will be set error and evoke
+        // learn.
+        // For ingestion requests, should not do as normal write requests, there are two reasons:
+        //   1. All ingestion errors should be handled by meta server in function
+        //      `on_partition_ingestion_reply`, rocksdb error will be returned to meta server in
+        //      structure `ingestion_response`, not in this function.
+        //   2. If replica apply ingestion mutation during learn, it may get error from rocksdb,
+        //      because the external sst files may not exist, in this case, we won't consider it as
+        //      an error.
         if (!has_ingestion_request) {
             return ERR_LOCAL_APP_FAILURE;
         }
