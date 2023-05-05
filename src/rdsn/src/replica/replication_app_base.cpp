@@ -58,7 +58,8 @@ error_code write_blob_to_file(const std::string &file, const blob &data)
 {
     std::string tmp_file = file + ".tmp";
     disk_file *hfile = file::open(tmp_file.c_str(), O_WRONLY | O_CREAT | O_BINARY | O_TRUNC, 0666);
-    ERR_LOG_AND_RETURN_NOT_TRUE(hfile, ERR_FILE_OPERATION_FAILED, "open file {} failed", tmp_file);
+    LOG_AND_RETURN_NOT_TRUE(
+        error_f, hfile, ERR_FILE_OPERATION_FAILED, "open file {} failed", tmp_file);
     auto cleanup = defer([tmp_file]() { utils::filesystem::remove_path(tmp_file); });
 
     error_code err;
@@ -79,14 +80,15 @@ error_code write_blob_to_file(const std::string &file, const blob &data)
     tracker.wait_outstanding_tasks();
     file::flush(hfile);
     file::close(hfile);
-    ERR_LOG_AND_RETURN_NOT_OK(err, "write file {} failed", tmp_file);
+    LOG_AND_RETURN_NOT_OK(error_f, err, "write file {} failed", tmp_file);
     dcheck_eq(data.length(), sz);
     // TODO(yingchun): need fsync too？
-    ERR_LOG_AND_RETURN_NOT_TRUE(utils::filesystem::rename_path(tmp_file, file),
-                                ERR_FILE_OPERATION_FAILED,
-                                "move file from {} to {} failed",
-                                tmp_file,
-                                file);
+    LOG_AND_RETURN_NOT_TRUE(error_f,
+                            utils::filesystem::rename_path(tmp_file, file),
+                            ERR_FILE_OPERATION_FAILED,
+                            "move file from {} to {} failed",
+                            tmp_file,
+                            file);
 
     return ERR_OK;
 }
@@ -95,12 +97,13 @@ error_code write_blob_to_file(const std::string &file, const blob &data)
 error_code replica_init_info::load(const std::string &dir)
 {
     std::string info_path = utils::filesystem::path_combine(dir, kInitInfo);
-    ERR_LOG_AND_RETURN_NOT_TRUE(utils::filesystem::path_exists(info_path),
-                                ERR_PATH_NOT_FOUND,
-                                "file({}) not exist",
-                                info_path);
-    ERR_LOG_AND_RETURN_NOT_OK(
-        load_json(info_path), "load replica_init_info from {} failed", info_path);
+    LOG_AND_RETURN_NOT_TRUE(error_f,
+                            utils::filesystem::path_exists(info_path),
+                            ERR_PATH_NOT_FOUND,
+                            "file({}) not exist",
+                            info_path);
+    LOG_AND_RETURN_NOT_OK(
+        error_f, load_json(info_path), "load replica_init_info from {} failed", info_path);
     ddebug_f("load replica_init_info from {} succeed: {}", info_path, to_string());
     return ERR_OK;
 }
@@ -109,10 +112,11 @@ error_code replica_init_info::store(const std::string &dir)
 {
     uint64_t start = dsn_now_ns();
     std::string info_path = utils::filesystem::path_combine(dir, kInitInfo);
-    ERR_LOG_AND_RETURN_NOT_OK(store_json(info_path),
-                              "store replica_init_info to {} failed, time_used_ns = {}",
-                              info_path,
-                              dsn_now_ns() - start);
+    LOG_AND_RETURN_NOT_OK(error_f,
+                          store_json(info_path),
+                          "store replica_init_info to {} failed, time_used_ns = {}",
+                          info_path,
+                          dsn_now_ns() - start);
     ddebug_f("store replica_init_info to {} succeed, time_used_ns = {}: {}",
              info_path,
              dsn_now_ns() - start,
@@ -123,21 +127,24 @@ error_code replica_init_info::store(const std::string &dir)
 error_code replica_init_info::load_json(const std::string &file)
 {
     std::ifstream is(file, std::ios::binary);
-    ERR_LOG_AND_RETURN_NOT_TRUE(
-        is.is_open(), ERR_FILE_OPERATION_FAILED, "open file {} failed", file);
+    LOG_AND_RETURN_NOT_TRUE(
+        error_f, is.is_open(), ERR_FILE_OPERATION_FAILED, "open file {} failed", file);
 
     int64_t sz = 0;
-    ERR_LOG_AND_RETURN_NOT_TRUE(utils::filesystem::file_size(std::string(file), sz),
-                                ERR_FILE_OPERATION_FAILED,
-                                "get file size of {} failed",
-                                file);
+    LOG_AND_RETURN_NOT_TRUE(error_f,
+                            utils::filesystem::file_size(std::string(file), sz),
+                            ERR_FILE_OPERATION_FAILED,
+                            "get file size of {} failed",
+                            file);
 
     std::shared_ptr<char> buffer(utils::make_shared_array<char>(sz));
     is.read((char *)buffer.get(), sz);
-    ERR_LOG_AND_RETURN_NOT_TRUE(!is.bad(), ERR_FILE_OPERATION_FAILED, "read file {} failed", file);
+    LOG_AND_RETURN_NOT_TRUE(
+        error_f, !is.bad(), ERR_FILE_OPERATION_FAILED, "read file {} failed", file);
     is.close();
 
-    ERR_LOG_AND_RETURN_NOT_TRUE(
+    LOG_AND_RETURN_NOT_TRUE(
+        error_f,
         json::json_forwarder<replica_init_info>::decode(blob(buffer, sz), *this),
         ERR_FILE_OPERATION_FAILED,
         "decode json from file {} failed",
@@ -164,14 +171,15 @@ std::string replica_init_info::to_string()
 error_code replica_app_info::load(const std::string &file)
 {
     std::ifstream is(file, std::ios::binary);
-    ERR_LOG_AND_RETURN_NOT_TRUE(
-        is.is_open(), ERR_FILE_OPERATION_FAILED, "open file {} failed", file);
+    LOG_AND_RETURN_NOT_TRUE(
+        error_f, is.is_open(), ERR_FILE_OPERATION_FAILED, "open file {} failed", file);
 
     int64_t sz = 0;
-    ERR_LOG_AND_RETURN_NOT_TRUE(utils::filesystem::file_size(std::string(file), sz),
-                                ERR_FILE_OPERATION_FAILED,
-                                "get file size of {} failed",
-                                file);
+    LOG_AND_RETURN_NOT_TRUE(error_f,
+                            utils::filesystem::file_size(std::string(file), sz),
+                            ERR_FILE_OPERATION_FAILED,
+                            "get file size of {} failed",
+                            file);
 
     std::shared_ptr<char> buffer(utils::make_shared_array<char>(sz));
     is.read((char *)buffer.get(), sz);
@@ -181,8 +189,8 @@ error_code replica_app_info::load(const std::string &file)
     int magic;
     unmarshall(reader, magic, DSF_THRIFT_BINARY);
 
-    ERR_LOG_AND_RETURN_NOT_TRUE(
-        magic == 0xdeadbeef, ERR_INVALID_DATA, "data in file {} is invalid (magic)", file);
+    LOG_AND_RETURN_NOT_TRUE(
+        error_f, magic == 0xdeadbeef, ERR_INVALID_DATA, "data in file {} is invalid (magic)", file);
 
     unmarshall(reader, *_app, DSF_THRIFT_JSON);
     return ERR_OK;
@@ -256,26 +264,28 @@ const ballot &replication_app_base::get_ballot() const { return _replica->get_ba
 
 error_code replication_app_base::open_internal(replica *r)
 {
-    ERR_LOG_AND_RETURN_NOT_TRUE(utils::filesystem::directory_exists(_dir_data),
-                                ERR_FILE_OPERATION_FAILED,
-                                "[{}]: replica data dir {} does not exist",
-                                r->name(),
-                                _dir_data);
+    LOG_AND_RETURN_NOT_TRUE(error_replica,
+                            utils::filesystem::directory_exists(_dir_data),
+                            ERR_FILE_OPERATION_FAILED,
+                            "[{}]: replica data dir {} does not exist",
+                            r->name(),
+                            _dir_data);
 
-    ERR_LOG_AND_RETURN_NOT_OK(open(), "[{}]: open replica app failed", r->name());
+    LOG_AND_RETURN_NOT_OK(error_replica, open(), "[{}]: open replica app failed", r->name());
 
     _last_committed_decree = last_durable_decree();
 
     auto err = _info.load(r->dir());
-    ERR_LOG_AND_RETURN_NOT_OK(err, "[{}]: load replica_init_info failed", r->name());
+    LOG_AND_RETURN_NOT_OK(error_replica, err, "[{}]: load replica_init_info failed", r->name());
 
-    ERR_LOG_AND_RETURN_NOT_TRUE(err != ERR_OK || last_durable_decree() >= _info.init_durable_decree,
-                                ERR_INCOMPLETE_DATA,
-                                "[{}]: replica data is not complete coz "
-                                "last_durable_decree({}) < init_durable_decree({})",
-                                r->name(),
-                                last_durable_decree(),
-                                _info.init_durable_decree);
+    LOG_AND_RETURN_NOT_TRUE(error_replica,
+                            err != ERR_OK || last_durable_decree() >= _info.init_durable_decree,
+                            ERR_INCOMPLETE_DATA,
+                            "[{}]: replica data is not complete coz "
+                            "last_durable_decree({}) < init_durable_decree({})",
+                            r->name(),
+                            last_durable_decree(),
+                            _info.init_durable_decree);
 
     return ERR_OK;
 }
@@ -287,17 +297,19 @@ error_code replication_app_base::open_new_internal(replica *r,
     dassert_f(utils::filesystem::remove_path(_dir_data), "remove data dir {} failed", _dir_data);
     dassert_f(
         utils::filesystem::create_directory(_dir_data), "create data dir {} failed", _dir_data);
-    ERR_LOG_AND_RETURN_NOT_TRUE(utils::filesystem::directory_exists(_dir_data),
-                                ERR_FILE_OPERATION_FAILED,
-                                "[{}]: create replica data dir {} failed",
-                                r->name(),
-                                _dir_data);
+    LOG_AND_RETURN_NOT_TRUE(error_replica,
+                            utils::filesystem::directory_exists(_dir_data),
+                            ERR_FILE_OPERATION_FAILED,
+                            "[{}]: create replica data dir {} failed",
+                            r->name(),
+                            _dir_data);
 
-    ERR_LOG_AND_RETURN_NOT_OK(open(), "[{}]: open replica app failed", r->name());
+    LOG_AND_RETURN_NOT_OK(error_replica, open(), "[{}]: open replica app failed", r->name());
     _last_committed_decree = last_durable_decree();
-    ERR_LOG_AND_RETURN_NOT_OK(update_init_info(_replica, shared_log_start, private_log_start, 0),
-                              "[{}]: open replica app failed",
-                              r->name());
+    LOG_AND_RETURN_NOT_OK(error_replica,
+                          update_init_info(_replica, shared_log_start, private_log_start, 0),
+                          "[{}]: open replica app failed",
+                          r->name());
     return ERR_OK;
 }
 
@@ -334,7 +346,8 @@ error_code replication_app_base::open()
 
 error_code replication_app_base::close(bool clear_state)
 {
-    ERR_LOG_AND_RETURN_NOT_OK(stop(clear_state), "[{}]: stop storage failed", replica_name());
+    LOG_AND_RETURN_NOT_OK(
+        error_replica, stop(clear_state), "[{}]: stop storage failed", replica_name());
 
     _last_committed_decree.store(0);
 
@@ -481,8 +494,8 @@ error_code replication_app_base::update_init_info(replica *r,
     _info.init_offset_in_shared_log = shared_log_offset;
     _info.init_offset_in_private_log = private_log_offset;
 
-    ERR_LOG_AND_RETURN_NOT_OK(
-        _info.store(r->dir()), "[{}]: store replica_init_info failed", r->name());
+    LOG_AND_RETURN_NOT_OK(
+        error_replica, _info.store(r->dir()), "[{}]: store replica_init_info failed", r->name());
 
     return ERR_OK;
 }

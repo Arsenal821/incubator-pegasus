@@ -68,17 +68,17 @@
 #define dcheck_lt_replica(var1, var2) dassert_replica(var1 < var2, "{} vs {}", var1, var2)
 
 // Return the given status if condition is not true.
-#define ERR_LOG_AND_RETURN_NOT_TRUE(s, err, ...)                                                   \
+#define LOG_AND_RETURN_NOT_TRUE(level, s, err, ...)                                                \
     do {                                                                                           \
         if (dsn_unlikely(!(s))) {                                                                  \
-            derror_f("{}: {}", err, fmt::format(__VA_ARGS__));                                     \
+            d##level("{}: {}", err, fmt::format(__VA_ARGS__));                                     \
             return err;                                                                            \
         }                                                                                          \
     } while (0)
 
 // Return the given status if it is not ERR_OK.
-#define ERR_LOG_AND_RETURN_NOT_OK(s, ...)                                                          \
+#define LOG_AND_RETURN_NOT_OK(level, s, ...)                                                       \
     do {                                                                                           \
-        error_code _err = (s);                                                                     \
-        ERR_LOG_AND_RETURN_NOT_TRUE(_err == ERR_OK, _err, __VA_ARGS__);                            \
+        ::dsn::error_code _err = (s);                                                              \
+        LOG_AND_RETURN_NOT_TRUE(level, _err == ::dsn::ERR_OK, _err, __VA_ARGS__);                  \
     } while (0)
