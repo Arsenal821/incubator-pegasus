@@ -138,6 +138,7 @@ private:
     friend class replica_disk_migrator;
     friend class replica_disk_test_base;
     friend class open_replica_test;
+    FRIEND_TEST(replica_test, test_auto_trash);
 };
 } // replication
 } // dsn

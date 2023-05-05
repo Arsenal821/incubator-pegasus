@@ -2360,6 +2360,12 @@ void replica_stub::close_replica(replica_ptr r)
         _counter_replicas_closing_count->decrement();
     }
 
+    if (r->is_data_corrupted()) {
+        _fs_manager.remove_replica(id);
+        move_to_err_path(r->dir(), "trash replica");
+        _counter_replicas_recent_replica_move_error_count->increment();
+    }
+
     ddebug("%s: finish to close replica", name.c_str());
 }
 

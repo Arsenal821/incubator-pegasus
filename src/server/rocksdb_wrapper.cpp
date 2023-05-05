@@ -20,12 +20,18 @@
 #include "rocksdb_wrapper.h"
 
 #include <dsn/utility/fail_point.h>
+#include <dsn/utility/flags.h>
 #include <rocksdb/db.h>
 #include "pegasus_write_service_impl.h"
-#include "base/pegasus_value_schema.h"
 
 namespace pegasus {
 namespace server {
+
+DSN_DEFINE_int32("pegasus.server",
+                 inject_write_error_for_test,
+                 0,
+                 "Which error code to inject in write path, 0 means no error. Only for test.");
+DSN_TAG_VARIABLE(inject_write_error_for_test, FT_MUTABLE);
 
 rocksdb_wrapper::rocksdb_wrapper(pegasus_server_impl *server)
     : replica_base(server),
@@ -139,6 +145,10 @@ int rocksdb_wrapper::write_batch_put_ctx(const db_write_context &ctx,
 int rocksdb_wrapper::write(int64_t decree)
 {
     dassert(_write_batch->Count() != 0, "the number of updates in the batch is 0");
+
+    if (dsn_unlikely(FLAGS_inject_write_error_for_test != rocksdb::Status::kOk)) {
+        return FLAGS_inject_write_error_for_test;
+    }
 
     FAIL_POINT_INJECT_F("db_write", [](dsn::string_view) -> int { return FAIL_DB_WRITE; });
 

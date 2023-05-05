@@ -42,6 +42,8 @@
 // which is binded to this replication partition
 //
 
+#include <gtest/gtest_prod.h>
+
 #include <dsn/tool-api/rpc_message.h>
 #include <dsn/tool-api/uniq_timestamp_us.h>
 #include <dsn/tool-api/task.h>
@@ -494,6 +496,8 @@ private:
     // use Apache Ranger for replica access control
     bool access_controller_allowed(message_ex *msg, const ranger::access_type &ac_type) const;
 
+    bool is_data_corrupted() const { return _data_corrupted; }
+
 private:
     friend class ::dsn::replication::test::test_checker;
     friend class ::dsn::replication::mutation_queue;
@@ -514,6 +518,7 @@ private:
     friend class replica_disk_migrate_test;
     friend class open_replica_test;
     friend class replica_follower;
+    FRIEND_TEST(replica_test, test_auto_trash);
 
     // replica configuration, updated by update_local_configuration ONLY
     replica_configuration _config;
@@ -635,6 +640,8 @@ private:
     disk_status::type _disk_status{disk_status::NORMAL};
 
     bool _allow_ingest_behind{false};
+    // Indicate where the storage engine data is corrupted and unrecoverable.
+    bool _data_corrupted{false};
 };
 typedef dsn::ref_ptr<replica> replica_ptr;
 } // namespace replication
