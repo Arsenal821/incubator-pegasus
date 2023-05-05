@@ -25,6 +25,7 @@
 #include <rocksdb/utilities/checkpoint.h>
 #include <rocksdb/utilities/options_util.h>
 #include <dsn/utility/chrono_literals.h>
+#include <dsn/utility/defer.h>
 #include <dsn/utility/utils.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/string_conv.h>
@@ -1574,9 +1575,10 @@ dsn::error_code pegasus_server_impl::start(int argc, char **argv)
         // When DB exists, meta CF and data CF must be present.
         bool missing_meta_cf = true;
         bool missing_data_cf = true;
-        if (check_column_families(rdb_path, &missing_meta_cf, &missing_data_cf) != dsn::ERR_OK) {
+        auto ec = check_column_families(rdb_path, &missing_meta_cf, &missing_data_cf);
+        if (ec != dsn::ERR_OK) {
             derror_replica("check column families failed");
-            return dsn::ERR_LOCAL_APP_FAILURE;
+            return ec;
         }
         dassert_replica(!missing_meta_cf, "You must upgrade Pegasus server from 2.0");
         dassert_replica(!missing_data_cf, "Missing data column family");
@@ -1652,19 +1654,29 @@ dsn::error_code pegasus_server_impl::start(int argc, char **argv)
     _meta_store = dsn::make_unique<meta_store>(this, _db, _meta_cf);
 
     if (db_exist) {
-        _last_committed_decree = _meta_store->get_last_flushed_decree();
-        _pegasus_data_version = _meta_store->get_data_version();
+        auto cleanup = dsn::defer([this]() { release_db(); });
+        uint64_t decree = 0;
+        LOG_AND_RETURN_NOT_OK(error_replica,
+                              _meta_store->get_last_flushed_decree(&decree),
+                              "get_last_flushed_decree failed");
+        _last_committed_decree.store(static_cast<int64_t>(decree));
+        LOG_AND_RETURN_NOT_OK(error_replica,
+                              _meta_store->get_data_version(&_pegasus_data_version),
+                              "get_data_version failed");
         _usage_scenario = _meta_store->get_usage_scenario();
-        uint64_t last_manual_compact_finish_time =
-            _meta_store->get_last_manual_compact_finish_time();
-        if (_pegasus_data_version > PEGASUS_DATA_VERSION_MAX) {
-            derror_replica("open app failed, unsupported data version {}", _pegasus_data_version);
-            release_db();
-            return dsn::ERR_LOCAL_APP_FAILURE;
-        }
-
+        uint64_t last_manual_compact_finish_time = 0;
+        LOG_AND_RETURN_NOT_OK(
+            error_replica,
+            _meta_store->get_last_manual_compact_finish_time(&last_manual_compact_finish_time),
+            "get_last_manual_compact_finish_time failed");
+        LOG_AND_RETURN_NOT_TRUE(error_replica,
+                                _pegasus_data_version <= PEGASUS_DATA_VERSION_MAX,
+                                dsn::ERR_LOCAL_APP_FAILURE,
+                                "open app failed, unsupported data version {}",
+                                _pegasus_data_version);
         // update last manual compact finish timestamp
         _manual_compact_svc.init_last_finish_time_ms(last_manual_compact_finish_time);
+        cleanup.cancel();
     } else {
         // Write initial meta data to meta CF and flush when create new DB.
         _meta_store->set_data_version(PEGASUS_DATA_VERSION_MAX);
@@ -1902,7 +1914,8 @@ private:
     {
         ::dsn::utils::auto_lock<::dsn::utils::ex_lock_nr> l(_checkpoints_lock);
         dcheck_gt_replica(last_commit, last_durable_decree());
-        int64_t last_flushed = static_cast<int64_t>(_meta_store->get_last_flushed_decree());
+        uint64_t last_flushed = 0;
+        dcheck_eq_replica(::dsn::ERR_OK, _meta_store->get_last_flushed_decree(&last_flushed));
         dcheck_eq_replica(last_commit, last_flushed);
         if (!_checkpoints.empty()) {
             dcheck_gt_replica(last_commit, _checkpoints.back());
@@ -1927,7 +1940,8 @@ private:
         return ::dsn::ERR_WRONG_TIMING;
 
     int64_t last_durable = last_durable_decree();
-    int64_t last_flushed = static_cast<int64_t>(_meta_store->get_last_flushed_decree());
+    uint64_t last_flushed = 0;
+    dcheck_eq_replica(::dsn::ERR_OK, _meta_store->get_last_flushed_decree(&last_flushed));
     int64_t last_commit = last_committed_decree();
 
     dcheck_le_replica(last_durable, last_flushed);
@@ -3090,6 +3104,11 @@ bool pegasus_server_impl::set_options(
         return ::dsn::ERR_LOCAL_APP_FAILURE;
     }
 
+    if (column_families.empty()) {
+        derror_replica("column families are empty");
+        return ::dsn::ERR_LOCAL_APP_FAILURE;
+    }
+
     for (const auto &column_family : column_families) {
         if (column_family == META_COLUMN_FAMILY_NAME) {
             *missing_meta_cf = false;
@@ -3143,7 +3162,11 @@ uint64_t pegasus_server_impl::do_manual_compact(const rocksdb::CompactRangeOptio
     // update rocksdb statistics immediately
     update_replica_rocksdb_statistics();
 
-    return _meta_store->get_last_manual_compact_finish_time();
+    uint64_t last_manual_compact_finish_time = 0;
+    dcheck_eq_replica(
+        ::dsn::ERR_OK,
+        _meta_store->get_last_manual_compact_finish_time(&last_manual_compact_finish_time));
+    return last_manual_compact_finish_time;
 }
 
 bool pegasus_server_impl::release_storage_after_manual_compact()
@@ -3169,7 +3192,8 @@ bool pegasus_server_impl::release_storage_after_manual_compact()
     gc_checkpoints(true);
     ddebug_replica("finish gc_checkpoints, time_used = {}ms", dsn_now_ms() - start_time);
 
-    int64_t new_last_durable = _meta_store->get_last_flushed_decree();
+    uint64_t new_last_durable = 0;
+    dcheck_eq_replica(::dsn::ERR_OK, _meta_store->get_last_flushed_decree(&new_last_durable));
     if (new_last_durable > old_last_durable) {
         ddebug_replica("release storage succeed, last_durable_decree changed from {} to {}",
                        old_last_durable,
