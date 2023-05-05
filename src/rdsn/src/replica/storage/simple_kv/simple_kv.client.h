@@ -29,7 +29,7 @@
 #include <dsn/utility/optional.h>
 #include <dsn/tool-api/async_calls.h>
 #include <dsn/dist/replication/partition_resolver.h>
-#include "simple_kv.code.definition.h"
+#include <dsn/dist/replication/simple_kv/simple_kv.code.definition.h>
 #include "simple_kv_types.h"
 
 namespace dsn {

@@ -47,6 +47,7 @@
 #include <dsn/utility/string_conv.h>
 #include <dsn/utility/strings.h>
 #include <dsn/tool-api/rpc_message.h>
+#include <rocksdb/status.h>
 
 namespace dsn {
 namespace replication {
@@ -257,8 +258,19 @@ void replica::on_client_read(dsn::message_ex *request, bool ignore_throttling)
 
     uint64_t start_time_ns = dsn_now_ns();
     dassert(_app != nullptr, "");
-    // TODO(yingchun): check the return value.
-    _app->on_request(request);
+    auto storage_error = _app->on_request(request);
+    if (dsn_unlikely(storage_error != ERR_OK)) {
+        switch (storage_error) {
+        // TODO(yingchun): Now only kCorruption is dealt, consider to deal with more storage
+        //  engine errors.
+        case rocksdb::Status::kCorruption:
+            handle_local_failure(ERR_RDB_CORRUPTION);
+            break;
+        default:
+            derror_replica("client read encountered an unhandled error: {}", storage_error);
+        }
+        return;
+    }
 
     // If the corresponding perf counter exist, count the duration of this operation.
     // rpc code of request is already checked in message_ex::rpc_code, so it will always be legal
