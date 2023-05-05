@@ -59,6 +59,7 @@
 #include "mutation.h"
 #include "bulk_load/replica_bulk_loader.h"
 #include "duplication/duplication_sync_timer.h"
+#include "duplication/replica_follower.h"
 #include "backup/replica_backup_server.h"
 #include "runtime/security/access_controller.h"
 #include "split/replica_split_manager.h"
@@ -588,7 +589,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
             [this, dir, &rps, &rps_lock] {
                 ddebug("process dir %s", dir.c_str());
 
-                auto r = replica::load(this, dir.c_str());
+                auto r = load_replica(dir.c_str());
                 if (r != nullptr) {
                     ddebug("%s@%s: load replica '%s' success, <durable, commit> = <%" PRId64
                            ", %" PRId64 ">, last_prepared_decree = %" PRId64,
@@ -663,15 +664,7 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
         // TODO: checkpoint latest state and update on meta server so learning is cheaper
         for (auto it = rps.begin(); it != rps.end(); ++it) {
             it->second->close();
-            // move to '.err' directory
-            const char *dir = it->second->dir().c_str();
-            char rename_dir[1024];
-            sprintf(rename_dir, "%s.%" PRIu64 ".err", dir, dsn_now_us());
-            bool ret = dsn::utils::filesystem::rename_path(dir, rename_dir);
-            dassert(ret, "init_replica: failed to move directory '%s' to '%s'", dir, rename_dir);
-            dwarn("init_replica: {replica_dir_op} succeed to move directory '%s' to '%s'",
-                  dir,
-                  rename_dir);
+            move_to_err_path(it->second->dir(), "initialize replica");
             _counter_replicas_recent_replica_move_error_count->increment();
         }
         rps.clear();
@@ -2069,7 +2062,7 @@ void replica_stub::open_replica(
                _primary_address_str,
                group_check ? "with" : "without",
                dir.c_str());
-        rep = replica::load(this, dir.c_str());
+        rep = load_replica(dir.c_str());
 
         // if load data failed, re-open the `*.ori` folder which is the origin replica dir of disk
         // migration
@@ -2092,7 +2085,7 @@ void replica_stub::open_replica(
                 boost::replace_first(
                     origin_dir, replica_disk_migrator::kReplicaDirOriginSuffix, "");
                 dsn::utils::filesystem::rename_path(origin_tmp_dir, origin_dir);
-                rep = replica::load(this, origin_dir.c_str());
+                rep = load_replica(origin_dir.c_str());
 
                 FAIL_POINT_INJECT_F("mock_replica_load", [&](string_view) -> void {});
             }
@@ -2143,7 +2136,7 @@ void replica_stub::open_replica(
                 return;
             }
         }
-        rep = replica::newr(this, id, app, restore_if_necessary, is_duplication_follower);
+        rep = new_replica(id, app, restore_if_necessary, is_duplication_follower);
     }
 
     if (rep == nullptr) {
@@ -2184,6 +2177,127 @@ void replica_stub::open_replica(
     }
 }
 
+replica *replica_stub::new_replica(gpid gpid,
+                                   const app_info &app,
+                                   bool restore_if_necessary,
+                                   bool is_duplication_follower,
+                                   const std::string &parent_dir)
+{
+    std::string dir;
+    if (parent_dir.empty()) {
+        dir = get_replica_dir(app.app_type.c_str(), gpid);
+    } else {
+        dir = get_child_dir(app.app_type.c_str(), gpid, parent_dir);
+    }
+    auto *rep =
+        new replica(this, gpid, app, dir.c_str(), restore_if_necessary, is_duplication_follower);
+    error_code err;
+    if (restore_if_necessary && (err = rep->restore_checkpoint()) != dsn::ERR_OK) {
+        derror_f("{}: try to restore replica failed, error({})", rep->name(), err);
+        clear_on_failure(rep, dir, gpid);
+        return nullptr;
+    }
+
+    if (is_duplication_follower &&
+        (err = rep->get_replica_follower()->duplicate_checkpoint()) != dsn::ERR_OK) {
+        derror_f("{}: try to duplicate replica checkpoint failed, error({}) and please check "
+                 "previous detail error log",
+                 rep->name(),
+                 err);
+        clear_on_failure(rep, dir, gpid);
+        return nullptr;
+    }
+
+    err = rep->initialize_on_new();
+    if (err != ERR_OK) {
+        derror_f("{}: new replica failed, err = {}", rep->name(), err);
+        clear_on_failure(rep, dir, gpid);
+        return nullptr;
+    }
+
+    dinfo_f("{}: new replica succeed", rep->name());
+    return rep;
+}
+
+replica *replica_stub::load_replica(const char *dir)
+{
+    FAIL_POINT_INJECT_F("mock_replica_load", [&](string_view) -> replica * { return nullptr; });
+
+    char splitters[] = {'\\', '/', 0};
+    std::string name = utils::get_last_component(std::string(dir), splitters);
+    if (name.empty()) {
+        derror_f("invalid replica dir {}", dir);
+        return nullptr;
+    }
+
+    char app_type[128];
+    int32_t app_id, pidx;
+    if (3 != sscanf(name.c_str(), "%d.%d.%s", &app_id, &pidx, app_type)) {
+        derror_f("invalid replica dir {}", dir);
+        return nullptr;
+    }
+
+    gpid pid(app_id, pidx);
+    if (!utils::filesystem::directory_exists(dir)) {
+        derror_f("replica dir {} not exist", dir);
+        return nullptr;
+    }
+
+    dsn::app_info info;
+    replica_app_info info2(&info);
+    std::string path = utils::filesystem::path_combine(dir, replica::kAppInfo);
+    auto err = info2.load(path);
+    if (ERR_OK != err) {
+        derror_f("load app-info from {} failed, err = {}", path, err);
+        return nullptr;
+    }
+
+    if (info.app_type != app_type) {
+        derror_f("unmatched app type {} for {}", info.app_type, path);
+        return nullptr;
+    }
+
+    if (info.partition_count < pidx) {
+        derror_f("partition[{}], count={}, this replica may be partition split garbage partition, "
+                 "ignore it",
+                 pid,
+                 info.partition_count);
+        return nullptr;
+    }
+
+    auto *rep = new replica(this, pid, info, dir, false);
+    err = rep->initialize_on_load();
+    if (err != ERR_OK) {
+        derror_f("{}: load replica failed, err = {}", rep->name(), err);
+        rep->close();
+        delete rep;
+        rep = nullptr;
+
+        // clear work on failure
+        if (dsn::utils::filesystem::directory_exists(dir)) {
+            move_to_err_path(dir, "load replica");
+            _counter_replicas_recent_replica_move_error_count->increment();
+            _fs_manager.remove_replica(pid);
+        }
+
+        return nullptr;
+    }
+
+    ddebug_f("{}: load replica succeed", rep->name());
+    return rep;
+}
+
+void replica_stub::clear_on_failure(replica *rep, const std::string &path, const gpid &pid)
+{
+    rep->close();
+    delete rep;
+    rep = nullptr;
+
+    // clear work on failure
+    utils::filesystem::remove_path(path);
+    _fs_manager.remove_replica(pid);
+}
+
 task_ptr replica_stub::begin_close_replica(replica_ptr r)
 {
     dassert_f(r->status() == partition_status::PS_ERROR ||
@@ -2198,32 +2312,31 @@ task_ptr replica_stub::begin_close_replica(replica_ptr r)
     gpid id = r->get_gpid();
 
     zauto_write_lock l(_replicas_lock);
-
-    if (_replicas.erase(id) > 0) {
-        _counter_replicas_count->decrement();
-
-        int delay_ms = 0;
-        if (r->status() == partition_status::PS_INACTIVE) {
-            delay_ms = _options.gc_memory_replica_interval_ms;
-            ddebug("%s: delay %d milliseconds to close replica, status = PS_INACTIVE",
-                   r->name(),
-                   delay_ms);
-        }
-
-        app_info a_info = *(r->get_app_info());
-        replica_info r_info;
-        get_replica_info(r_info, r);
-        task_ptr task = tasking::enqueue(LPC_CLOSE_REPLICA,
-                                         &_tracker,
-                                         [=]() { close_replica(r); },
-                                         0,
-                                         std::chrono::milliseconds(delay_ms));
-        _closing_replicas[id] = std::make_tuple(task, r, std::move(a_info), std::move(r_info));
-        _counter_replicas_closing_count->increment();
-        return task;
-    } else {
+    if (_replicas.erase(id) == 0) {
         return nullptr;
     }
+
+    _counter_replicas_count->decrement();
+
+    int delay_ms = 0;
+    if (r->status() == partition_status::PS_INACTIVE) {
+        delay_ms = _options.gc_memory_replica_interval_ms;
+        ddebug_f("{}: delay {} milliseconds to close replica, status = PS_INACTIVE",
+                 r->name(),
+                 delay_ms);
+    }
+
+    app_info a_info = *(r->get_app_info());
+    replica_info r_info;
+    get_replica_info(r_info, r);
+    task_ptr task = tasking::enqueue(LPC_CLOSE_REPLICA,
+                                     &_tracker,
+                                     [=]() { close_replica(r); },
+                                     0,
+                                     std::chrono::milliseconds(delay_ms));
+    _closing_replicas[id] = std::make_tuple(task, r, std::move(a_info), std::move(r_info));
+    _counter_replicas_closing_count->increment();
+    return task;
 }
 
 void replica_stub::close_replica(replica_ptr r)
@@ -2861,7 +2974,7 @@ replica_ptr replica_stub::create_child_replica_if_not_found(gpid child_pid,
             dwarn_f("failed create child replica({}) because it is under close", child_pid);
             return nullptr;
         } else {
-            replica *rep = replica::newr(this, child_pid, *app, false, false, parent_dir);
+            replica *rep = new_replica(child_pid, *app, false, false, parent_dir);
             if (rep != nullptr) {
                 auto pr = _replicas.insert(replicas::value_type(child_pid, rep));
                 dassert_f(pr.second, "child replica {} has been existed", rep->name());

@@ -21,6 +21,7 @@
 #include <dsn/utility/filesystem.h>
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/c/api_layer1.h>
+#include <fmt/format.h>
 
 #include "disk_cleaner.h"
 
@@ -124,6 +125,17 @@ error_s disk_remove_useless_dirs(const std::vector<std::string> &data_dirs,
         }
     }
     return error_s::ok();
+}
+
+void move_to_err_path(const std::string &path, const std::string &log_prefix)
+{
+    const std::string new_path = fmt::format("{}.{}{}", path, dsn_now_us(), kFolderSuffixErr);
+    dassert_f(dsn::utils::filesystem::rename_path(path, new_path),
+              "{}: failed to move directory from '{}' to '{}'",
+              log_prefix,
+              path,
+              new_path);
+    dwarn_f("{}: succeed to move directory from '{}' to '{}'", log_prefix, path, new_path);
 }
 } // namespace replication
 } // namespace dsn

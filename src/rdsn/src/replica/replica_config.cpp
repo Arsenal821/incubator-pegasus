@@ -730,13 +730,14 @@ bool replica::update_local_configuration(const replica_configuration &config,
     partition_status::type old_status = status();
     ballot old_ballot = get_ballot();
 
-    // skip unncessary configuration change
-    if (old_status == config.status && old_ballot == config.ballot)
+    // skip unnecessary configuration change
+    if (old_status == config.status && old_ballot == config.ballot) {
         return true;
+    }
 
     // skip invalid change
     // but do not disable transitions to partition_status::PS_ERROR as errors
-    // must be handled immmediately
+    // must be handled immediately
     switch (old_status) {
     case partition_status::PS_ERROR: {
         dwarn("%s: status change from %s @ %" PRId64 " to %s @ %" PRId64 " is not allowed",
@@ -816,8 +817,7 @@ bool replica::update_local_configuration(const replica_configuration &config,
         break;
     }
 
-    bool r = false;
-    uint64_t oldTs = _last_config_change_time_ms;
+    uint64_t old_ts = _last_config_change_time_ms;
     _config = config;
     // we should durable the new ballot to prevent the inconsistent state
     if (_config.ballot > old_ballot) {
@@ -935,8 +935,9 @@ bool replica::update_local_configuration(const replica_configuration &config,
             _prepare_list->truncate(_app->last_committed_decree());
 
             // using force cleanup now as all tasks must be done already
-            r = _potential_secondary_states.cleanup(true);
-            dassert(r, "%s: potential secondary context cleanup failed", name());
+            dassert(_potential_secondary_states.cleanup(true),
+                    "%s: potential secondary context cleanup failed",
+                    name());
 
             check_state_completeness();
             break;
@@ -948,8 +949,8 @@ bool replica::update_local_configuration(const replica_configuration &config,
             _prepare_list->reset(_app->last_committed_decree());
             _potential_secondary_states.cleanup(false);
             // => do this in close as it may block
-            // r = _potential_secondary_states.cleanup(true);
-            // dassert(r, "%s: potential secondary context cleanup failed", name());
+            // dassert(_potential_secondary_states.cleanup(true),
+            //         "%s: potential secondary context cleanup failed", name());
             break;
         default:
             dassert(false, "invalid execution path");
@@ -1051,7 +1052,7 @@ bool replica::update_local_configuration(const replica_configuration &config,
            _prepare_list->last_committed_decree(),
            _app->last_committed_decree(),
            _app->last_durable_decree(),
-           _last_config_change_time_ms - oldTs,
+           _last_config_change_time_ms - old_ts,
            boost::lexical_cast<std::string>(_config).c_str());
 
     if (status() != old_status) {
@@ -1094,8 +1095,9 @@ bool replica::update_local_configuration(const replica_configuration &config,
 
 bool replica::update_local_configuration_with_no_ballot_change(partition_status::type s)
 {
-    if (status() == s)
+    if (status() == s) {
         return false;
+    }
 
     auto config = _config;
     config.status = s;
