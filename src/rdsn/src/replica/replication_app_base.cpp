@@ -342,8 +342,7 @@ error_code replication_app_base::open()
 
 error_code replication_app_base::close(bool clear_state)
 {
-    LOG_AND_RETURN_NOT_OK(
-        error_replica, stop(clear_state), "stop storage failed");
+    LOG_AND_RETURN_NOT_OK(error_replica, stop(clear_state), "stop storage failed");
 
     _last_committed_decree.store(0);
 
@@ -490,8 +489,7 @@ error_code replication_app_base::update_init_info(replica *r,
     _info.init_offset_in_shared_log = shared_log_offset;
     _info.init_offset_in_private_log = private_log_offset;
 
-    LOG_AND_RETURN_NOT_OK(
-        error_replica, _info.store(r->dir()), "store replica_init_info failed");
+    LOG_AND_RETURN_NOT_OK(error_replica, _info.store(r->dir()), "store replica_init_info failed");
 
     return ERR_OK;
 }
