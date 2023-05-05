@@ -2597,11 +2597,6 @@ void pegasus_server_impl::update_app_envs(const std::map<std::string, std::strin
     update_throttling_controller(envs);
 }
 
-int64_t pegasus_server_impl::last_flushed_decree() const
-{
-    return _meta_store->get_last_flushed_decree();
-}
-
 void pegasus_server_impl::update_app_envs_before_open_db(
     const std::map<std::string, std::string> &envs)
 {
@@ -3174,7 +3169,7 @@ bool pegasus_server_impl::release_storage_after_manual_compact()
     gc_checkpoints(true);
     ddebug_replica("finish gc_checkpoints, time_used = {}ms", dsn_now_ms() - start_time);
 
-    int64_t new_last_durable = last_flushed_decree();
+    int64_t new_last_durable = _meta_store->get_last_flushed_decree();
     if (new_last_durable > old_last_durable) {
         ddebug_replica("release storage succeed, last_durable_decree changed from {} to {}",
                        old_last_durable,
