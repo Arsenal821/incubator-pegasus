@@ -179,7 +179,7 @@ int logging_provider::print_header(FILE *fp, dsn_log_level_t log_level)
     static char s_level_char[] = "IDWEF";
 
     uint64_t ts = dsn::utils::get_current_physical_time_ns();
-    char str[24];
+    char str[24] = {0};
     dsn::utils::time_ms_to_string(ts / 1000000, str);
 
     int tid = dsn::utils::get_current_tid();
