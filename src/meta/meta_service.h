@@ -57,8 +57,10 @@
 #include "meta_server_failure_detector.h"
 #include "perf_counter/perf_counter_wrapper.h"
 #include "runtime/api_layer1.h"
+#include "runtime/rpc/dns_resolver.h"
 #include "runtime/rpc/network.h"
 #include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/rpc/rpc_message.h"
 #include "runtime/rpc/serialization.h"
 #include "runtime/security/access_controller.h"
@@ -396,13 +398,18 @@ private:
 
     // indicate which operation is processeding in meta server
     std::atomic<meta_op_status> _meta_op_status;
+
+    // Resolve host_port to address.
+    std::shared_ptr<dns_resolver> _dns_resolver;
 };
 
 template <typename TRpcHolder>
 meta_leader_state meta_service::check_leader(TRpcHolder rpc, rpc_address *forward_address)
 {
-    dsn::rpc_address leader;
-    if (!_failure_detector->get_leader(&leader)) {
+    // TODO(liguohao): change forward_address to forward_host_port
+    host_port hp;
+    if (!_failure_detector->get_leader(&hp)) {
+        auto leader = _dns_resolver->resolve_address(hp);
         if (!rpc.dsn_request()->header->context.u.is_forward_supported) {
             if (forward_address != nullptr)
                 *forward_address = leader;

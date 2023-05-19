@@ -83,6 +83,9 @@ public:
     // Trere may be multiple rpc_addresses for one host_port.
     error_s resolve_addresses(std::vector<rpc_address> &addresses) const;
 
+    // This function is used for validating the format of string like "test_host:1234".
+    bool from_string(const std::string s);
+
     // for serialization in thrift format
     uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
     uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
@@ -91,7 +94,7 @@ private:
     std::string _host;
     uint16_t _port = 0;
     dsn_host_type_t _type = HOST_TYPE_INVALID;
-    rpc_group_host_port *_group_host_port = nullptr;
+    rpc_group_host_port* _group_host_port = nullptr;
 };
 
 inline bool operator==(const host_port &hp1, const host_port &hp2)
@@ -115,6 +118,22 @@ inline bool operator==(const host_port &hp1, const host_port &hp2)
 }
 
 inline bool operator!=(const host_port &hp1, const host_port &hp2) { return !(hp1 == hp2); }
+
+inline bool operator<(const host_port &hp1, const host_port &hp2)
+{
+    if (hp1.type() != hp2.type()) {
+        return hp1.type() < hp2.type();
+    }
+
+    switch (hp1.type()) {
+    case HOST_TYPE_IPV4:
+        return hp1.host() < hp2.host() ||  (hp1.host() == hp2.host() && hp1.port() < hp2.port());
+    case HOST_TYPE_GROUP:
+        return reinterpret_cast<uint64_t>(hp1.group_host_port()) < reinterpret_cast<uint64_t>(hp2.group_host_port());
+    default:
+        return true;
+    }
+}
 
 } // namespace dsn
 

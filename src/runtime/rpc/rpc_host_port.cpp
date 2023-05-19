@@ -31,6 +31,7 @@
 #include "runtime/rpc/rpc_host_port.h"
 #include "utils/error_code.h"
 #include "utils/safe_strerror_posix.h"
+#include "utils/string_conv.h"
 #include "utils/utils.h"
 
 namespace dsn {
@@ -66,6 +67,33 @@ host_port::host_port(std::string host, uint16_t port)
     : _host(std::move(host)), _port(port), _type(HOST_TYPE_IPV4)
 {
     CHECK_NE_MSG(rpc_address::ipv4_from_host(_host.c_str()), 0, "invalid hostname: {}", _host);
+}
+
+
+bool host_port::from_string(const std::string s)
+{
+    std::string ip_port = s;
+    auto pos = ip_port.find_last_of(':');
+    if (pos == std::string::npos) {
+        return false;
+    }
+    std::string host = ip_port.substr(0, pos);
+    std::string port = ip_port.substr(pos + 1);
+
+    // check port
+    unsigned int port_num;
+    if (!internal::buf2unsigned(port, port_num) || port_num > UINT16_MAX) {
+        return false;
+    }
+
+    if (rpc_address::ipv4_from_host(host.c_str()) == 0) {
+        return false;
+    }
+
+    _type = HOST_TYPE_IPV4;
+    _host = host;
+    _port = port_num;
+    return true;
 }
 
 host_port::host_port(rpc_address addr)
@@ -133,7 +161,7 @@ std::string host_port::to_string() const
     case HOST_TYPE_GROUP:
         return fmt::format("address group {}", group_host_port()->name());
     default:
-        return "invalid address";
+        return "invalid host_port";
     }
 }
 

@@ -46,7 +46,7 @@
 #include "meta_http_service.h"
 #include "meta_server_failure_detector.h"
 #include "runtime/api_layer1.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "server_load_balancer.h"
 #include "server_state.h"
 #include "utils/error_code.h"
@@ -830,11 +830,11 @@ bool meta_http_service::redirect_if_not_primary(const http_request &req, http_re
 #ifdef DSN_MOCK_TEST
     return true;
 #endif
-    rpc_address leader;
+    host_port leader;
     if (_service->_failure_detector->get_leader(&leader))
         return true;
     // set redirect response
-    resp.location = "http://" + leader.to_std_string() + '/' + req.path;
+    resp.location = "http://" + leader.to_string() + '/' + req.path;
     if (!req.query_args.empty()) {
         resp.location += '?';
         for (const auto &i : req.query_args) {

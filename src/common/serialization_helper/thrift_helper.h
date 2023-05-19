@@ -38,7 +38,6 @@
 #include <thrift/TApplicationException.h>
 #include <type_traits>
 
-#include "utils/string_view.h"
 
 using namespace ::apache::thrift::transport;
 namespace dsn {

@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "runtime/rpc/group_address.h"
-#include "runtime/rpc/group_host_port.h"
 #include "runtime/rpc/rpc_host_port.h"
 #include "utils/autoref_ptr.h"
 #include "utils/fmt_logging.h"

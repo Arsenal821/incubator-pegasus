@@ -201,7 +201,8 @@ replica_stub::replica_stub(replica_state_subscriber subscriber /*= nullptr*/,
       _learn_app_concurrent_count(0),
       _bulk_load_downloading_count(0),
       _manual_emergency_checkpointing_count(0),
-      _is_running(false)
+      _is_running(false),
+      _dns_resolver(new dns_resolver())
 {
 #ifdef DSN_ENABLE_GPERF
     _is_releasing_memory = false;
@@ -883,9 +884,16 @@ void replica_stub::initialize_start()
 
     // init liveness monitor
     CHECK_EQ(NS_Disconnected, _state);
+
+    std::vector<host_port> meta_servers;
+    for (const auto &n : _options.meta_servers) {
+        meta_servers.emplace_back(host_port(n));
+    }
+
     if (!FLAGS_fd_disabled) {
         _failure_detector = std::make_shared<dsn::dist::slave_failure_detector_with_multimaster>(
-            _options.meta_servers,
+            _dns_resolver,
+            meta_servers,
             [this]() { this->on_meta_server_disconnected(); },
             [this]() { this->on_meta_server_connected(); });
 
@@ -1427,7 +1435,7 @@ void replica_stub::query_configuration_by_node()
     LOG_INFO("send query node partitions request to meta server, stored_replicas_count = {}",
              req.stored_replicas.size());
 
-    rpc_address target(_failure_detector->get_servers());
+    rpc_address target(_dns_resolver->resolve_address(_failure_detector->get_servers()));
     _config_query_task =
         rpc::call(target,
                   msg,
@@ -1634,8 +1642,8 @@ void replica_stub::remove_replica_on_meta_server(const app_info &info,
 
     ::dsn::marshall(msg, *request);
 
-    rpc_address target(_failure_detector->get_servers());
-    rpc::call(_failure_detector->get_servers(),
+    rpc_address target(_dns_resolver->resolve_address(_failure_detector->get_servers()));
+    rpc::call(target,
               msg,
               nullptr,
               [](error_code err, dsn::message_ex *, dsn::message_ex *) {});

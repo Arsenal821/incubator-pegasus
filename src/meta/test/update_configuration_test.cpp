@@ -218,7 +218,7 @@ void meta_service_test_app::update_configuration_test()
 {
     dsn::error_code ec;
     std::shared_ptr<fake_sender_meta_service> svc(new fake_sender_meta_service(this));
-    svc->_failure_detector.reset(new dsn::replication::meta_server_failure_detector(svc.get()));
+    svc->_failure_detector.reset(new dsn::replication::meta_server_failure_detector(svc->_dns_resolver, svc.get()));
     ec = svc->remote_storage_initialize();
     ASSERT_EQ(ec, dsn::ERR_OK);
     svc->_partition_guardian.reset(new partition_guardian(svc.get()));
@@ -297,7 +297,7 @@ void meta_service_test_app::adjust_dropped_size()
 {
     dsn::error_code ec;
     std::shared_ptr<null_meta_service> svc(new null_meta_service());
-    svc->_failure_detector.reset(new dsn::replication::meta_server_failure_detector(svc.get()));
+    svc->_failure_detector.reset(new dsn::replication::meta_server_failure_detector(svc->_dns_resolver, svc.get()));
     ec = svc->remote_storage_initialize();
     ASSERT_EQ(ec, dsn::ERR_OK);
     svc->_partition_guardian.reset(new partition_guardian(svc.get()));
@@ -402,7 +402,7 @@ void meta_service_test_app::apply_balancer_test()
     ASSERT_EQ(dsn::ERR_OK, ec);
 
     meta_svc->_failure_detector.reset(
-        new dsn::replication::meta_server_failure_detector(meta_svc.get()));
+        new dsn::replication::meta_server_failure_detector(meta_svc->_dns_resolver, meta_svc.get()));
     meta_svc->_partition_guardian.reset(new partition_guardian(meta_svc.get()));
     meta_svc->_balancer.reset(new greedy_load_balancer(meta_svc.get()));
 
@@ -475,7 +475,7 @@ void meta_service_test_app::cannot_run_balancer_test()
     FLAGS_node_live_percentage_threshold_for_update = 0;
 
     svc->_state->initialize(svc.get(), "/");
-    svc->_failure_detector.reset(new meta_server_failure_detector(svc.get()));
+    svc->_failure_detector.reset(new meta_server_failure_detector(svc->_dns_resolver, svc.get()));
     svc->_balancer.reset(new dummy_balancer(svc.get()));
     svc->_partition_guardian.reset(new dummy_partition_guardian(svc.get()));
 

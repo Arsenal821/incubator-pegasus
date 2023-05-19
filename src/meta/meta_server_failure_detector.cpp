@@ -63,8 +63,9 @@ DSN_DEFINE_string(meta_server,
 namespace dsn {
 namespace replication {
 
-meta_server_failure_detector::meta_server_failure_detector(meta_service *svc)
-    : _svc(svc),
+meta_server_failure_detector::meta_server_failure_detector(const std::shared_ptr<dns_resolver> &resolver, meta_service *svc)
+    : dsn::fd::failure_detector(resolver),
+      _svc(svc),
       _lock_svc(nullptr),
       _primary_lock_id("dsn.meta.server.leader"),
       _is_leader(false),
@@ -89,25 +90,32 @@ meta_server_failure_detector::~meta_server_failure_detector()
     }
 }
 
-void meta_server_failure_detector::on_worker_disconnected(const std::vector<rpc_address> &nodes)
+void meta_server_failure_detector::on_worker_disconnected(const std::vector<host_port> &nodes)
 {
-    _svc->set_node_state(nodes, false);
+    // TODO(liguohao): Change the type of the 'set_node_state' argument
+    std::vector<rpc_address> addrs;
+    for (const auto &n : nodes) {
+        addrs.emplace_back(_dns_resolver->resolve_address(n));
+    }
+    _svc->set_node_state(addrs, false);
 }
 
-void meta_server_failure_detector::on_worker_connected(rpc_address node)
+void meta_server_failure_detector::on_worker_connected(host_port node)
 {
-    _svc->set_node_state(std::vector<rpc_address>{node}, true);
+    // TODO(liguohao): Change the type of the 'set_node_state' argument
+    rpc_address addr = _dns_resolver->resolve_address(node);
+    _svc->set_node_state(std::vector<rpc_address>{addr}, true);
 }
 
-bool meta_server_failure_detector::get_leader(rpc_address *leader)
+bool meta_server_failure_detector::get_leader(host_port *leader)
 {
     FAIL_POINT_INJECT_F("meta_server_failure_detector_get_leader", [leader](dsn::string_view str) {
         /// the format of str is : true#{ip}:{port} or false#{ip}:{port}
         auto pos = str.find("#");
-        // get leader addr
+        // get leader host_port
         auto addr_part = str.substr(pos + 1, str.length() - pos - 1);
-        if (!leader->from_string_ipv4(addr_part.data())) {
-            CHECK(false, "parse {} to rpc_address failed", addr_part);
+        if (!leader->from_string(addr_part.data())) {
+            CHECK(false, "parse {} to host_port failed", addr_part);
         }
 
         // get the return value which implies whether the current node is primary or not
@@ -119,26 +127,26 @@ bool meta_server_failure_detector::get_leader(rpc_address *leader)
         return is_leader;
     });
 
-    dsn::rpc_address holder;
+    dsn::host_port holder;
     if (leader == nullptr) {
         leader = &holder;
     }
 
     if (_is_leader.load()) {
-        *leader = dsn_primary_address();
+        *leader = host_port(dsn_primary_address());
         return true;
     } else if (_lock_svc == nullptr) {
-        leader->set_invalid();
+        leader->reset();
         return false;
     } else {
         std::string lock_owner;
         uint64_t version;
         error_code err = _lock_svc->query_cache(_primary_lock_id, lock_owner, version);
-        if (err == dsn::ERR_OK && leader->from_string_ipv4(lock_owner.c_str())) {
-            return (*leader) == dsn_primary_address();
+        if (err == dsn::ERR_OK && leader->from_string(lock_owner.c_str())) {
+            return (*leader) == dsn_primary_host_port();
         } else {
             LOG_WARNING("query leader from cache got error({})", err);
-            leader->set_invalid();
+            leader->reset();
             return false;
         }
     }
@@ -194,7 +202,7 @@ void meta_server_failure_detector::acquire_leader_lock()
     }
 }
 
-void meta_server_failure_detector::reset_stability_stat(const rpc_address &node)
+void meta_server_failure_detector::reset_stability_stat(const host_port &node)
 {
     zauto_lock l(_map_lock);
     auto iter = _stablity.find(node);
@@ -224,9 +232,17 @@ void meta_server_failure_detector::leader_initialize(const std::string &lock_ser
 bool meta_server_failure_detector::update_stability_stat(const fd::beacon_msg &beacon)
 {
     zauto_lock l(_map_lock);
-    auto iter = _stablity.find(beacon.from_addr);
+
+    host_port node;
+    if (beacon.__isset.host_port_from) {
+        node = beacon.host_port_from;
+    } else {
+        node = host_port(beacon.from_addr);
+    }
+
+    auto iter = _stablity.find(node);
     if (iter == _stablity.end()) {
-        _stablity.emplace(beacon.from_addr, worker_stability{beacon.start_time, 0});
+        _stablity.emplace(node, worker_stability{beacon.start_time, 0});
         return true;
     } else {
         worker_stability &w = iter->second;
@@ -271,50 +287,78 @@ bool meta_server_failure_detector::update_stability_stat(const fd::beacon_msg &b
 void meta_server_failure_detector::on_ping(const fd::beacon_msg &beacon,
                                            rpc_replier<fd::beacon_ack> &reply)
 {
-    fd::beacon_ack ack;
-    ack.time = beacon.time;
-    ack.this_node = beacon.to_addr;
-    ack.allowed = true;
-
     if (beacon.__isset.start_time && !update_stability_stat(beacon)) {
-        LOG_WARNING("{} is unstable, don't response to it's beacon", beacon.from_addr);
+        LOG_WARNING("{} is unstable, don't response to it's beacon", host_port(beacon.from_addr));
         return;
     }
 
-    dsn::rpc_address leader;
+    rpc_address this_node_addr;
+    host_port this_node_hp;
+    if (beacon.__isset.host_port_to) {
+        this_node_addr = _dns_resolver->resolve_address(beacon.host_port_to);
+        this_node_hp = beacon.host_port_to;
+    } else {
+        this_node_addr = beacon.to_addr;
+        this_node_hp = host_port(beacon.to_addr);
+    }
+
+    fd::beacon_ack ack;
+    ack.time = beacon.time;
+    ack.this_node = this_node_addr;
+    ack.allowed = true;
+    ack.__set_host_port_this_node(this_node_hp);
+
+    dsn::host_port leader;
     if (!get_leader(&leader)) {
         ack.is_master = false;
-        ack.primary_node = leader;
+        ack.primary_node = _dns_resolver->resolve_address(leader);
+        ack.__set_host_port_primary_node(leader);
     } else {
         ack.is_master = true;
-        ack.primary_node = beacon.to_addr;
+        ack.primary_node = this_node_addr;
+        ack.__set_host_port_primary_node(this_node_hp);
         failure_detector::on_ping_internal(beacon, ack);
     }
 
-    LOG_INFO("on_ping, beacon send time[{}], is_master({}), from_node({}), this_node({}), "
-             "primary_node({})",
+    host_port hp_from;
+    rpc_address addr_form;
+    if (beacon.__isset.host_port_from) {
+        hp_from = beacon.host_port_from;
+        addr_form = _dns_resolver->resolve_address(beacon.host_port_from);
+    } else {
+        hp_from = host_port(beacon.from_addr);
+        addr_form = beacon.to_addr;
+    } 
+
+    LOG_INFO("on_ping, beacon send time[{}], is_master({}), from_node({}({})), this_node({}({})), "
+             "primary_node({}({}))",
              ack.time,
              ack.is_master ? "true" : "false",
-             beacon.from_addr,
-             ack.this_node,
+             hp_from,
+             addr_form,
+             this_node_hp,
+             this_node_addr,
+             ack.host_port_primary_node,
              ack.primary_node);
 
     reply(ack);
 }
 
 /*the following functions are only for test*/
-meta_server_failure_detector::meta_server_failure_detector(rpc_address leader_address,
+meta_server_failure_detector::meta_server_failure_detector(const std::shared_ptr<dns_resolver> &resolver,
+                                                           host_port leader_host_port,
                                                            bool is_myself_leader)
+    : dsn::fd::failure_detector(resolver)
 {
-    LOG_INFO("set {} as leader", leader_address);
+    LOG_INFO("set {} as leader", leader_host_port);
     _lock_svc = nullptr;
     _is_leader.store(is_myself_leader);
 }
 
-void meta_server_failure_detector::set_leader_for_test(rpc_address leader_address,
+void meta_server_failure_detector::set_leader_for_test(host_port leader_host_port,
                                                        bool is_myself_leader)
 {
-    LOG_INFO("set {} as leader", leader_address);
+    LOG_INFO("set {} as leader", leader_host_port);
     _is_leader.store(is_myself_leader);
 }
 

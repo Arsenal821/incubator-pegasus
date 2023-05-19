@@ -64,6 +64,7 @@
 #include "runtime/ranger/access_type.h"
 #include "runtime/rpc/rpc_address.h"
 #include "runtime/rpc/rpc_holder.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/security/access_controller.h"
 #include "runtime/serverlet.h"
 #include "runtime/task/task.h"
@@ -200,7 +201,7 @@ public:
     replication_options &options() { return _options; }
     const replication_options &options() const { return _options; }
     bool is_connected() const { return NS_Connected == _state; }
-    virtual rpc_address get_meta_server_address() const { return _failure_detector->get_servers(); }
+    virtual rpc_address get_meta_server_address() const { return _dns_resolver->resolve_address(_failure_detector->get_servers()); }
     rpc_address primary_address() const { return _primary_address; }
 
     //
@@ -301,6 +302,8 @@ public:
 
     void on_nfs_get_file_size(const ::dsn::service::get_file_size_request &request,
                               ::dsn::rpc_replier<::dsn::service::get_file_size_response> &reply);
+
+    std::shared_ptr<dns_resolver> get_dns_resolver() const { return _dns_resolver; }
 
 private:
     enum replica_node_state
@@ -587,6 +590,9 @@ private:
     perf_counter_wrapper _counter_replicas_splitting_recent_split_succ_count;
 
     dsn::task_tracker _tracker;
+
+    // Resolve host_port to address.
+    std::shared_ptr<dns_resolver> _dns_resolver;
 };
 } // namespace replication
 } // namespace dsn

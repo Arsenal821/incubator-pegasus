@@ -63,7 +63,7 @@ meta_test_base::~meta_test_base() {}
 void meta_test_base::SetUp()
 {
     _ms = std::make_unique<fake_receiver_meta_service>();
-    _ms->_failure_detector.reset(new meta_server_failure_detector(_ms.get()));
+    _ms->_failure_detector.reset(new meta_server_failure_detector(_ms->_dns_resolver, _ms.get()));
     _ms->_balancer.reset(utils::factory_store<server_load_balancer>::create(
         FLAGS_server_load_balancer_type, PROVIDER_TYPE_MAIN, _ms.get()));
     _ms->_partition_guardian.reset(utils::factory_store<partition_guardian>::create(

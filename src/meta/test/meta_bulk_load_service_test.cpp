@@ -357,7 +357,7 @@ public:
         state->initialize_data_structure();
 
         _ms->set_function_level(meta_function_level::fl_steady);
-        _ms->_failure_detector.reset(new meta_server_failure_detector(_ms.get()));
+        _ms->_failure_detector.reset(new meta_server_failure_detector(_ms->_dns_resolver, _ms.get()));
         _ss = _ms->_state;
     }
 

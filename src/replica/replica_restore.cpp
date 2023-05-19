@@ -442,7 +442,7 @@ void replica::tell_meta_to_restore_rollback()
     dsn::message_ex *msg = dsn::message_ex::create_request(RPC_CM_DROP_APP);
     ::dsn::marshall(msg, request);
 
-    rpc_address target(_stub->_failure_detector->get_servers());
+    rpc_address target(_stub->get_dns_resolver()->resolve_address(_stub->_failure_detector->get_servers()));
     rpc::call(target,
               msg,
               &_tracker,
@@ -471,7 +471,7 @@ void replica::report_restore_status_to_meta()
 
     dsn::message_ex *msg = dsn::message_ex::create_request(RPC_CM_REPORT_RESTORE_STATUS);
     ::dsn::marshall(msg, request);
-    rpc_address target(_stub->_failure_detector->get_servers());
+    rpc_address target(_stub->get_dns_resolver()->resolve_address(_stub->_failure_detector->get_servers()));
     rpc::call(target,
               msg,
               &_tracker,

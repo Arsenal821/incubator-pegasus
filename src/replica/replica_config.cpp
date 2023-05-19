@@ -404,7 +404,7 @@ void replica::update_configuration_on_meta_server(config_type::type type,
         enum_to_string(request->type),
         request->node);
 
-    rpc_address target(_stub->_failure_detector->get_servers());
+    rpc_address target(_stub->get_dns_resolver()->resolve_address(_stub->_failure_detector->get_servers()));
     _primary_states.reconfiguration_task =
         rpc::call(target,
                   msg,
@@ -445,7 +445,7 @@ void replica::on_update_configuration_on_meta_server_reply(
                 LPC_DELAY_UPDATE_CONFIG,
                 &_tracker,
                 [ this, request, req2 = std::move(req) ]() {
-                    rpc_address target(_stub->_failure_detector->get_servers());
+                    rpc_address target(_stub->get_dns_resolver()->resolve_address(_stub->_failure_detector->get_servers()));
                     rpc_response_task_ptr t = rpc::create_rpc_response_task(
                         request,
                         &_tracker,

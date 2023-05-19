@@ -52,7 +52,7 @@ TEST(host_port_test, host_port_to_string)
 
     {
         host_port hp;
-        ASSERT_EQ(std::string("invalid address"), hp.to_string());
+        ASSERT_EQ(std::string("invalid host_port"), hp.to_string());
     }
 }
 

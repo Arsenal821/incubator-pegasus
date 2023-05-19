@@ -171,7 +171,7 @@ void meta_partition_guardian_test::cure_test()
     dsn::error_code ec;
     dsn::task_ptr t;
     std::shared_ptr<message_filter> svc(new message_filter(this));
-    svc->_failure_detector.reset(new dsn::replication::meta_server_failure_detector(svc.get()));
+    svc->_failure_detector.reset(new dsn::replication::meta_server_failure_detector(_ms->_dns_resolver, svc.get()));
     bool proposal_sent;
     dsn::rpc_address last_addr;
 

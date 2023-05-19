@@ -141,7 +141,7 @@ DSN_DECLARE_string(cold_backup_root);
     } while (0)
 
 meta_service::meta_service()
-    : serverlet("meta_service"), _failure_detector(nullptr), _started(false), _recovering(false)
+    : serverlet("meta_service"), _failure_detector(nullptr), _started(false), _recovering(false), _dns_resolver(new dns_resolver())
 {
     _opts.initialize();
     _meta_opts.initialize();
@@ -330,8 +330,9 @@ void meta_service::start_service()
 
     for (const dsn::rpc_address &node : _alive_set) {
         // sync alive set and the failure_detector
-        _failure_detector->unregister_worker(node);
-        _failure_detector->register_worker(node, true);
+        // TODO(liguohao): change _alive_set type
+        _failure_detector->unregister_worker(host_port(node));
+        _failure_detector->register_worker(host_port(node), true);
     }
 
     _ranger_resource_policy_manager =
@@ -388,7 +389,7 @@ error_code meta_service::start()
     LOG_INFO("remote storage is successfully initialized");
 
     // start failure detector, and try to acquire the leader lock
-    _failure_detector.reset(new meta_server_failure_detector(this));
+    _failure_detector.reset(new meta_server_failure_detector(_dns_resolver, this));
     if (FLAGS_enable_white_list)
         _failure_detector->set_allow_list(_meta_opts.replica_white_list);
     _failure_detector->register_ctrl_commands();
@@ -562,8 +563,10 @@ void meta_service::register_rpc_handlers()
 meta_leader_state meta_service::check_leader(dsn::message_ex *req,
                                              dsn::rpc_address *forward_address)
 {
-    dsn::rpc_address leader;
-    if (!_failure_detector->get_leader(&leader)) {
+    // TODO(liguohao): change forward_address to forward_address
+    host_port hp;
+    if (!_failure_detector->get_leader(&hp)) {
+        auto leader = _dns_resolver->resolve_address(hp);
         if (!req->header->context.u.is_forward_supported) {
             if (forward_address != nullptr)
                 *forward_address = leader;

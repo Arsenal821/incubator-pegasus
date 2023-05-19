@@ -39,7 +39,7 @@
 #include "failure_detector/failure_detector_multimaster.h"
 #include "fd_types.h"
 #include "runtime/rpc/group_address.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "utils/error_code.h"
 #include "utils/rand.h"
 
@@ -47,42 +47,57 @@ namespace dsn {
 namespace dist {
 
 slave_failure_detector_with_multimaster::slave_failure_detector_with_multimaster(
-    std::vector<::dsn::rpc_address> &meta_servers,
+    const std::shared_ptr<dns_resolver> &resolver,
+    std::vector<::dsn::host_port> &meta_servers,
     std::function<void()> &&master_disconnected_callback,
     std::function<void()> &&master_connected_callback)
+    : dsn::fd::failure_detector(resolver)
 {
     _meta_servers.assign_group("meta-servers");
     for (const auto &s : meta_servers) {
-        if (!_meta_servers.group_address()->add(s)) {
+        if (!_meta_servers.group_host_port()->add(s)) {
             LOG_WARNING("duplicate adress {}", s);
         }
     }
 
-    _meta_servers.group_address()->set_leader(
+    _meta_servers.group_host_port()->set_leader(
         meta_servers[rand::next_u32(0, (uint32_t)meta_servers.size() - 1)]);
 
     // ATTENTION: here we disable dsn_group_set_update_leader_automatically to avoid
     // failure detecting logic is affected by rpc failure or rpc forwarding.
-    _meta_servers.group_address()->set_update_leader_automatically(false);
+    _meta_servers.group_host_port()->set_update_leader_automatically(false);
 
     _master_disconnected_callback = std::move(master_disconnected_callback);
     _master_connected_callback = std::move(master_connected_callback);
 }
 
-void slave_failure_detector_with_multimaster::set_leader_for_test(rpc_address meta)
+void slave_failure_detector_with_multimaster::set_leader_for_test(host_port meta)
 {
-    _meta_servers.group_address()->set_leader(meta);
+    _meta_servers.group_host_port()->set_leader(meta);
 }
 
 void slave_failure_detector_with_multimaster::end_ping(::dsn::error_code err,
                                                        const fd::beacon_ack &ack,
                                                        void *)
 {
-    LOG_INFO("end ping result, error[{}], time[{}], ack.this_node[{}], ack.primary_node[{}], "
+    host_port this_node_hp, primary_node_hp;
+    if (ack.__isset.host_port_this_node) {
+        this_node_hp = ack.host_port_this_node;
+    } else {
+        this_node_hp = host_port(ack.this_node);
+    }
+    if (ack.__isset.host_port_primary_node) {
+        primary_node_hp = ack.host_port_primary_node;
+    } else {
+        primary_node_hp = host_port(ack.primary_node);
+    }
+    LOG_INFO("end ping result, error[{}], time[{}], ack.this_node[{}({})], ack.primary_node[{}({})], "
              "ack.is_master[{}], ack.allowed[{}]",
              err,
              ack.time,
+             this_node_hp,
              ack.this_node,
+             primary_node_hp,
              ack.primary_node,
              ack.is_master ? "true" : "false",
              ack.allowed ? "true" : "false");
@@ -91,39 +106,39 @@ void slave_failure_detector_with_multimaster::end_ping(::dsn::error_code err,
     if (!failure_detector::end_ping_internal(err, ack))
         return;
 
-    CHECK_EQ(ack.this_node, _meta_servers.group_address()->leader());
+    CHECK_EQ(this_node_hp, _meta_servers.group_host_port()->leader());
 
     if (ERR_OK != err) {
-        rpc_address next = _meta_servers.group_address()->next(ack.this_node);
-        if (next != ack.this_node) {
-            _meta_servers.group_address()->set_leader(next);
+        host_port next = _meta_servers.group_host_port()->next(this_node_hp);
+        if (next != this_node_hp) {
+            _meta_servers.group_host_port()->set_leader(next);
             // do not start next send_beacon() immediately to avoid send rpc too frequently
-            switch_master(ack.this_node, next, 1000);
+            switch_master(this_node_hp, next, 1000);
         }
     } else {
         if (ack.is_master) {
             // do nothing
         } else if (ack.primary_node.is_invalid()) {
-            rpc_address next = _meta_servers.group_address()->next(ack.this_node);
-            if (next != ack.this_node) {
-                _meta_servers.group_address()->set_leader(next);
+            host_port next = _meta_servers.group_host_port()->next(this_node_hp);
+            if (next != this_node_hp) {
+                _meta_servers.group_host_port()->set_leader(next);
                 // do not start next send_beacon() immediately to avoid send rpc too frequently
-                switch_master(ack.this_node, next, 1000);
+                switch_master(this_node_hp, next, 1000);
             }
         } else {
-            _meta_servers.group_address()->set_leader(ack.primary_node);
+            _meta_servers.group_host_port()->set_leader(primary_node_hp);
             // start next send_beacon() immediately because the leader is possibly right.
-            switch_master(ack.this_node, ack.primary_node, 0);
+            switch_master(this_node_hp, primary_node_hp, 0);
         }
     }
 }
 
 // client side
 void slave_failure_detector_with_multimaster::on_master_disconnected(
-    const std::vector<::dsn::rpc_address> &nodes)
+    const std::vector<::dsn::host_port> &nodes)
 {
     bool primary_disconnected = false;
-    rpc_address leader = _meta_servers.group_address()->leader();
+    host_port leader = _meta_servers.group_host_port()->leader();
     for (auto it = nodes.begin(); it != nodes.end(); ++it) {
         if (leader == *it)
             primary_disconnected = true;
@@ -134,13 +149,13 @@ void slave_failure_detector_with_multimaster::on_master_disconnected(
     }
 }
 
-void slave_failure_detector_with_multimaster::on_master_connected(::dsn::rpc_address node)
+void slave_failure_detector_with_multimaster::on_master_connected(::dsn::host_port node)
 {
     /*
     * well, this is called in on_ping_internal, which is called by rep::end_ping.
     * So this function is called in the lock context of fd::_lock
     */
-    bool is_primary = (_meta_servers.group_address()->leader() == node);
+    bool is_primary = (_meta_servers.group_host_port()->leader() == node);
     if (is_primary) {
         _master_connected_callback();
     }
