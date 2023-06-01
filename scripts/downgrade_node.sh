@@ -63,7 +63,7 @@ echo "UID=$UID"
 echo "PID=$PID"
 echo
 
-if [ [ "$cluster" != "" ]; then
+if [ "$cluster" != "" ]; then
   echo "set_meta_level steady" | ./run.sh shell --cluster $cluster &>/tmp/$UID.$PID.pegasus.set_meta_level
   echo ls | ./run.sh shell --cluster $cluster &>/tmp/$UID.$PID.pegasus.ls
 else
@@ -90,27 +90,29 @@ do
     fi
     while read line
     do
-      sec=`echo $line | awk '{print $5}' | grep -o '\[.*\]' | grep -o '[0-9.:,]*'`
-      if echo $sec | grep -q "$node"
-      then
-        pid=`echo $line | awk '{print $1}'`
-        pri=`echo $line | awk '{print $4}'`
-        if [ "$pri" = "" ]
+      if [ $(echo "$line" | awk -F"\t" '{print NF}') -eq 5 ]; then
+        sec=`echo $line | awk '{print $5}' | grep -o '\[.*\]' | grep -o '[0-9.:,]*'`
+        if echo $sec | grep -q "$node"
         then
-          echo "ERROR: can't downgrade ${gid}.${pid} because it is unhealthy"
-          exit 1
+          pid=`echo $line | awk '{print $1}'`
+          pri=`echo $line | awk '{print $4}'`
+          if [ "$pri" = "" ]
+          then
+            echo "ERROR: can't downgrade ${gid}.${pid} because it is unhealthy"
+            exit 1
+          fi
+          if [ "$pri" = "$node" ]
+          then
+            echo "ERROR: can't downgrade ${gid}.${pid} because $node is primary"
+            exit 1
+          fi
+          if echo $sec | grep -v -q ','
+          then
+            echo "ERROR: can't downgrade ${gid}.${pid} because it is unhealthy"
+            exit 1
+          fi
+          echo "propose --gpid ${gid}.${pid} --type DOWNGRADE_TO_INACTIVE -t $pri -n $node"
         fi
-        if [ "$pri" = "$node" ]
-        then
-          echo "ERROR: can't downgrade ${gid}.${pid} because $node is primary"
-          exit 1
-        fi
-        if echo $sec | grep -v -q ','
-        then
-          echo "ERROR: can't downgrade ${gid}.${pid} because it is unhealthy"
-          exit 1
-        fi
-        echo "propose --gpid ${gid}.${pid} --type DOWNGRADE_TO_INACTIVE -t $pri -n $node"
       fi
     done </tmp/$UID.$PID.pegasus.app.$app >/tmp/$UID.$PID.pegasus.cmd.$app
 
