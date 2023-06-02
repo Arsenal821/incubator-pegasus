@@ -1805,8 +1805,7 @@ function run_shell()
     fi
 
     cd ${ROOT}
-    ln -s -f ${DSN_ROOT}/bin/pegasus_shell/pegasus_shell
-    ./pegasus_shell ${CONFIG} $CLUSTER_NAME
+    ${DSN_ROOT}/bin/pegasus_shell/pegasus_shell ${CONFIG} $CLUSTER_NAME
     # because pegasus shell will catch 'Ctrl-C' signal, so the following commands will be executed
     # even user inputs 'Ctrl-C', so that the temporary config file will be cleared when exit shell.
     # however, if it is the specified config file, do not delete it.
