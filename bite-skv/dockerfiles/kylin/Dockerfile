@@ -1,4 +1,4 @@
-FROM jfrog-internal.sensorsdata.cn/docker-develop/com.sensorsdata.dragon/bite:0.5.0.3052-el9_aarch64
+FROM jfrog-internal.sensorsdata.cn/docker-develop/com.sensorsdata.dragon/bite:0.5.0.3081-el9_aarch64
 WORKDIR /data/code
 
 RUN yum install -y netcat \

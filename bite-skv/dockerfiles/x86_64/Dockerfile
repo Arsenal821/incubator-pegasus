@@ -1,4 +1,4 @@
-FROM jfrog-internal.sensorsdata.cn/docker/com.sensorsdata.dragon/bite:0.5.0.3059-el7_x86_64
+FROM jfrog-internal.sensorsdata.cn/docker-develop/com.sensorsdata.dragon/bite:0.5.0.3081-el7_x86_64
 WORKDIR /data/code
 
 ENV SKV_PY_BUILD_TOOLS \
