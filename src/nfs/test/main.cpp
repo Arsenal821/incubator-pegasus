@@ -37,7 +37,8 @@
 #include "common/gpid.h"
 #include "nfs/nfs_node.h"
 #include "runtime/app_model.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/dns_resolver.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/task/task_code.h"
 #include "runtime/tool_api.h"
 #include "utils/autoref_ptr.h"
@@ -56,7 +57,8 @@ struct aio_result
 
 TEST(nfs, basic)
 {
-    std::unique_ptr<dsn::nfs_node> nfs(dsn::nfs_node::create());
+    std::shared_ptr<dns_resolver> resolver = std::make_shared<dns_resolver>();
+    std::unique_ptr<dsn::nfs_node> nfs(dsn::nfs_node::create(resolver));
     nfs->start();
     nfs->register_async_rpc_handler_for_test();
     dsn::gpid fake_pid = gpid(1, 0);
@@ -78,7 +80,7 @@ TEST(nfs, basic)
         std::vector<std::string> files{"nfs_test_file1", "nfs_test_file2"};
 
         aio_result r;
-        dsn::aio_task_ptr t = nfs->copy_remote_files(dsn::rpc_address("localhost", 20101),
+        dsn::aio_task_ptr t = nfs->copy_remote_files(dsn::host_port("localhost", 20101),
                                                      "default",
                                                      ".",
                                                      files,
@@ -120,7 +122,7 @@ TEST(nfs, basic)
         std::vector<std::string> files{"nfs_test_file1", "nfs_test_file2"};
 
         aio_result r;
-        dsn::aio_task_ptr t = nfs->copy_remote_files(dsn::rpc_address("localhost", 20101),
+        dsn::aio_task_ptr t = nfs->copy_remote_files(dsn::host_port("localhost", 20101),
                                                      "default",
                                                      ".",
                                                      files,
@@ -152,7 +154,7 @@ TEST(nfs, basic)
         ASSERT_FALSE(utils::filesystem::directory_exists("nfs_test_dir_copy"));
 
         aio_result r;
-        dsn::aio_task_ptr t = nfs->copy_remote_directory(dsn::rpc_address("localhost", 20101),
+        dsn::aio_task_ptr t = nfs->copy_remote_directory(dsn::host_port("localhost", 20101),
                                                          "default",
                                                          "nfs_test_dir",
                                                          "default",

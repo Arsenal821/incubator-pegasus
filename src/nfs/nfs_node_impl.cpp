@@ -52,7 +52,8 @@ class copy_response;
 class get_file_size_request;
 class get_file_size_response;
 
-nfs_node_simple::nfs_node_simple() : nfs_node()
+nfs_node_simple::nfs_node_simple(const std::shared_ptr<dns_resolver> &resolver)
+    : nfs_node(), _dns_resolver(resolver)
 {
     _server = nullptr;
     _client = nullptr;
@@ -69,7 +70,7 @@ error_code nfs_node_simple::start()
 {
     _server = new nfs_service_impl();
 
-    _client = new nfs_client_impl();
+    _client = new nfs_client_impl(_dns_resolver);
     return ERR_OK;
 }
 

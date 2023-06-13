@@ -69,6 +69,7 @@
 #include "replica_stub.h"
 #include "runtime/api_layer1.h"
 #include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/rpc/rpc_message.h"
 #include "runtime/rpc/serialization.h"
 #include "runtime/task/async_calls.h"
@@ -908,7 +909,7 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
                         high_priority ? "high" : "low");
 
         _potential_secondary_states.learn_remote_files_task = _stub->_nfs->copy_remote_files(
-            resp.config.primary,
+            host_port(resp.config.primary),
             resp.replica_disk_tag,
             resp.base_local_dir,
             resp.state.files,

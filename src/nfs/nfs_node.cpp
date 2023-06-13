@@ -35,12 +35,12 @@
 namespace dsn {
 class task_tracker;
 
-std::unique_ptr<nfs_node> nfs_node::create()
+std::unique_ptr<nfs_node> nfs_node::create(const std::shared_ptr<dns_resolver> &resolver)
 {
-    return std::make_unique<dsn::service::nfs_node_simple>();
+    return std::make_unique<dsn::service::nfs_node_simple>(resolver);
 }
 
-aio_task_ptr nfs_node::copy_remote_directory(const rpc_address &remote,
+aio_task_ptr nfs_node::copy_remote_directory(const host_port &remote,
                                              const std::string &source_disk_tag,
                                              const std::string &source_dir,
                                              const std::string &dest_disk_tag,
@@ -68,7 +68,7 @@ aio_task_ptr nfs_node::copy_remote_directory(const rpc_address &remote,
                              hash);
 }
 
-aio_task_ptr nfs_node::copy_remote_files(const rpc_address &remote,
+aio_task_ptr nfs_node::copy_remote_files(const host_port &remote,
                                          const std::string &source_disk_tag,
                                          const std::string &source_dir,
                                          const std::vector<std::string> &files,

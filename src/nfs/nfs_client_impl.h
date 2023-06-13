@@ -42,7 +42,9 @@
 #include "nfs_code_definition.h"
 #include "nfs_types.h"
 #include "perf_counter/perf_counter_wrapper.h"
+#include "runtime/rpc/dns_resolver.h"
 #include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/task/async_calls.h"
 #include "runtime/task/task.h"
 #include "runtime/task/task_tracker.h"
@@ -268,7 +270,7 @@ public:
     };
 
 public:
-    nfs_client_impl();
+    nfs_client_impl(const std::shared_ptr<dns_resolver> &resolver);
     virtual ~nfs_client_impl();
 
     // copy file request entry
@@ -319,6 +321,8 @@ private:
     std::unique_ptr<command_deregister> _nfs_max_copy_rate_megabytes_cmd;
 
     dsn::task_tracker _tracker;
+
+    std::shared_ptr<dns_resolver> _dns_resolver;
 };
 } // namespace service
 } // namespace dsn

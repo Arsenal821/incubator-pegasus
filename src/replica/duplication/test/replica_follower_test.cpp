@@ -34,6 +34,7 @@
 #include "nfs/nfs_node.h"
 #include "replica/duplication/replica_follower.h"
 #include "replica/test/mock_utils.h"
+#include "runtime/rpc/dns_resolver.h"
 #include "runtime/rpc/rpc_address.h"
 #include "runtime/task/task_tracker.h"
 #include "utils/autoref_ptr.h"
@@ -107,7 +108,8 @@ public:
 
     void init_nfs()
     {
-        stub->_nfs = nfs_node::create();
+        std::shared_ptr<dns_resolver> resolver = std::make_shared<dns_resolver>();
+        stub->_nfs = nfs_node::create(resolver);
         stub->_nfs->start();
     }
 

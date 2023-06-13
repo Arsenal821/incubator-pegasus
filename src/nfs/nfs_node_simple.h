@@ -34,6 +34,7 @@
  */
 #pragma once
 
+#include "runtime/rpc/dns_resolver.h"
 #include "runtime/tool_api.h"
 #include "nfs/nfs_node.h"
 
@@ -46,7 +47,7 @@ class nfs_client_impl;
 class nfs_node_simple : public nfs_node
 {
 public:
-    nfs_node_simple();
+    nfs_node_simple(const std::shared_ptr<dns_resolver> &resolver);
 
     virtual ~nfs_node_simple();
 
@@ -68,6 +69,8 @@ public:
 private:
     nfs_service_impl *_server;
     nfs_client_impl *_client;
+
+    std::shared_ptr<dns_resolver> _dns_resolver;
 };
 } // namespace service
 } // namespace dsn

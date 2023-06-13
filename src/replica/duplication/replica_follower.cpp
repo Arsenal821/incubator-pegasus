@@ -33,6 +33,7 @@
 #include "replica/replica.h"
 #include "replica/replica_stub.h"
 #include "runtime/rpc/group_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/rpc/rpc_message.h"
 #include "runtime/rpc/serialization.h"
 #include "runtime/task/async_calls.h"
@@ -232,7 +233,7 @@ void replica_follower::nfs_copy_remote_files(const rpc_address &remote_node,
     LOG_INFO_PREFIX(
         "nfs start copy master[{}] replica checkpoint: {}", master_replica_name(), remote_dir);
     std::shared_ptr<remote_copy_request> request = std::make_shared<remote_copy_request>();
-    request->source = remote_node;
+    request->source = host_port(remote_node);
     request->source_disk_tag = remote_disk;
     request->source_dir = remote_dir;
     request->files = file_list;
