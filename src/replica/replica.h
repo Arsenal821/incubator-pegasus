@@ -65,6 +65,7 @@
 #include "replica_context.h"
 #include "runtime/api_layer1.h"
 #include "runtime/ranger/access_type.h"
+#include "runtime/rpc/dns_resolver.h"
 #include "runtime/rpc/rpc_message.h"
 #include "runtime/serverlet.h"
 #include "runtime/task/task.h"
@@ -293,6 +294,8 @@ public:
     // routine for get extra envs from replica
     const std::map<std::string, std::string> &get_replica_extra_envs() const { return _extra_envs; }
     const dir_node *get_dir_node() const { return _dir_node; }
+
+    std::shared_ptr<dns_resolver> get_dns_resolver() { return _dns_resolver; }
 
     static const std::string kAppInfo;
 
@@ -679,6 +682,8 @@ private:
     bool _allow_ingest_behind{false};
     // Indicate where the storage engine data is corrupted and unrecoverable.
     bool _data_corrupted{false};
+
+    std::shared_ptr<dns_resolver> _dns_resolver;
 };
 typedef dsn::ref_ptr<replica> replica_ptr;
 } // namespace replication

@@ -32,7 +32,8 @@
 #include <vector>
 
 #include "rrdb/rrdb_types.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/dns_resolver.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "utils/blob.h"
 #include "utils/zlocks.h"
 
@@ -364,7 +365,7 @@ private:
 private:
     std::string _cluster_name;
     std::string _app_name;
-    ::dsn::rpc_address _meta_server;
+    ::dsn::host_port _meta_server;
     ::dsn::apps::rrdb_client *_client;
 
     ///
@@ -379,6 +380,8 @@ private:
     /// the map is initialized in init_error() which will be called on client lib initailization.
     ///
     static std::unordered_map<int, int> _server_error_to_client;
+
+    std::shared_ptr<dsn::dns_resolver> _dns_resolver;
 };
 } // namespace client
 } // namespace pegasus

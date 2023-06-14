@@ -102,7 +102,7 @@ void replica::handle_remote_failure(partition_status::type st,
         // potential secondary failure does not lead to ballot change
         // therefore, it is possible to have multiple exec here
         _primary_states.learners.erase(node);
-        _primary_states.statuses.erase(node);
+        _primary_states.statuses.erase(host_port(node));
     } break;
     case partition_status::PS_INACTIVE:
     case partition_status::PS_ERROR:

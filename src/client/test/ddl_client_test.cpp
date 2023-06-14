@@ -29,7 +29,7 @@
 #include "common/replication.codes.h"
 #include "meta_admin_types.h"
 #include "runtime/api_layer1.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/task/task.h"
 #include "utils/autoref_ptr.h"
 #include "utils/error_code.h"
@@ -106,7 +106,7 @@ TEST(DDLClientTest, RetryMetaRequest)
          dsn::ERR_BUSY_CREATING},
     };
 
-    std::vector<rpc_address> meta_list = {{"127.0.0.1", 34601}};
+    std::vector<host_port> meta_list = {host_port("localhost", 34601)};
     auto req = std::make_shared<configuration_create_app_request>();
     for (const auto &test : tests) {
         fail::setup();

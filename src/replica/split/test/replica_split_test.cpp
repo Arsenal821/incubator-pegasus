@@ -116,9 +116,9 @@ public:
     {
         mock_parent_split_context(partition_status::PS_PRIMARY);
         _parent_replica->_primary_states.statuses.clear();
-        _parent_replica->_primary_states.statuses[PRIMARY] = partition_status::PS_PRIMARY;
-        _parent_replica->_primary_states.statuses[SECONDARY] = partition_status::PS_SECONDARY;
-        _parent_replica->_primary_states.statuses[SECONDARY2] = partition_status::PS_SECONDARY;
+        _parent_replica->_primary_states.statuses[host_port(PRIMARY)] = partition_status::PS_PRIMARY;
+        _parent_replica->_primary_states.statuses[host_port(SECONDARY)] = partition_status::PS_SECONDARY;
+        _parent_replica->_primary_states.statuses[host_port(SECONDARY2)] = partition_status::PS_SECONDARY;
         _parent_replica->_primary_states.sync_send_write_request = sync_send_write_request;
         if (!sync_send_write_request) {
             _parent_replica->_primary_states.caught_up_children.insert(SECONDARY);
@@ -426,9 +426,9 @@ public:
                                                bool will_all_stop)
     {
         _parent_replica->set_partition_status(partition_status::PS_PRIMARY);
-        _parent_replica->_primary_states.statuses[PRIMARY] = partition_status::PS_PRIMARY;
-        _parent_replica->_primary_states.statuses[SECONDARY] = partition_status::PS_SECONDARY;
-        _parent_replica->_primary_states.statuses[SECONDARY2] =
+        _parent_replica->_primary_states.statuses[host_port(PRIMARY)] = partition_status::PS_PRIMARY;
+        _parent_replica->_primary_states.statuses[host_port(SECONDARY)] = partition_status::PS_SECONDARY;
+        _parent_replica->_primary_states.statuses[host_port(SECONDARY2)] =
             lack_of_secondary ? partition_status::PS_POTENTIAL_SECONDARY
                               : partition_status::PS_SECONDARY;
         _parent_replica->_primary_states.sync_send_write_request = true;

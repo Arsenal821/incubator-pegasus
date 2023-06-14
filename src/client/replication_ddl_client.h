@@ -43,8 +43,11 @@
 #include "meta_admin_types.h"
 #include "partition_split_types.h"
 #include "replica_admin_types.h"
+#include "runtime/rpc/dns_resolver.h"
+#include "runtime/rpc/rpc_address.h"
 #include "runtime/rpc/rpc_address.h"
 #include "runtime/rpc/rpc_holder.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/rpc/rpc_message.h"
 #include "runtime/rpc/serialization.h"
 #include "runtime/task/async_calls.h"
@@ -73,7 +76,7 @@ class start_backup_app_response;
 class replication_ddl_client
 {
 public:
-    replication_ddl_client(const std::vector<dsn::rpc_address> &meta_servers);
+    replication_ddl_client(const std::vector<dsn::host_port> &meta_servers);
     ~replication_ddl_client();
 
     dsn::error_code create_app(const std::string &app_name,
@@ -109,7 +112,7 @@ public:
 
     dsn::error_code
     list_nodes(const dsn::replication::node_status::type status,
-               std::map<dsn::rpc_address, dsn::replication::node_status::type> &nodes);
+               std::map<dsn::host_port, dsn::replication::node_status::type> &nodes);
 
     dsn::error_code cluster_name(int64_t timeout_ms, std::string &cluster_name);
 
@@ -285,7 +288,7 @@ private:
 
         auto task =
             dsn::rpc::create_rpc_response_task(msg, nullptr, empty_rpc_handler, reply_thread_hash);
-        rpc::call(_meta_server,
+        rpc::call(_dns_resolver->resolve_address(_meta_server),
                   msg,
                   &_tracker,
                   [this, task](
@@ -370,7 +373,7 @@ private:
         static constexpr int MAX_RETRY = 2;
         error_code err = ERR_UNKNOWN;
         for (int retry = 0; retry < MAX_RETRY; retry++) {
-            task_ptr task = rpc.call(_meta_server,
+            task_ptr task = rpc.call(_dns_resolver->resolve_address(_meta_server),
                                      &_tracker,
                                      [&err](error_code code) { err = code; },
                                      reply_thread_hash);
@@ -420,7 +423,7 @@ private:
     }
 
 private:
-    dsn::rpc_address _meta_server;
+    dsn::host_port _meta_server;
     dsn::task_tracker _tracker;
     uint32_t _max_wait_secs = 3600; // Wait at most 1 hour by default.
 
@@ -438,6 +441,8 @@ private:
         return err;
     }
     std::deque<dsn::error_code> _mock_errors;
+
+    std::unique_ptr<dns_resolver> _dns_resolver;
 
     typedef rpc_holder<detect_hotkey_request, detect_hotkey_response> detect_hotkey_rpc;
     typedef rpc_holder<query_disk_info_request, query_disk_info_response> query_disk_info_rpc;

@@ -48,7 +48,7 @@
 #include "fmt/core.h"
 #include "meta/meta_rpc_types.h"
 #include "runtime/api_layer1.h"
-#include "runtime/rpc/group_address.h"
+#include "runtime/rpc/group_host_port.h"
 #include "utils/error_code.h"
 #include "utils/fmt_logging.h"
 #include "utils/output_utils.h"
@@ -81,11 +81,12 @@ namespace replication {
 
 using tp_output_format = ::dsn::utils::table_printer::output_format;
 
-replication_ddl_client::replication_ddl_client(const std::vector<dsn::rpc_address> &meta_servers)
+replication_ddl_client::replication_ddl_client(const std::vector<dsn::host_port> &meta_servers)
+    : _dns_resolver(new dns_resolver())
 {
     _meta_server.assign_group("meta-servers");
     for (const auto &m : meta_servers) {
-        if (!_meta_server.group_address()->add(m)) {
+        if (!_meta_server.group_host_port()->add(m)) {
             LOG_WARNING("duplicate adress {}", m);
         }
     }
@@ -474,7 +475,7 @@ dsn::error_code replication_ddl_client::list_apps(const dsn::app_status::type st
 
 dsn::error_code replication_ddl_client::list_nodes(
     const dsn::replication::node_status::type status,
-    std::map<dsn::rpc_address, dsn::replication::node_status::type> &nodes)
+    std::map<dsn::host_port, dsn::replication::node_status::type> &nodes)
 {
     auto req = std::make_shared<configuration_list_nodes_request>();
     req->status = status;
@@ -491,7 +492,7 @@ dsn::error_code replication_ddl_client::list_nodes(
     }
 
     for (const dsn::replication::node_info &n : resp.infos) {
-        nodes[n.address] = n.status;
+        nodes[host_port(n.address)] = n.status;
     }
 
     return dsn::ERR_OK;
@@ -524,7 +525,7 @@ dsn::error_code replication_ddl_client::list_nodes(const dsn::replication::node_
                                                    const std::string &file_name,
                                                    bool resolve_ip)
 {
-    std::map<dsn::rpc_address, dsn::replication::node_status::type> nodes;
+    std::map<dsn::host_port, dsn::replication::node_status::type> nodes;
     auto r = list_nodes(status, nodes);
     if (r != dsn::ERR_OK) {
         return r;
@@ -538,8 +539,8 @@ dsn::error_code replication_ddl_client::list_nodes(const dsn::replication::node_
         std::string status_str = enum_to_string(kv.second);
         status_str = status_str.substr(status_str.find("NS_") + 3);
         tmp_map.emplace(
-            kv.first,
-            list_nodes_helper(host_name_resolve(resolve_ip, kv.first.to_std_string()), status_str));
+            _dns_resolver->resolve_address(kv.first),
+            list_nodes_helper(host_name_resolve(resolve_ip, kv.first.to_string()), status_str));
     }
 
     if (detailed) {
@@ -1455,7 +1456,7 @@ void replication_ddl_client::end_meta_request(const rpc_response_task_ptr &callb
         return;
     }
 
-    rpc::call(_meta_server,
+    rpc::call(_dns_resolver->resolve_address(_meta_server),
               request,
               &_tracker,
               [this, attempt_count, callback](

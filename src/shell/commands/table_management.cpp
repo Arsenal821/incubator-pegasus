@@ -274,7 +274,7 @@ bool app_disk(command_executor *e, shell_context *sc, arguments args)
     std::map<dsn::rpc_address, std::map<int32_t, double>> count_map;
     for (int i = 0; i < nodes.size(); ++i) {
         if (!results[i].first) {
-            std::cout << "ERROR: query perf counter from node " << nodes[i].address.to_string()
+            std::cout << "ERROR: query perf counter from node " << nodes[i].hp.to_string()
                       << " failed" << std::endl;
             return true;
         }
@@ -282,12 +282,12 @@ bool app_disk(command_executor *e, shell_context *sc, arguments args)
         dsn::blob bb(results[i].second.data(), 0, results[i].second.size());
         if (!dsn::json::json_forwarder<dsn::perf_counter_info>::decode(bb, info)) {
             std::cout << "ERROR: decode perf counter info from node "
-                      << nodes[i].address.to_string() << " failed, result = " << results[i].second
+                      << nodes[i].hp.to_string() << " failed, result = " << results[i].second
                       << std::endl;
             return true;
         }
         if (info.result != "OK") {
-            std::cout << "ERROR: query perf counter info from node " << nodes[i].address.to_string()
+            std::cout << "ERROR: query perf counter info from node " << nodes[i].hp.to_string()
                       << " returns error, error = " << info.result << std::endl;
             return true;
         }
@@ -298,9 +298,9 @@ bool app_disk(command_executor *e, shell_context *sc, arguments args)
                 m.name, app_id_x, partition_index_x, counter_name);
             CHECK(parse_ret, "name = {}", m.name);
             if (m.name.find("sst(MB)") != std::string::npos) {
-                disk_map[nodes[i].address][partition_index_x] = m.value;
+                disk_map[sc->resolver->resolve_address(nodes[i].hp)][partition_index_x] = m.value;
             } else if (m.name.find("sst.count") != std::string::npos) {
-                count_map[nodes[i].address][partition_index_x] = m.value;
+                count_map[sc->resolver->resolve_address(nodes[i].hp)][partition_index_x] = m.value;
             }
         }
     }

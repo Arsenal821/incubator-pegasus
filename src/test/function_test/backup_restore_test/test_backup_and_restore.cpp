@@ -32,7 +32,7 @@
 #include "dsn.layer2_types.h"
 #include "include/pegasus/client.h"
 #include "include/pegasus/error.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "utils/error_code.h"
 #include "utils/errors.h"
 #include "utils/utils.h"
@@ -62,7 +62,7 @@ public:
     void SetUp() override
     {
         // initialize ddl_client
-        std::vector<rpc_address> meta_list;
+        std::vector<host_port> meta_list;
         ASSERT_TRUE(replica_helper::load_meta_servers(
             meta_list, PEGASUS_CLUSTER_SECTION_NAME.c_str(), _cluster_name.c_str()));
         ASSERT_FALSE(meta_list.empty());

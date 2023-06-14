@@ -34,7 +34,7 @@
 #include "meta_duplication_service.h"
 #include "metadata_types.h"
 #include "runtime/api_layer1.h"
-#include "runtime/rpc/group_address.h"
+#include "runtime/rpc/group_host_port.h"
 #include "runtime/rpc/rpc_address.h"
 #include "runtime/rpc/rpc_message.h"
 #include "runtime/rpc/serialization.h"
@@ -176,7 +176,7 @@ void meta_duplication_service::add_duplication(duplication_add_rpc rpc)
         return;
     }
 
-    std::vector<rpc_address> meta_list;
+    std::vector<host_port> meta_list;
     if (!dsn::replication::replica_helper::load_meta_servers(
             meta_list,
             duplication_constants::kClustersSectionName.c_str(),
@@ -358,14 +358,14 @@ void meta_duplication_service::create_follower_app_for_duplication(
     request.options.envs.emplace(duplication_constants::kDuplicationEnvMasterMetasKey,
                                  _meta_svc->get_meta_list_string());
 
-    rpc_address meta_servers;
+    host_port meta_servers;
     meta_servers.assign_group(dup->follower_cluster_name.c_str());
-    meta_servers.group_address()->add_list(dup->follower_cluster_metas);
+    meta_servers.group_host_port()->add_list(dup->follower_cluster_metas);
 
     dsn::message_ex *msg = dsn::message_ex::create_request(RPC_CM_CREATE_APP);
     dsn::marshall(msg, request);
     rpc::call(
-        meta_servers,
+        _dns_resolver->resolve_address(meta_servers),
         msg,
         _meta_svc->tracker(),
         [=](error_code err, configuration_create_app_response &&resp) mutable {
@@ -405,16 +405,16 @@ void meta_duplication_service::create_follower_app_for_duplication(
 void meta_duplication_service::check_follower_app_if_create_completed(
     const std::shared_ptr<duplication_info> &dup)
 {
-    rpc_address meta_servers;
+    host_port meta_servers;
     meta_servers.assign_group(dup->follower_cluster_name.c_str());
-    meta_servers.group_address()->add_list(dup->follower_cluster_metas);
+    meta_servers.group_host_port()->add_list(dup->follower_cluster_metas);
 
     query_cfg_request meta_config_request;
     meta_config_request.app_name = dup->app_name;
 
     dsn::message_ex *msg = dsn::message_ex::create_request(RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX);
     dsn::marshall(msg, meta_config_request);
-    rpc::call(meta_servers,
+    rpc::call(_dns_resolver->resolve_address(meta_servers),
               msg,
               _meta_svc->tracker(),
               [=](error_code err, query_cfg_response &&resp) mutable {
@@ -521,7 +521,7 @@ void meta_duplication_service::do_update_partition_confirmed(
 
 std::shared_ptr<duplication_info>
 meta_duplication_service::new_dup_from_init(const std::string &follower_cluster_name,
-                                            std::vector<rpc_address> &&follower_cluster_metas,
+                                            std::vector<host_port> &&follower_cluster_metas,
                                             std::shared_ptr<app_state> &app) const
 {
     duplication_info_s_ptr dup;

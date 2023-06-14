@@ -609,20 +609,21 @@ inline void scan_data_next(scan_data_context *context)
 struct node_desc
 {
     std::string desc;
-    dsn::rpc_address address;
-    node_desc(const std::string &s, const dsn::rpc_address &n) : desc(s), address(n) {}
+    dsn::host_port hp;
+    node_desc(const std::string &s, const dsn::host_port &n) : desc(s), hp(n) {}
 };
+
 // type: all | replica-server | meta-server
 inline bool fill_nodes(shell_context *sc, const std::string &type, std::vector<node_desc> &nodes)
 {
     if (type == "all" || type == "meta-server") {
-        for (auto &addr : sc->meta_list) {
-            nodes.emplace_back("meta-server", addr);
+        for (auto &hp : sc->meta_list) {
+            nodes.emplace_back("meta-server", hp);
         }
     }
 
     if (type == "all" || type == "replica-server") {
-        std::map<dsn::rpc_address, dsn::replication::node_status::type> rs_nodes;
+        std::map<dsn::host_port, dsn::replication::node_status::type> rs_nodes;
         ::dsn::error_code err =
             sc->ddl_client->list_nodes(dsn::replication::node_status::NS_ALIVE, rs_nodes);
         if (err != ::dsn::ERR_OK) {
@@ -658,7 +659,7 @@ call_remote_command(shell_context *sc,
             }
         };
         tasks[i] = dsn::dist::cmd::async_call_remote(
-            nodes[i].address, cmd, arguments, callback, std::chrono::milliseconds(5000));
+            sc->resolver->resolve_address(nodes[i].hp), cmd, arguments, callback, std::chrono::milliseconds(5000));
     }
     for (int i = 0; i < nodes.size(); ++i) {
         tasks[i]->wait();
@@ -1026,23 +1027,23 @@ get_app_partitions(shell_context *sc,
     return true;
 }
 
-inline bool decode_node_perf_counter_info(const dsn::rpc_address &node_addr,
+inline bool decode_node_perf_counter_info(const dsn::host_port &hp,
                                           const std::pair<bool, std::string> &result,
                                           dsn::perf_counter_info &info)
 {
     if (!result.first) {
-        LOG_ERROR("query perf counter info from node {} failed", node_addr);
+        LOG_ERROR("query perf counter info from node {} failed", hp);
         return false;
     }
     dsn::blob bb(result.second.data(), 0, result.second.size());
     if (!dsn::json::json_forwarder<dsn::perf_counter_info>::decode(bb, info)) {
         LOG_ERROR(
-            "decode perf counter info from node {} failed, result = {}", node_addr, result.second);
+            "decode perf counter info from node {} failed, result = {}", hp, result.second);
         return false;
     }
     if (info.result != "OK") {
         LOG_ERROR("query perf counter info from node {} returns error, error = {}",
-                  node_addr,
+                  hp,
                   info.result);
         return false;
     }
@@ -1082,7 +1083,7 @@ inline bool get_app_partition_stat(shell_context *sc,
     for (int i = 0; i < nodes.size(); ++i) {
         // decode info of perf-counters on node i
         dsn::perf_counter_info info;
-        if (!decode_node_perf_counter_info(nodes[i].address, results[i], info)) {
+        if (!decode_node_perf_counter_info(nodes[i].hp, results[i], info)) {
             return false;
         }
 
@@ -1097,7 +1098,7 @@ inline bool get_app_partition_stat(shell_context *sc,
                 // only primary partition will be counted
                 auto find = app_partitions.find(app_id_x);
                 if (find != app_partitions.end() &&
-                    find->second[partition_index_x].primary == nodes[i].address) {
+                    find->second[partition_index_x].primary == sc->resolver->resolve_address(nodes[i].hp)) {
                     row_data &row = rows[app_id_name[app_id_x]][partition_index_x];
                     row.row_name = std::to_string(partition_index_x);
                     row.app_id = app_id_x;
@@ -1169,9 +1170,9 @@ get_app_stat(shell_context *sc, const std::string &app_name, std::vector<row_dat
         }
 
         for (int i = 0; i < nodes.size(); ++i) {
-            dsn::rpc_address node_addr = nodes[i].address;
+            auto hp = nodes[i].hp;
             dsn::perf_counter_info info;
-            if (!decode_node_perf_counter_info(node_addr, results[i], info))
+            if (!decode_node_perf_counter_info(hp, results[i], info))
                 return false;
             for (dsn::perf_counter_metric &m : info.counters) {
                 int32_t app_id_x, partition_index_x;
@@ -1184,7 +1185,7 @@ get_app_stat(shell_context *sc, const std::string &app_name, std::vector<row_dat
                 if (find == app_partitions.end())
                     continue;
                 dsn::partition_configuration &pc = find->second[partition_index_x];
-                if (pc.primary != node_addr)
+                if (pc.primary != sc->resolver->resolve_address(hp))
                     continue;
                 update_app_pegasus_perf_counter(rows[app_row_idx[app_id_x]], counter_name, m.value);
             }
@@ -1206,9 +1207,9 @@ get_app_stat(shell_context *sc, const std::string &app_name, std::vector<row_dat
         CHECK_EQ(partition_count, app_info->partition_count);
 
         for (int i = 0; i < nodes.size(); ++i) {
-            dsn::rpc_address node_addr = nodes[i].address;
+            auto hp = nodes[i].hp;
             dsn::perf_counter_info info;
-            if (!decode_node_perf_counter_info(node_addr, results[i], info))
+            if (!decode_node_perf_counter_info(hp, results[i], info))
                 return false;
             for (dsn::perf_counter_metric &m : info.counters) {
                 int32_t app_id_x, partition_index_x;
@@ -1218,7 +1219,7 @@ get_app_stat(shell_context *sc, const std::string &app_name, std::vector<row_dat
                 CHECK(parse_ret, "name = {}", m.name);
                 CHECK_EQ_MSG(app_id_x, app_id, "name = {}", m.name);
                 CHECK_LT_MSG(partition_index_x, partition_count, "name = {}", m.name);
-                if (partitions[partition_index_x].primary != node_addr)
+                if (partitions[partition_index_x].primary != sc->resolver->resolve_address(hp))
                     continue;
                 update_app_pegasus_perf_counter(rows[partition_index_x], counter_name, m.value);
             }
@@ -1265,14 +1266,14 @@ inline bool get_capacity_unit_stat(shell_context *sc,
 
     nodes_stat.resize(nodes.size());
     for (int i = 0; i < nodes.size(); ++i) {
-        dsn::rpc_address node_addr = nodes[i].address;
+        auto hp = nodes[i].hp;
         dsn::perf_counter_info info;
-        if (!decode_node_perf_counter_info(node_addr, results[i], info)) {
-            LOG_WARNING("decode perf counter from node({}) failed, just ignore it", node_addr);
+        if (!decode_node_perf_counter_info(hp, results[i], info)) {
+            LOG_WARNING("decode perf counter from node({}) failed, just ignore it", hp);
             continue;
         }
         nodes_stat[i].timestamp = info.timestamp_str;
-        nodes_stat[i].node_address = node_addr.to_string();
+        nodes_stat[i].node_address = sc->resolver->resolve_address(hp).to_string();
         for (dsn::perf_counter_metric &m : info.counters) {
             int32_t app_id, pidx;
             std::string counter_name;
@@ -1332,10 +1333,10 @@ inline bool get_storage_size_stat(shell_context *sc, app_storage_size_stat &st_s
         sc, nodes, "perf-counters-by-prefix", {"replica*app.pegasus*disk.storage.sst(MB)"});
 
     for (int i = 0; i < nodes.size(); ++i) {
-        dsn::rpc_address node_addr = nodes[i].address;
+        auto hp = nodes[i].hp;
         dsn::perf_counter_info info;
-        if (!decode_node_perf_counter_info(node_addr, results[i], info)) {
-            LOG_WARNING("decode perf counter from node({}) failed, just ignore it", node_addr);
+        if (!decode_node_perf_counter_info(hp, results[i], info)) {
+            LOG_WARNING("decode perf counter from node({}) failed, just ignore it", hp);
             continue;
         }
         for (dsn::perf_counter_metric &m : info.counters) {
@@ -1350,7 +1351,7 @@ inline bool get_storage_size_stat(shell_context *sc, app_storage_size_stat &st_s
             if (find == app_partitions.end()) // app id not found
                 continue;
             dsn::partition_configuration &pc = find->second[partition_index_x];
-            if (pc.primary != node_addr) // not primary replica
+            if (pc.primary != sc->resolver->resolve_address(hp)) // not primary replica
                 continue;
             if (pc.partition_flags != 0) // already calculated
                 continue;

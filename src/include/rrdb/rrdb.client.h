@@ -25,6 +25,7 @@
 #include "duplication_internal_types.h"
 #include "rrdb.code.definition.h"
 #include "rrdb_types.h"
+#include "runtime/rpc/dns_resolver.h"
 #include "runtime/rpc/rpc_holder.h"
 #include "runtime/task/task_tracker.h"
 #include "utils/optional.h"
@@ -39,11 +40,12 @@ class rrdb_client
 public:
     rrdb_client() {}
     explicit rrdb_client(const char *cluster_name,
-                         const std::vector<dsn::rpc_address> &meta_list,
-                         const char *app_name)
+                         const std::vector<dsn::host_port> &meta_list,
+                         const char *app_name,
+                         const std::shared_ptr<dns_resolver> &dns_resolver)
     {
         _resolver =
-            dsn::replication::partition_resolver::get_resolver(cluster_name, meta_list, app_name);
+            dsn::replication::partition_resolver::get_resolver(cluster_name, meta_list, app_name, dns_resolver);
     }
     ~rrdb_client() { _tracker.cancel_outstanding_tasks(); }
 

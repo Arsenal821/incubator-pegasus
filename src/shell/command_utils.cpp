@@ -23,6 +23,7 @@
 #include "command_executor.h"
 #include "meta_admin_types.h"
 #include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "utils/error_code.h"
 
 bool validate_ip(shell_context *sc,
@@ -35,7 +36,7 @@ bool validate_ip(shell_context *sc,
         return false;
     }
 
-    std::map<dsn::rpc_address, dsn::replication::node_status::type> nodes;
+    std::map<dsn::host_port, dsn::replication::node_status::type> nodes;
     auto error = sc->ddl_client->list_nodes(dsn::replication::node_status::NS_INVALID, nodes);
     if (error != dsn::ERR_OK) {
         err_info = fmt::format("list nodes failed, error={}", error.to_string());
@@ -43,7 +44,7 @@ bool validate_ip(shell_context *sc,
     }
 
     for (const auto &node : nodes) {
-        if (target_address == node.first) {
+        if (dsn::host_port(target_address) == node.first) {
             return true;
         }
     }

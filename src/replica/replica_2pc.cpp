@@ -406,7 +406,7 @@ void replica::send_prepare_message(::dsn::rpc_address addr,
         mu->write_to(writer, msg);
     }
 
-    mu->remote_tasks()[addr] =
+    mu->remote_tasks()[host_port(addr)] =
         rpc::call(addr,
                   msg,
                   &_tracker,
@@ -648,7 +648,7 @@ void replica::on_prepare_reply(std::pair<mutation_ptr, partition_status::type> p
     CHECK_EQ_MSG(mu->data.header.ballot, get_ballot(), "{}: invalid mutation ballot", mu->name());
 
     ::dsn::rpc_address node = request->to_address;
-    partition_status::type st = _primary_states.get_node_status(node);
+    partition_status::type st = _primary_states.get_node_status(host_port(node));
 
     // handle reply
     prepare_ack resp;

@@ -162,7 +162,7 @@ void replica_bulk_loader::broadcast_group_bulk_load(const bulk_load_request &met
         auto callback_task = rpc.call(addr, tracker(), [this, rpc](error_code err) mutable {
             on_group_bulk_load_reply(err, rpc.request(), rpc.response());
         });
-        _replica->_primary_states.group_bulk_load_pending_replies[addr] = callback_task;
+        _replica->_primary_states.group_bulk_load_pending_replies[host_port(addr)] = callback_task;
     }
 }
 
@@ -233,7 +233,7 @@ void replica_bulk_loader::on_group_bulk_load_reply(error_code err,
         return;
     }
 
-    _replica->_primary_states.group_bulk_load_pending_replies.erase(req.target_address);
+    _replica->_primary_states.group_bulk_load_pending_replies.erase(host_port(req.target_address));
 
     if (err != ERR_OK) {
         LOG_ERROR_PREFIX("failed to receive group_bulk_load_reply from {}, error = {}",

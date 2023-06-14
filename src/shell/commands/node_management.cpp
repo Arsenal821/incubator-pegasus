@@ -163,7 +163,7 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
                       status.c_str());
     }
 
-    std::map<dsn::rpc_address, dsn::replication::node_status::type> nodes;
+    std::map<dsn::host_port, dsn::replication::node_status::type> nodes;
     auto r = sc->ddl_client->list_nodes(s, nodes);
     if (r != dsn::ERR_OK) {
         std::cout << "list nodes failed, error=" << r.to_string() << std::endl;
@@ -177,12 +177,11 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
             alive_node_count++;
         std::string status_str = dsn::enum_to_string(kv.second);
         status_str = status_str.substr(status_str.find("NS_") + 3);
-        std::string node_name = kv.first.to_std_string();
+        std::string node_name = kv.first.to_string();
         if (resolve_ip) {
-            // TODO: put hostname_from_ip_port into common utils
-            dsn::utils::hostname_from_ip_port(node_name.c_str(), &node_name);
+            node_name = sc->resolver->resolve_address(kv.first).to_std_string();
         }
-        tmp_map.emplace(kv.first, list_nodes_helper(node_name, status_str));
+        tmp_map.emplace(sc->resolver->resolve_address(kv.first), list_nodes_helper(node_name, status_str));
     }
 
     if (detailed) {
@@ -240,24 +239,24 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
                                  "replica*app.pegasus*rdb.index_and_filter_blocks.memory_usage"});
 
         for (int i = 0; i < nodes.size(); ++i) {
-            dsn::rpc_address node_addr = nodes[i].address;
-            auto tmp_it = tmp_map.find(node_addr);
+            auto hp = nodes[i].hp;
+            auto tmp_it = tmp_map.find(sc->resolver->resolve_address(hp));
             if (tmp_it == tmp_map.end())
                 continue;
             if (!results[i].first) {
-                std::cout << "query perf counter info from node " << node_addr.to_string()
+                std::cout << "query perf counter info from node " << hp.to_string()
                           << " failed" << std::endl;
                 return true;
             }
             dsn::perf_counter_info info;
             dsn::blob bb(results[i].second.data(), 0, results[i].second.size());
             if (!dsn::json::json_forwarder<dsn::perf_counter_info>::decode(bb, info)) {
-                std::cout << "decode perf counter info from node " << node_addr.to_string()
+                std::cout << "decode perf counter info from node " << hp.to_string()
                           << " failed, result = " << results[i].second << std::endl;
                 return true;
             }
             if (info.result != "OK") {
-                std::cout << "query perf counter info from node " << node_addr.to_string()
+                std::cout << "query perf counter info from node " << hp.to_string()
                           << " returns error, error = " << info.result << std::endl;
                 return true;
             }
@@ -300,24 +299,24 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
                                  "replica*app.pegasus*recent.write.cu"});
 
         for (int i = 0; i < nodes.size(); ++i) {
-            dsn::rpc_address node_addr = nodes[i].address;
-            auto tmp_it = tmp_map.find(node_addr);
+            auto hp = nodes[i].hp;
+            auto tmp_it = tmp_map.find(sc->resolver->resolve_address(hp));
             if (tmp_it == tmp_map.end())
                 continue;
             if (!results[i].first) {
-                std::cout << "query perf counter info from node " << node_addr.to_string()
+                std::cout << "query perf counter info from node " << hp.to_string()
                           << " failed" << std::endl;
                 return true;
             }
             dsn::perf_counter_info info;
             dsn::blob bb(results[i].second.data(), 0, results[i].second.size());
             if (!dsn::json::json_forwarder<dsn::perf_counter_info>::decode(bb, info)) {
-                std::cout << "decode perf counter info from node " << node_addr.to_string()
+                std::cout << "decode perf counter info from node " << hp.to_string()
                           << " failed, result = " << results[i].second << std::endl;
                 return true;
             }
             if (info.result != "OK") {
-                std::cout << "query perf counter info from node " << node_addr.to_string()
+                std::cout << "query perf counter info from node " << hp.to_string()
                           << " returns error, error = " << info.result << std::endl;
                 return true;
             }
@@ -359,24 +358,24 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
                                  "zion*profiler*RPC_RRDB_RRDB_MULTI_PUT.latency.server"});
 
         for (int i = 0; i < nodes.size(); ++i) {
-            dsn::rpc_address node_addr = nodes[i].address;
-            auto tmp_it = tmp_map.find(node_addr);
+            auto hp = nodes[i].hp;
+            auto tmp_it = tmp_map.find(sc->resolver->resolve_address(hp));
             if (tmp_it == tmp_map.end())
                 continue;
             if (!results[i].first) {
-                std::cout << "query perf counter info from node " << node_addr.to_string()
+                std::cout << "query perf counter info from node " << hp.to_string()
                           << " failed" << std::endl;
                 return true;
             }
             dsn::perf_counter_info info;
             dsn::blob bb(results[i].second.data(), 0, results[i].second.size());
             if (!dsn::json::json_forwarder<dsn::perf_counter_info>::decode(bb, info)) {
-                std::cout << "decode perf counter info from node " << node_addr.to_string()
+                std::cout << "decode perf counter info from node " << hp.to_string()
                           << " failed, result = " << results[i].second << std::endl;
                 return true;
             }
             if (info.result != "OK") {
-                std::cout << "query perf counter info from node " << node_addr.to_string()
+                std::cout << "query perf counter info from node " << hp.to_string()
                           << " returns error, error = " << info.result << std::endl;
                 return true;
             }
@@ -580,8 +579,8 @@ bool remote_command(command_executor *e, shell_context *sc, arguments args)
         }
 
         for (std::string &token : tokens) {
-            dsn::rpc_address node;
-            if (!node.from_string_ipv4(token.c_str())) {
+            dsn::host_port node;
+            if (!node.from_string(token)) {
                 fprintf(stderr, "parse %s as a ip:port node failed\n", token.c_str());
                 return true;
             }
@@ -605,9 +604,9 @@ bool remote_command(command_executor *e, shell_context *sc, arguments args)
         node_desc &n = node_list[i];
         std::string hostname;
         if (resolve_ip) {
-            dsn::utils::hostname_from_ip_port(n.address.to_string(), &hostname);
+            hostname = sc->resolver->resolve_address(n.hp).to_string();
         } else {
-            hostname = n.address.to_string();
+            hostname = n.hp.to_string();
         }
         fprintf(stderr, "CALL [%s] [%s] ", n.desc.c_str(), hostname.c_str());
         if (results[i].first) {

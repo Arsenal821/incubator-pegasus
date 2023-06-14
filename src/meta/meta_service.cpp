@@ -1056,7 +1056,7 @@ void meta_service::register_duplication_rpc_handlers()
 void meta_service::initialize_duplication_service()
 {
     if (FLAGS_duplication_enabled) {
-        _dup_svc = std::make_unique<meta_duplication_service>(_state.get(), this);
+        _dup_svc = std::make_unique<meta_duplication_service>(_state.get(), this, _dns_resolver);
     }
 }
 

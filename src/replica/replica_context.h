@@ -41,7 +41,7 @@
 #include "metadata_types.h"
 #include "mutation.h"
 #include "runtime/api_layer1.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/task/task.h"
 #include "utils/autoref_ptr.h"
 #include "utils/fmt_logging.h"
@@ -104,7 +104,7 @@ public:
                             /*out*/ replica_configuration &config,
                             uint64_t learner_signature = invalid_signature);
     bool check_exist(::dsn::rpc_address node, partition_status::type status);
-    partition_status::type get_node_status(::dsn::rpc_address addr) const;
+    partition_status::type get_node_status(::dsn::host_port hp) const;
 
     void do_cleanup_pending_mutations(bool clean_pending_mutations = true);
 
@@ -291,9 +291,9 @@ public:
 
 //---------------inline impl----------------------------------------------------------------
 
-inline partition_status::type primary_context::get_node_status(::dsn::rpc_address addr) const
+inline partition_status::type primary_context::get_node_status(::dsn::host_port hp) const
 {
-    auto it = statuses.find(addr);
+    auto it = statuses.find(hp);
     return it != statuses.end() ? it->second : partition_status::PS_INACTIVE;
 }
 } // namespace replication

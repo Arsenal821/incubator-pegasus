@@ -40,6 +40,7 @@
 #include <vector>
 
 #include "meta_admin_types.h"
+#include "runtime/rpc/dns_resolver.h"
 #include "runtime/rpc/rpc_address.h"
 #include "runtime/service_app.h"
 #include "runtime/task/task_tracker.h"
@@ -75,6 +76,7 @@ private:
     rpc_address _meta_server_group;
     rpc_address _service_addr;
     dsn::task_tracker _tracker;
+    std::unique_ptr<dns_resolver> _resolver;
 };
 }
 }

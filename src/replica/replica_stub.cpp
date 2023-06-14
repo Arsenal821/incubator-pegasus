@@ -885,15 +885,10 @@ void replica_stub::initialize_start()
     // init liveness monitor
     CHECK_EQ(NS_Disconnected, _state);
 
-    std::vector<host_port> meta_servers;
-    for (const auto &n : _options.meta_servers) {
-        meta_servers.emplace_back(host_port(n));
-    }
-
     if (!FLAGS_fd_disabled) {
         _failure_detector = std::make_shared<dsn::dist::slave_failure_detector_with_multimaster>(
             _dns_resolver,
-            meta_servers,
+            _options.meta_servers,
             [this]() { this->on_meta_server_disconnected(); },
             [this]() { this->on_meta_server_connected(); });
 

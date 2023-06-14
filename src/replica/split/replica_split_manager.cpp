@@ -654,7 +654,7 @@ void replica_split_manager::parent_handle_child_catch_up(
     // _primary_states.statuses is a map structure: rpc address -> partition_status
     // it stores replica's rpc address and partition_status of this replica group
     for (auto &iter : _replica->_primary_states.statuses) {
-        if (_replica->_primary_states.caught_up_children.find(iter.first) ==
+        if (_replica->_primary_states.caught_up_children.find(_replica->get_dns_resolver()->resolve_address(iter.first)) ==
             _replica->_primary_states.caught_up_children.end()) {
             // there are child partitions not caught up its parent
             return;
@@ -741,11 +741,11 @@ void replica_split_manager::update_child_group_partition_count(
     auto not_replied_addresses = std::make_shared<std::unordered_set<rpc_address>>();
     // _primary_states.statuses is a map structure: rpc address -> partition_status
     for (const auto &kv : _replica->_primary_states.statuses) {
-        not_replied_addresses->insert(kv.first);
+        not_replied_addresses->insert(_replica->get_dns_resolver()->resolve_address(kv.first));
     }
     for (const auto &iter : _replica->_primary_states.statuses) {
         parent_send_update_partition_count_request(
-            iter.first, new_partition_count, not_replied_addresses);
+            _replica->get_dns_resolver()->resolve_address(iter.first), new_partition_count, not_replied_addresses);
     }
 }
 
@@ -1448,7 +1448,7 @@ void replica_split_manager::primary_parent_handle_stop_split(
     auto count = 0;
     for (auto &iter : _replica->_primary_states.statuses) {
         if (iter.second == partition_status::PS_SECONDARY &&
-            _replica->_primary_states.split_stopped_secondary.find(iter.first) !=
+            _replica->_primary_states.split_stopped_secondary.find(_replica->get_dns_resolver()->resolve_address(iter.first)) !=
                 _replica->_primary_states.split_stopped_secondary.end()) {
             ++count;
         }

@@ -28,6 +28,8 @@
 #include "meta/duplication/duplication_info.h"
 #include "meta/meta_data.h"
 #include "meta/server_state.h"
+#include "runtime/rpc/rpc_host_port.h"
+#include "runtime/rpc/dns_resolver.h"
 #include "utils/fmt_logging.h"
 
 namespace dsn {
@@ -58,7 +60,7 @@ class meta_service;
 class meta_duplication_service
 {
 public:
-    meta_duplication_service(server_state *ss, meta_service *ms) : _state(ss), _meta_svc(ms)
+    meta_duplication_service(server_state *ss, meta_service *ms, const std::shared_ptr<dns_resolver> &resolver) : _state(ss), _meta_svc(ms), _dns_resolver(resolver)
     {
         CHECK_NOTNULL(_state, "_state should not be null");
         CHECK_NOTNULL(_meta_svc, "_meta_svc should not be null");
@@ -122,7 +124,7 @@ private:
     // Thread-Safe
     std::shared_ptr<duplication_info>
     new_dup_from_init(const std::string &follower_cluster_name,
-                      std::vector<rpc_address> &&follower_cluster_metas,
+                      std::vector<host_port> &&follower_cluster_metas,
                       std::shared_ptr<app_state> &app) const;
 
     // get lock to protect access of app table
@@ -148,6 +150,8 @@ private:
     server_state *_state;
 
     meta_service *_meta_svc;
+
+    std::shared_ptr<dns_resolver> _dns_resolver;
 };
 
 } // namespace replication

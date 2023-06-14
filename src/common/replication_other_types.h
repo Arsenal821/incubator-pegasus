@@ -93,7 +93,7 @@ public:
                                    ::dsn::rpc_address node,
                                    /*out*/ replica_configuration &replica_config);
     // true if meta_list's value of config is valid, otherwise return false
-    static bool load_meta_servers(/*out*/ std::vector<dsn::rpc_address> &servers,
+    static bool load_meta_servers(/*out*/ std::vector<dsn::host_port> &servers,
                                   const char *section = "meta_server",
                                   const char *key = "server_list");
 };

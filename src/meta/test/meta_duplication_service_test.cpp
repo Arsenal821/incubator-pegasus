@@ -182,7 +182,7 @@ public:
         int last_dup = 0;
         for (int i = 0; i < 1000; i++) {
             auto dup = dup_svc().new_dup_from_init(
-                remote_cluster_address, std::vector<rpc_address>(), app);
+                remote_cluster_address, std::vector<host_port>(), app);
 
             ASSERT_GT(dup->id, 0);
             ASSERT_FALSE(dup->is_altering());

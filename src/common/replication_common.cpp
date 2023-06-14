@@ -30,6 +30,7 @@
 #include <fstream>
 #include <memory>
 #include <set>
+#include <unordered_set>
 
 #include "common/gpid.h"
 #include "common/replica_envs.h"
@@ -199,7 +200,7 @@ int32_t replication_options::app_mutation_2pc_min_replica_count(int32_t app_max_
     }
 }
 
-bool replica_helper::load_meta_servers(/*out*/ std::vector<dsn::rpc_address> &servers,
+bool replica_helper::load_meta_servers(/*out*/ std::vector<dsn::host_port> &servers,
                                        const char *section,
                                        const char *key)
 {
@@ -207,8 +208,9 @@ bool replica_helper::load_meta_servers(/*out*/ std::vector<dsn::rpc_address> &se
     std::string server_list = dsn_config_get_value_string(section, key, "", "");
     std::vector<std::string> lv;
     ::dsn::utils::split_args(server_list.c_str(), lv, ',');
+    std::unordered_set<dsn::host_port> server_host_ports;
     for (auto &s : lv) {
-        ::dsn::rpc_address addr;
+        ::dsn::host_port hp;
         std::vector<std::string> hostname_port;
         uint32_t ip = 0;
         utils::split_args(s.c_str(), hostname_port, ':');
@@ -224,17 +226,18 @@ bool replica_helper::load_meta_servers(/*out*/ std::vector<dsn::rpc_address> &se
               s,
               section,
               key);
-        if (0 != (ip = ::dsn::rpc_address::ipv4_from_host(hostname_port[0].c_str()))) {
-            addr.assign_ipv4(ip, static_cast<uint16_t>(port_num));
-        } else if (!addr.from_string_ipv4(s.c_str())) {
-            LOG_ERROR("invalid address '{}' specified in config [{}].{}", s, section, key);
-            return false;
+        hp = host_port(hostname_port[0], static_cast<uint16_t>(port_num));
+        if (server_host_ports.insert(hp).second) {
+            servers.push_back(hp);
         }
-        // TODO(yingchun): check there is no duplicates
-        servers.push_back(addr);
     }
     if (servers.empty()) {
         LOG_ERROR("no meta server specified in config [{}].{}", section, key);
+        return false;
+    }
+
+    if (servers.size() != lv.size()) {
+        LOG_ERROR("server_list {} have duplicate server", server_list);
         return false;
     }
     return true;

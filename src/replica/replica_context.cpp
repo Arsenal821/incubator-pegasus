@@ -114,16 +114,16 @@ void primary_context::reset_membership(const partition_configuration &config, bo
     membership = config;
 
     if (membership.primary.is_invalid() == false) {
-        statuses[membership.primary] = partition_status::PS_PRIMARY;
+        statuses[host_port(membership.primary)] = partition_status::PS_PRIMARY;
     }
 
     for (auto it = config.secondaries.begin(); it != config.secondaries.end(); ++it) {
-        statuses[*it] = partition_status::PS_SECONDARY;
+        statuses[host_port(*it)] = partition_status::PS_SECONDARY;
         learners.erase(*it);
     }
 
     for (auto it = learners.begin(); it != learners.end(); ++it) {
-        statuses[it->first] = partition_status::PS_POTENTIAL_SECONDARY;
+        statuses[host_port(it->first)] = partition_status::PS_POTENTIAL_SECONDARY;
     }
 }
 

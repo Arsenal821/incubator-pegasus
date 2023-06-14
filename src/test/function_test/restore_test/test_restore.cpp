@@ -41,7 +41,7 @@
 #include "include/pegasus/client.h"
 #include "pegasus/error.h"
 #include "runtime/api_layer1.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "test/function_test/utils/global_env.h"
 #include "test_util/test_util.h"
 #include "utils/error_code.h"
@@ -67,7 +67,7 @@ public:
                      dsn::utils::filesystem::path_combine(cluster_name, policy_name);
         backup_dir = "onebox/" + provider_dir + '/' + cluster_name;
 
-        std::vector<dsn::rpc_address> meta_list;
+        std::vector<dsn::host_port> meta_list;
         ASSERT_TRUE(replica_helper::load_meta_servers(
             meta_list, PEGASUS_CLUSTER_SECTION_NAME.c_str(), cluster_name.c_str()));
         ASSERT_FALSE(meta_list.empty());

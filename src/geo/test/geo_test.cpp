@@ -43,7 +43,7 @@
 #include "common/replication_other_types.h"
 #include "geo/lib/geo_client.h"
 #include "pegasus/client.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "utils/blob.h"
 #include "utils/error_code.h"
 #include "utils/flags.h"
@@ -60,7 +60,7 @@ class geo_client_test : public ::testing::Test
 public:
     geo_client_test()
     {
-        std::vector<dsn::rpc_address> meta_list;
+        std::vector<dsn::host_port> meta_list;
         bool ok = dsn::replication::replica_helper::load_meta_servers(
             meta_list, PEGASUS_CLUSTER_SECTION_NAME.c_str(), "onebox");
         CHECK(ok, "load_meta_servers failed");

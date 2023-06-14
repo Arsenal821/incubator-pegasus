@@ -64,7 +64,7 @@ using namespace dsn::replication::application;
 DEFINE_TASK_CODE(LPC_SIMPLE_KV_TEST, TASK_PRIORITY_COMMON, dsn::THREAD_POOL_DEFAULT)
 
 simple_kv_client_app::simple_kv_client_app(const service_app_info *info)
-    : ::dsn::service_app(info), _simple_kv_client(nullptr)
+    : ::dsn::service_app(info), _simple_kv_client(nullptr), _resolver(new dns_resolver())
 {
 }
 
@@ -75,10 +75,14 @@ simple_kv_client_app::~simple_kv_client_app() { stop(); }
     if (args.size() < 2)
         return ::dsn::ERR_INVALID_PARAMETERS;
 
-    std::vector<rpc_address> meta_servers;
+    std::vector<host_port> meta_servers;
     replica_helper::load_meta_servers(meta_servers);
     _meta_server_group.assign_group("meta_servers");
-    _meta_server_group.group_address()->add_list(meta_servers);
+    for (const auto &hp : meta_servers) {
+        LOG_WARNING_IF(!_meta_server_group.group_address()->add(_resolver->resolve_address(hp)),
+                       "duplicate adress {}",
+                       hp);
+    }
 
     _simple_kv_client.reset(
         new application::simple_kv_client("mycluster", meta_servers, "simple_kv.instance0"));

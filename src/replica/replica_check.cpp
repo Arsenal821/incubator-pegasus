@@ -122,10 +122,10 @@ void replica::broadcast_group_check()
     }
 
     for (auto it = _primary_states.statuses.begin(); it != _primary_states.statuses.end(); ++it) {
-        if (it->first == _stub->_primary_address)
+        if (it->first == host_port(_stub->_primary_address))
             continue;
 
-        ::dsn::rpc_address addr = it->first;
+        ::dsn::rpc_address addr = _dns_resolver->resolve_address(it->first);
         std::shared_ptr<group_check_request> request(new group_check_request);
 
         request->app = _app_info;
@@ -162,7 +162,7 @@ void replica::broadcast_group_check()
                       std::chrono::milliseconds(0),
                       get_gpid().thread_hash());
 
-        _primary_states.group_check_pending_replies[addr] = callback_task;
+        _primary_states.group_check_pending_replies[host_port(addr)] = callback_task;
     }
 
     // send empty prepare when necessary
@@ -247,7 +247,7 @@ void replica::on_group_check_reply(error_code err,
         return;
     }
 
-    auto r = _primary_states.group_check_pending_replies.erase(req->node);
+    auto r = _primary_states.group_check_pending_replies.erase(host_port(req->node));
     CHECK_EQ_MSG(r, 1, "invalid node address, address = {}", req->node);
 
     if (err != ERR_OK || resp->err != ERR_OK) {

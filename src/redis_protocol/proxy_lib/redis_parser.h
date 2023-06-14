@@ -34,6 +34,7 @@
 
 #include "geo/lib/geo_client.h"
 #include "proxy_layer.h"
+#include "runtime/rpc/dns_resolver.h"
 #include "runtime/rpc/rpc_message.h"
 #include "runtime/rpc/rpc_stream.h"
 #include "utils/blob.h"
@@ -164,6 +165,8 @@ private:
     // for rrdb
     std::unique_ptr<::dsn::apps::rrdb_client> client;
     std::unique_ptr<geo::geo_client> _geo_client;
+
+    std::shared_ptr<dsn::dns_resolver> _dns_resolver;
 
 protected:
     // function for data stream

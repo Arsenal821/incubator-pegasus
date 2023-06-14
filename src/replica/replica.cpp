@@ -115,7 +115,8 @@ replica::replica(replica_stub *stub,
       // todo(jiashuo1): app.duplicating need rename
       _is_duplication_master(app.duplicating),
       _is_duplication_follower(is_duplication_follower),
-      _backup_mgr(new replica_backup_manager(this))
+      _backup_mgr(new replica_backup_manager(this)),
+      _dns_resolver(stub->get_dns_resolver())
 {
     CHECK(!_app_info.app_type.empty(), "");
     CHECK_NOTNULL(stub, "");

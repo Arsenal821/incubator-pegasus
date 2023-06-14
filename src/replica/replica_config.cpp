@@ -68,6 +68,7 @@
 #include "replica_stub.h"
 #include "runtime/api_layer1.h"
 #include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/rpc/rpc_message.h"
 #include "runtime/rpc/serialization.h"
 #include "runtime/security/access_controller.h"
@@ -228,7 +229,7 @@ void replica::add_potential_secondary(configuration_update_request &proposal)
     } else {
         state.signature = ++_primary_states.next_learning_version;
         _primary_states.learners[proposal.node] = state;
-        _primary_states.statuses[proposal.node] = partition_status::PS_POTENTIAL_SECONDARY;
+        _primary_states.statuses[host_port(proposal.node)] = partition_status::PS_POTENTIAL_SECONDARY;
     }
 
     group_check_request request;
@@ -305,7 +306,7 @@ void replica::remove(configuration_update_request &proposal)
     CHECK_EQ(proposal.config.primary, _primary_states.membership.primary);
     CHECK(proposal.config.secondaries == _primary_states.membership.secondaries, "");
 
-    auto st = _primary_states.get_node_status(proposal.node);
+    auto st = _primary_states.get_node_status(host_port(proposal.node));
 
     switch (st) {
     case partition_status::PS_PRIMARY:
