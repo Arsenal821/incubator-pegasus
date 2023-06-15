@@ -27,6 +27,7 @@
 
 #include "meta_access_controller.h"
 #include "runtime/ranger/ranger_resource_policy_manager.h"
+#include "runtime/ranger/ranger_resource_policy.h"
 
 namespace dsn {
 namespace security {
@@ -113,7 +114,8 @@ bool meta_access_controller::allowed(message_ex *msg, const std::string &app_nam
              user_name,
              msg->rpc_code(),
              database_name);
-    return _ranger_resource_policy_manager->allowed(rpc_code, user_name, database_name);
+    return _ranger_resource_policy_manager->allowed(rpc_code, user_name, database_name) ==
+           ranger::access_control_result::kAllowed;
 }
 
 void meta_access_controller::register_allowed_rpc_code_list(

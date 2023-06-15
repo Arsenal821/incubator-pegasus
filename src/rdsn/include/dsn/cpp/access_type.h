@@ -19,6 +19,8 @@
 
 #include <cstdint>
 
+#include <dsn/utility/enum_helper.h>
+
 namespace dsn {
 namespace ranger {
 
@@ -34,6 +36,15 @@ enum class access_type : uint8_t
     kMetadata = 1 << 5,
     kControl = 1 << 6
 };
+ENUM_BEGIN(access_type, access_type::kInvalid)
+ENUM_REG(access_type::kRead)
+ENUM_REG(access_type::kWrite)
+ENUM_REG(access_type::kCreate)
+ENUM_REG(access_type::kDrop)
+ENUM_REG(access_type::kList)
+ENUM_REG(access_type::kMetadata)
+ENUM_REG(access_type::kControl)
+ENUM_END(access_type)
 
 using act = std::underlying_type<access_type>::type;
 
