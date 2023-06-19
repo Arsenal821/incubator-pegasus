@@ -39,6 +39,32 @@ class TProtocol;
 } // namespace thrift
 } // namespace apache
 
+#define FILL_HP_OPTIONAL_SECTION(OBJ_NAME, SECTION_NAME) \
+    do { \
+        host_port hp(OBJ_NAME.SECTION_NAME); \
+        OBJ_NAME.__set_hp_##SECTION_NAME(hp); \
+    } while(false)
+
+#define FILL_HP_LIST_OPTIONAL_SECTION(OBJ_NAME, SECTION_NAME) \
+    do { \
+        std::vector<host_port> hps; \
+        dsn::host_port::fill_host_ports_from_addresses(OBJ_NAME.SECTION_NAME, hps); \
+        OBJ_NAME.__set_hp_##SECTION_NAME(hps); \
+    } while(false)
+
+
+#define FILL_OPTIONAL_HP_IF_NEEDED(OBJ_NAME, SECTION_NAME) \
+    do { \
+        if (!OBJ_NAME.__isset.hp_##SECTION_NAME) \
+            FILL_HP_OPTIONAL_SECTION(OBJ_NAME, SECTION_NAME); \
+    } while(false)
+
+#define FILL_OPTIONAL_HP_LIST_IF_NEEDED(OBJ_NAME, SECTION_NAME) \
+    do { \
+        if (!OBJ_NAME.__isset.hp_##SECTION_NAME) \
+            FILL_HP_LIST_OPTIONAL_SECTION(OBJ_NAME, SECTION_NAME); \
+    } while(false)
+
 namespace dsn {
 
 class rpc_group_host_port;
@@ -84,6 +110,8 @@ public:
     // for serialization in thrift format
     uint32_t read(::apache::thrift::protocol::TProtocol *iprot);
     uint32_t write(::apache::thrift::protocol::TProtocol *oprot) const;
+
+    static void fill_host_ports_from_addresses(const std::vector<rpc_address> &addr_v, /*output*/ std::vector<host_port> &hp_v);
 
 private:
     std::string _host;
