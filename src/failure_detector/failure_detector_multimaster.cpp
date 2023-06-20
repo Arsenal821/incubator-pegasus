@@ -80,55 +80,48 @@ void slave_failure_detector_with_multimaster::end_ping(::dsn::error_code err,
                                                        const fd::beacon_ack &ack,
                                                        void *)
 {
-    host_port this_node_hp, primary_node_hp;
-    if (ack.__isset.host_port_this_node) {
-        this_node_hp = ack.host_port_this_node;
-    } else {
-        this_node_hp = host_port(ack.this_node);
-    }
-    if (ack.__isset.host_port_primary_node) {
-        primary_node_hp = ack.host_port_primary_node;
-    } else {
-        primary_node_hp = host_port(ack.primary_node);
-    }
+    fd::beacon_ack ack_msg = ack;
+    FILL_HP_OPTIONAL_SECTION(ack_msg, this_node);
+    FILL_HP_OPTIONAL_SECTION(ack_msg, primary_node);
+
     LOG_INFO("end ping result, error[{}], time[{}], ack.this_node[{}({})], ack.primary_node[{}({})], "
              "ack.is_master[{}], ack.allowed[{}]",
              err,
-             ack.time,
-             this_node_hp,
-             ack.this_node,
-             primary_node_hp,
-             ack.primary_node,
-             ack.is_master ? "true" : "false",
-             ack.allowed ? "true" : "false");
+             ack_msg.time,
+             ack_msg.hp_this_node,
+             ack_msg.this_node,
+             ack_msg.hp_primary_node,
+             ack_msg.primary_node,
+             ack_msg.is_master ? "true" : "false",
+             ack_msg.allowed ? "true" : "false");
 
     zauto_lock l(failure_detector::_lock);
-    if (!failure_detector::end_ping_internal(err, ack))
+    if (!failure_detector::end_ping_internal(err, ack_msg))
         return;
 
-    CHECK_EQ(this_node_hp, _meta_servers.group_host_port()->leader());
+    CHECK_EQ(ack_msg.hp_this_node, _meta_servers.group_host_port()->leader());
 
     if (ERR_OK != err) {
-        host_port next = _meta_servers.group_host_port()->next(this_node_hp);
-        if (next != this_node_hp) {
+        host_port next = _meta_servers.group_host_port()->next(ack_msg.hp_this_node);
+        if (next != ack_msg.hp_this_node) {
             _meta_servers.group_host_port()->set_leader(next);
             // do not start next send_beacon() immediately to avoid send rpc too frequently
-            switch_master(this_node_hp, next, 1000);
+            switch_master(ack_msg.hp_this_node, next, 1000);
         }
     } else {
-        if (ack.is_master) {
+        if (ack_msg.is_master) {
             // do nothing
-        } else if (ack.primary_node.is_invalid()) {
-            host_port next = _meta_servers.group_host_port()->next(this_node_hp);
-            if (next != this_node_hp) {
+        } else if (ack_msg.primary_node.is_invalid()) {
+            host_port next = _meta_servers.group_host_port()->next(ack_msg.hp_this_node);
+            if (next != ack_msg.hp_this_node) {
                 _meta_servers.group_host_port()->set_leader(next);
                 // do not start next send_beacon() immediately to avoid send rpc too frequently
-                switch_master(this_node_hp, next, 1000);
+                switch_master(ack_msg.hp_this_node, next, 1000);
             }
         } else {
-            _meta_servers.group_host_port()->set_leader(primary_node_hp);
+            _meta_servers.group_host_port()->set_leader(ack_msg.hp_primary_node);
             // start next send_beacon() immediately because the leader is possibly right.
-            switch_master(this_node_hp, primary_node_hp, 0);
+            switch_master(ack_msg.hp_this_node, ack_msg.hp_primary_node, 0);
         }
     }
 }

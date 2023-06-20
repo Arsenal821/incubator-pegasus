@@ -212,8 +212,8 @@ public:
                   request.is_register ? "reg" : "unreg");
 
         host_port master;
-        if (request.__isset.host_port_master) {
-            master = request.host_port_master;
+        if (request.__isset.hp_master) {
+            master = request.hp_master;
         } else {
             master = host_port(request.master);
         }
@@ -333,7 +333,7 @@ void worker_set_leader(test_worker *worker, int leader_contact)
     config_master_message msg;
     msg.master = rpc_address("localhost", MPORT_START + leader_contact);
     msg.is_register = true;
-    msg.__set_host_port_master(host_port(msg.master));
+    msg.__set_hp_master(host_port(msg.master));
     error_code err;
     bool response;
     std::tie(err, response) = rpc::call_wait<bool>(
@@ -349,7 +349,7 @@ void clear(test_worker *worker, std::vector<test_master *> masters)
     config_master_message msg;
     msg.master = leader;
     msg.is_register = false;
-    msg.__set_host_port_master(hp);
+    msg.__set_hp_master(hp);
     error_code err;
     bool response;
     std::tie(err, response) = rpc::call_wait<bool>(
@@ -671,16 +671,16 @@ TEST(fd, update_stability)
     msg.time = dsn_now_ms();
     msg.__isset.start_time = true;
     msg.start_time = 1000;
-    msg.__set_host_port_from(host_port("localhost", 123));
-    msg.__set_host_port_to(host_port("localhost", MPORT_START));
+    msg.__set_hp_from_addr(host_port("localhost", 123));
+    msg.__set_hp_to_addr(host_port("localhost", MPORT_START));
 
     // first on ping
     fd->on_ping(msg, r);
     ASSERT_EQ(1, smap->size());
-    ASSERT_NE(smap->end(), smap->find(msg.host_port_from));
+    ASSERT_NE(smap->end(), smap->find(msg.hp_from_addr));
 
     replication::meta_server_failure_detector::worker_stability &ws =
-        smap->find(msg.host_port_from)->second;
+        smap->find(msg.hp_from_addr)->second;
     ASSERT_EQ(0, ws.unstable_restart_count);
     ASSERT_EQ(msg.start_time, ws.last_start_time_ms);
     ASSERT_TRUE(r.is_empty());
@@ -748,7 +748,7 @@ TEST(fd, update_stability)
     ASSERT_FALSE(r.is_empty());
 
     // reset stat
-    fd->reset_stability_stat(msg.host_port_from);
+    fd->reset_stability_stat(msg.hp_from_addr);
     ASSERT_EQ(msg.start_time, ws.last_start_time_ms);
     ASSERT_EQ(0, ws.unstable_restart_count);
 }

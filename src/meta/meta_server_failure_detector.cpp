@@ -233,16 +233,13 @@ bool meta_server_failure_detector::update_stability_stat(const fd::beacon_msg &b
 {
     zauto_lock l(_map_lock);
 
-    host_port node;
-    if (beacon.__isset.host_port_from) {
-        node = beacon.host_port_from;
-    } else {
-        node = host_port(beacon.from_addr);
-    }
+    fd::beacon_msg msg = beacon;
+    FILL_HP_OPTIONAL_SECTION(msg, from_addr);
+    FILL_HP_OPTIONAL_SECTION(msg, to_addr);
 
-    auto iter = _stablity.find(node);
+    auto iter = _stablity.find(msg.hp_from_addr);
     if (iter == _stablity.end()) {
-        _stablity.emplace(node, worker_stability{beacon.start_time, 0});
+        _stablity.emplace(msg.hp_from_addr, worker_stability{msg.start_time, 0});
         return true;
     } else {
         worker_stability &w = iter->second;
@@ -287,58 +284,42 @@ bool meta_server_failure_detector::update_stability_stat(const fd::beacon_msg &b
 void meta_server_failure_detector::on_ping(const fd::beacon_msg &beacon,
                                            rpc_replier<fd::beacon_ack> &reply)
 {
-    if (beacon.__isset.start_time && !update_stability_stat(beacon)) {
-        LOG_WARNING("{} is unstable, don't response to it's beacon", host_port(beacon.from_addr));
+    fd::beacon_msg msg = beacon;
+    FILL_HP_OPTIONAL_SECTION(msg, from_addr);
+    FILL_HP_OPTIONAL_SECTION(msg, to_addr);
+
+    if (msg.__isset.start_time && !update_stability_stat(msg)) {
+        LOG_WARNING("{}({}) is unstable, don't response to it's beacon", msg.from_addr, msg.hp_from_addr);
         return;
     }
 
-    rpc_address this_node_addr;
-    host_port this_node_hp;
-    if (beacon.__isset.host_port_to) {
-        this_node_addr = _dns_resolver->resolve_address(beacon.host_port_to);
-        this_node_hp = beacon.host_port_to;
-    } else {
-        this_node_addr = beacon.to_addr;
-        this_node_hp = host_port(beacon.to_addr);
-    }
-
     fd::beacon_ack ack;
-    ack.time = beacon.time;
-    ack.this_node = this_node_addr;
+    ack.time = msg.time;
+    ack.this_node = msg.to_addr;
     ack.allowed = true;
-    ack.__set_host_port_this_node(this_node_hp);
+    ack.__set_hp_this_node(msg.hp_to_addr);
 
     dsn::host_port leader;
     if (!get_leader(&leader)) {
         ack.is_master = false;
         ack.primary_node = _dns_resolver->resolve_address(leader);
-        ack.__set_host_port_primary_node(leader);
+        ack.__set_hp_primary_node(leader);
     } else {
         ack.is_master = true;
-        ack.primary_node = this_node_addr;
-        ack.__set_host_port_primary_node(this_node_hp);
-        failure_detector::on_ping_internal(beacon, ack);
+        ack.primary_node = msg.to_addr;
+        ack.__set_hp_primary_node(msg.hp_to_addr);
+        failure_detector::on_ping_internal(msg, ack);
     }
-
-    host_port hp_from;
-    rpc_address addr_form;
-    if (beacon.__isset.host_port_from) {
-        hp_from = beacon.host_port_from;
-        addr_form = _dns_resolver->resolve_address(beacon.host_port_from);
-    } else {
-        hp_from = host_port(beacon.from_addr);
-        addr_form = beacon.to_addr;
-    } 
 
     LOG_INFO("on_ping, beacon send time[{}], is_master({}), from_node({}({})), this_node({}({})), "
              "primary_node({}({}))",
              ack.time,
              ack.is_master ? "true" : "false",
-             hp_from,
-             addr_form,
-             this_node_hp,
-             this_node_addr,
-             ack.host_port_primary_node,
+             msg.hp_from_addr,
+             msg.from_addr,
+             msg.hp_to_addr,
+             msg.to_addr,
+             ack.hp_primary_node,
              ack.primary_node);
 
     reply(ack);
