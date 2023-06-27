@@ -284,13 +284,16 @@ TEST(perf_counters_test, query_snapshot_by_regexp)
     ASSERT_GT(info.timestamp, 0);
     ASSERT_TRUE(!info.timestamp_str.empty());
     printf("got timestamp: %s\n", info.timestamp_str.c_str());
-    ASSERT_EQ(4 + 1, info.counters.size()); // add 1 for p999 counter
+    ASSERT_EQ(4 + 4, info.counters.size()); // add 4 for p50, p90, p95, p999 counter
 
     std::map<std::string, std::string> expected = {
         {"a*s*test_counter", dsn_counter_type_to_string(COUNTER_TYPE_NUMBER)},
         {"b*s*test_counter", dsn_counter_type_to_string(COUNTER_TYPE_VOLATILE_NUMBER)},
         {"c*s*test_counter", dsn_counter_type_to_string(COUNTER_TYPE_RATE)},
         {"d*s*test_counter", dsn_counter_type_to_string(COUNTER_TYPE_NUMBER_PERCENTILES)},
+        {"d*s*test_counter.p50", dsn_counter_type_to_string(COUNTER_TYPE_NUMBER_PERCENTILES)},
+        {"d*s*test_counter.p90", dsn_counter_type_to_string(COUNTER_TYPE_NUMBER_PERCENTILES)},
+        {"d*s*test_counter.p95", dsn_counter_type_to_string(COUNTER_TYPE_NUMBER_PERCENTILES)},
         {"d*s*test_counter.p999", dsn_counter_type_to_string(COUNTER_TYPE_NUMBER_PERCENTILES)},
     };
     std::map<std::string, std::string> actual;

@@ -56,7 +56,7 @@ TEST(perf_counter_http_service_test, get_perf_counter)
         std::string fake_json;
         if (COUNTER_TYPE_NUMBER_PERCENTILES == test.type) {
             fake_json = R"({"name":")" + perf_counter_name + R"(",)" +
-                        R"("p99":"0.00","p999":"0.00",)" +
+                        R"("p50":"0.00","p90":"0.00","p95":"0.00","p99":"0.00","p999":"0.00",)" +
                         R"("type":")" + dsn_counter_type_to_string(test.type) + R"(",)" +
                         R"("description":")" + test.description + R"("})" + "\n";
         } else {

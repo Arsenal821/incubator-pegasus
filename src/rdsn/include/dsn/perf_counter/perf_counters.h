@@ -145,6 +145,9 @@ private:
 
     void get_all_counters(std::vector<perf_counter_ptr> *all) const;
 
+    void take_snapshot_percentile(const perf_counter_ptr &c,
+                                  dsn_perf_counter_percentile_type_t type);
+
     mutable utils::rw_lock_nr _lock;
     // keep counter as a refptr to make the counter can be safely accessed
     // by get_all_counters and remove_counter concurrently

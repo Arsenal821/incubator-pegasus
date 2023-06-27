@@ -18,6 +18,9 @@
  */
 
 #include "shell/commands.h"
+
+#include <fmt/core.h>
+#include <dsn/perf_counter/perf_counter.h>
 #include <dsn/utility/utils.h>
 
 bool query_cluster_info(command_executor *e, shell_context *sc, arguments args)
@@ -65,11 +68,13 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
                                            {"resolve_ip", no_argument, 0, 'r'},
                                            {"resource_usage", no_argument, 0, 'u'},
                                            {"qps", no_argument, 0, 'q'},
+                                           {"latency_percentile", required_argument, 0, 'p'},
                                            {"json", no_argument, 0, 'j'},
                                            {"status", required_argument, 0, 's'},
                                            {"output", required_argument, 0, 'o'},
                                            {0, 0, 0, 0}};
 
+    std::string latency_percentile;
     std::string status;
     std::string output_file;
     bool detailed = false;
@@ -82,7 +87,7 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
     while (true) {
         int option_index = 0;
         int c;
-        c = getopt_long(args.argc, args.argv, "druqjs:o:", long_options, &option_index);
+        c = getopt_long(args.argc, args.argv, "druqp:js:o:", long_options, &option_index);
         if (c == -1)
             break;
         switch (c) {
@@ -99,6 +104,9 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
             show_qps = true;
             show_latency = true;
             break;
+        case 'p':
+            latency_percentile = optarg;
+            break;
         case 'j':
             json = true;
             break;
@@ -111,6 +119,21 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
         default:
             return false;
         }
+    }
+
+    dsn_perf_counter_percentile_type_t latency_percentile_type = COUNTER_PERCENTILE_INVALID;
+    if (show_latency) {
+        if (latency_percentile.empty()) {
+            latency_percentile = "99";
+        }
+
+        const auto iter = kPercentileKthToTypes.find(latency_percentile);
+        if (iter == kPercentileKthToTypes.end()) {
+            std::cout << "requested latency percentile '" << latency_percentile
+                      << "' does not exist" << std::endl;
+            return true;
+        }
+        latency_percentile_type = iter->second;
     }
 
     dsn::utils::multi_table_printer mtp;
@@ -318,15 +341,22 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
             return true;
         }
 
+#define PROFILER_PERCENTILE_NAME(op)                                                               \
+    dsn::percentile_append_postfix(latency_percentile_type,                                        \
+                                   "zion*profiler*" #op ".latency."                                \
+                                   "server")
+
         std::vector<std::pair<bool, std::string>> results =
             call_remote_command(sc,
                                 nodes,
                                 "perf-counters-by-postfix",
-                                {"zion*profiler*RPC_RRDB_RRDB_GET.latency.server",
-                                 "zion*profiler*RPC_RRDB_RRDB_PUT.latency.server",
-                                 "zion*profiler*RPC_RRDB_RRDB_MULTI_GET.latency.server",
-                                 "zion*profiler*RPC_RRDB_RRDB_BATCH_GET.latency.server",
-                                 "zion*profiler*RPC_RRDB_RRDB_MULTI_PUT.latency.server"});
+                                {PROFILER_PERCENTILE_NAME(RPC_RRDB_RRDB_GET),
+                                 PROFILER_PERCENTILE_NAME(RPC_RRDB_RRDB_PUT),
+                                 PROFILER_PERCENTILE_NAME(RPC_RRDB_RRDB_MULTI_GET),
+                                 PROFILER_PERCENTILE_NAME(RPC_RRDB_RRDB_BATCH_GET),
+                                 PROFILER_PERCENTILE_NAME(RPC_RRDB_RRDB_MULTI_PUT)});
+
+#undef PROFILER_PERCENTILE_NAME
 
         for (int i = 0; i < nodes.size(); ++i) {
             dsn::rpc_address node_addr = nodes[i].address;
@@ -404,11 +434,14 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
         tp.add_column("write_cu", tp_alignment::kRight);
     }
     if (show_latency) {
-        tp.add_column("get_p99(ms)", tp_alignment::kRight);
-        tp.add_column("mget_p99(ms)", tp_alignment::kRight);
-        tp.add_column("bget_p99(ms)", tp_alignment::kRight);
-        tp.add_column("put_p99(ms)", tp_alignment::kRight);
-        tp.add_column("mput_p99(ms)", tp_alignment::kRight);
+#define ADD_COLUMN(op)                                                                             \
+    tp.add_column(fmt::format(#op "_p{}(ms)", latency_percentile), tp_alignment::kRight)
+        ADD_COLUMN(get);
+        ADD_COLUMN(mget);
+        ADD_COLUMN(bget);
+        ADD_COLUMN(put);
+        ADD_COLUMN(mput);
+#undef ADD_COLUMN
     }
     for (auto &kv : tmp_map) {
         tp.add_row(kv.second.node_name);

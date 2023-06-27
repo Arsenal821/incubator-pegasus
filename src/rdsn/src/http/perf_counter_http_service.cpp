@@ -40,8 +40,18 @@ void get_perf_counter_handler(const http_request &req, http_response &resp)
     if (perf_counter) {
         tp.add_row_name_and_data("name", perf_counter_name);
         if (COUNTER_TYPE_NUMBER_PERCENTILES == perf_counter->type()) {
-            tp.add_row_name_and_data("p99", perf_counter->get_percentile(COUNTER_PERCENTILE_99));
-            tp.add_row_name_and_data("p999", perf_counter->get_percentile(COUNTER_PERCENTILE_999));
+#define ADD_PERCENTILE_DATA(kth)                                                                   \
+    do {                                                                                           \
+        static_assert(                                                                             \
+            PERCENTILE_TYPE(kth) >= 0 && PERCENTILE_TYPE(kth) < COUNTER_PERCENTILE_COUNT,          \
+            "Invalid dsn_perf_counter_percentile_type_t " STRINGIFY(PERCENTILE_TYPE(kth)));        \
+        tp.add_row_name_and_data(kPercentileNames[PERCENTILE_TYPE(kth)],                           \
+                                 perf_counter->get_percentile(PERCENTILE_TYPE(kth)));              \
+    } while (0);
+
+            PERCENTILE_FOREACH_KTH(ADD_PERCENTILE_DATA)
+
+#undef ADD_PERCENTILE_DATA
         } else {
             tp.add_row_name_and_data("value", perf_counter->get_value());
         }

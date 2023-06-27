@@ -33,6 +33,8 @@
 #include <dsn/cpp/service_app.h>
 #include <dsn/cpp/json_helper.h>
 
+#include <dsn/dist/fmt_logging.h>
+
 #include <dsn/tool-api/command_manager.h>
 #include <dsn/tool-api/task.h>
 #include <dsn/utility/string_view.h>
@@ -295,6 +297,45 @@ std::string perf_counters::list_snapshot_by_literal(
     return ss.str();
 }
 
+void percentile_append_postfix(dsn_perf_counter_percentile_type_t type, std::string &name)
+{
+#define PERCENTILE_POSTFIX(kth) .p##kth
+#define PERCENTILE_STRINGIFY_POSTFIX(kth) STRINGIFY(PERCENTILE_POSTFIX(kth)),
+    static const std::vector<std::string> kPercentilePostfixes = {
+        PERCENTILE_FOREACH_KTH(PERCENTILE_STRINGIFY_POSTFIX)};
+
+    if (type == COUNTER_PERCENTILE_99) {
+        // There is no postfix for the name of perf_counter p99.
+        return;
+    }
+
+    name += kPercentilePostfixes[type];
+}
+
+std::string percentile_append_postfix(dsn_perf_counter_percentile_type_t type, const char *prefix)
+{
+    std::string name(prefix);
+    percentile_append_postfix(type, name);
+    return name;
+}
+
+void perf_counters::take_snapshot_percentile(const perf_counter_ptr &c,
+                                             dsn_perf_counter_percentile_type_t type)
+{
+    dassert_f(type >= 0 && type < COUNTER_PERCENTILE_COUNT,
+              "Invalid dsn_perf_counter_percentile_type_t {}",
+              static_cast<int>(type));
+
+    std::string name(c->full_name());
+    percentile_append_postfix(type, name);
+
+    counter_snapshot &cs = _snapshots[name];
+    cs.name = std::move(name);
+    cs.type = c->type();
+    cs.updated_recently = true;
+    cs.value = c->get_percentile(type);
+}
+
 void perf_counters::take_snapshot()
 {
     builtin_counters::instance().update_counters();
@@ -321,13 +362,11 @@ void perf_counters::take_snapshot()
         } else {
             cs.value = c->get_percentile(COUNTER_PERCENTILE_99);
 
-            // take P999 metrics into account as well.
-            std::string name_p999 = std::string(c->full_name()) + ".p999";
-            counter_snapshot &cs999 = _snapshots[name_p999];
-            cs999.name = std::move(name_p999);
-            cs999.type = c->type();
-            cs999.updated_recently = true;
-            cs999.value = c->get_percentile(COUNTER_PERCENTILE_999);
+            // take P50, P90, P95, P999 metrics into account as well.
+            take_snapshot_percentile(c, COUNTER_PERCENTILE_50);
+            take_snapshot_percentile(c, COUNTER_PERCENTILE_90);
+            take_snapshot_percentile(c, COUNTER_PERCENTILE_95);
+            take_snapshot_percentile(c, COUNTER_PERCENTILE_999);
         }
     }
 

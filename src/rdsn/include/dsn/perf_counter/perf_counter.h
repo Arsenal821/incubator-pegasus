@@ -31,6 +31,7 @@
 #include <dsn/utility/dlib.h>
 #include <memory>
 #include <sstream>
+#include <unordered_map>
 #include <vector>
 
 typedef enum dsn_perf_counter_type_t {
@@ -42,14 +43,15 @@ typedef enum dsn_perf_counter_type_t {
     COUNTER_TYPE_INVALID
 } dsn_perf_counter_type_t;
 
-typedef enum dsn_perf_counter_percentile_type_t {
-    COUNTER_PERCENTILE_50,
-    COUNTER_PERCENTILE_90,
-    COUNTER_PERCENTILE_95,
-    COUNTER_PERCENTILE_99,
-    COUNTER_PERCENTILE_999,
+#define PERCENTILE_FOREACH_KTH(DEF) DEF(50) DEF(90) DEF(95) DEF(99) DEF(999)
 
-    COUNTER_PERCENTILE_COUNT,
+#define PERCENTILE_TYPE(kth) COUNTER_PERCENTILE_##kth
+#define PERCENTILE_DEF_TYPE(kth) PERCENTILE_TYPE(kth),
+
+typedef enum dsn_perf_counter_percentile_type_t {
+    PERCENTILE_FOREACH_KTH(PERCENTILE_DEF_TYPE)
+
+        COUNTER_PERCENTILE_COUNT,
     COUNTER_PERCENTILE_INVALID
 } dsn_perf_counter_percentile_type_t;
 
@@ -59,7 +61,22 @@ dsn_perf_counter_type_t dsn_counter_type_from_string(const char *str);
 const char *dsn_percentile_type_to_string(dsn_perf_counter_percentile_type_t t);
 dsn_perf_counter_percentile_type_t dsn_percentile_type_from_string(const char *str);
 
+#define STRINGIFY_HELPER(x) #x
+#define STRINGIFY(x) STRINGIFY_HELPER(x)
+
+#define PERCENTILE_NAME(kth) p##kth
+#define PERCENTILE_STRINGIFY_NAME(kth) STRINGIFY(PERCENTILE_NAME(kth)),
+const std::vector<std::string> kPercentileNames = {
+    PERCENTILE_FOREACH_KTH(PERCENTILE_STRINGIFY_NAME)};
+
+#define PERCENTILE_DEF_KTH_TO_TYPE(kth) {#kth, PERCENTILE_TYPE(kth)},
+const std::unordered_map<std::string, dsn_perf_counter_percentile_type_t> kPercentileKthToTypes = {
+    PERCENTILE_FOREACH_KTH(PERCENTILE_DEF_KTH_TO_TYPE)};
+
 namespace dsn {
+
+void percentile_append_postfix(dsn_perf_counter_percentile_type_t type, std::string &name);
+std::string percentile_append_postfix(dsn_perf_counter_percentile_type_t type, const char *prefix);
 
 class perf_counter : public ref_counter
 {
