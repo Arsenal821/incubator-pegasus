@@ -42,6 +42,7 @@
 
 #include "common/gpid.h"
 #include "rpc_address.h"
+#include "rpc_host_port.h"
 #include "runtime/task/task_code.h"
 #include "runtime/task/task_spec.h"
 #include "utils/autoref_ptr.h"
@@ -112,6 +113,7 @@ typedef struct message_header
     //
     // in the forwarding case, the from_address is always the orignal client's address
     rpc_address from_address;
+    host_port from_host_port;
 
     struct
     {
@@ -146,6 +148,8 @@ public:
     rpc_session_ptr io_session; // send/recv session
     rpc_address to_address;     // always ipv4/v6 address, it is the to_node's net address
     rpc_address server_address; // used by requests, and may be of uri/group address
+    host_port to_host_port;
+    host_port server_host_port;
     dsn::task_code local_rpc_code;
     network_header_format hdr_format;
     int send_retry_count;

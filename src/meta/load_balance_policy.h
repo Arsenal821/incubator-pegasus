@@ -33,7 +33,8 @@
 #include "common/gpid.h"
 #include "common/replication_other_types.h"
 #include "meta_data.h"
-#include "runtime/rpc/rpc_address.h"
+#include "meta_service.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "utils/enum_helper.h"
 #include "utils/zlocks.h"
 
@@ -63,18 +64,19 @@ ENUM_END(balance_type)
 bool calc_disk_load(node_mapper &nodes,
                     const app_mapper &apps,
                     app_id id,
-                    const rpc_address &node,
+                    const host_port &node,
                     bool only_primary,
                     /*out*/ disk_load &load);
-const std::string &get_disk_tag(const app_mapper &apps, const rpc_address &node, const gpid &pid);
+const std::string &get_disk_tag(const app_mapper &apps, const host_port &node, const gpid &pid);
 std::shared_ptr<configuration_balancer_request>
 generate_balancer_request(const app_mapper &apps,
                           const partition_configuration &pc,
                           const balance_type &type,
                           const rpc_address &from,
-                          const rpc_address &to);
+                          const rpc_address &to,
+                          const host_port &hp_from,
+                          const host_port &hp_to);
 
-class meta_service;
 struct flow_path;
 
 class load_balance_policy
@@ -105,8 +107,8 @@ protected:
     int _alive_nodes;
     // this is used to assign an integer id for every node
     // and these are generated from the above data, which are tempory too
-    std::unordered_map<dsn::rpc_address, int> address_id;
-    std::vector<dsn::rpc_address> address_vec;
+    std::unordered_map<dsn::host_port, int> address_id;
+    std::vector<dsn::host_port> address_vec;
 
     // the app set which won't be re-balanced
     dsn::zrwlock_nr _balancer_ignored_apps_lock; // {
@@ -116,19 +118,19 @@ protected:
 
 private:
     void start_moving_primary(const std::shared_ptr<app_state> &app,
-                              const rpc_address &from,
-                              const rpc_address &to,
+                              const host_port &from,
+                              const host_port &to,
                               int plan_moving,
                               disk_load *prev_load,
                               disk_load *current_load);
     std::list<dsn::gpid> calc_potential_moving(const std::shared_ptr<app_state> &app,
-                                               const rpc_address &from,
-                                               const rpc_address &to);
+                                               const host_port &from,
+                                               const host_port &to);
     dsn::gpid select_moving(std::list<dsn::gpid> &potential_moving,
                             disk_load *prev_load,
                             disk_load *current_load,
-                            rpc_address from,
-                            rpc_address to);
+                            host_port from,
+                            host_port to);
     void number_nodes(const node_mapper &nodes);
 
     std::string remote_command_balancer_ignored_app_ids(const std::vector<std::string> &args);
@@ -160,7 +162,7 @@ public:
     ford_fulkerson() = delete;
     ford_fulkerson(const std::shared_ptr<app_state> &app,
                    const node_mapper &nodes,
-                   const std::unordered_map<dsn::rpc_address, int> &address_id,
+                   const std::unordered_map<dsn::host_port, int> &address_id,
                    uint32_t higher_count,
                    uint32_t lower_count,
                    int replicas_low);
@@ -174,7 +176,7 @@ public:
     public:
         builder(const std::shared_ptr<app_state> &app,
                 const node_mapper &nodes,
-                const std::unordered_map<dsn::rpc_address, int> &address_id)
+                const std::unordered_map<dsn::host_port, int> &address_id)
             : _app(app), _nodes(nodes), _address_id(address_id)
         {
         }
@@ -205,7 +207,7 @@ public:
     private:
         const std::shared_ptr<app_state> &_app;
         const node_mapper &_nodes;
-        const std::unordered_map<dsn::rpc_address, int> &_address_id;
+        const std::unordered_map<dsn::host_port, int> &_address_id;
     };
 
 private:
@@ -224,7 +226,7 @@ private:
 
     const std::shared_ptr<app_state> &_app;
     const node_mapper &_nodes;
-    const std::unordered_map<dsn::rpc_address, int> &_address_id;
+    const std::unordered_map<dsn::host_port, int> &_address_id;
     uint32_t _higher_count;
     uint32_t _lower_count;
     int _replicas_low;
@@ -244,8 +246,9 @@ public:
     copy_replica_operation(const std::shared_ptr<app_state> app,
                            const app_mapper &apps,
                            node_mapper &nodes,
-                           const std::vector<dsn::rpc_address> &address_vec,
-                           const std::unordered_map<dsn::rpc_address, int> &address_id);
+                           const std::vector<dsn::host_port> &address_vec,
+                           const std::unordered_map<dsn::host_port, int> &address_id,
+                           const std::shared_ptr<dns_resolver> &resolver);
     virtual ~copy_replica_operation() = default;
 
     bool start(migration_list *result);
@@ -268,10 +271,12 @@ protected:
     const std::shared_ptr<app_state> _app;
     const app_mapper &_apps;
     node_mapper &_nodes;
-    const std::vector<dsn::rpc_address> &_address_vec;
-    const std::unordered_map<dsn::rpc_address, int> &_address_id;
-    std::unordered_map<dsn::rpc_address, disk_load> _node_loads;
+    const std::vector<dsn::host_port> &_address_vec;
+    const std::unordered_map<dsn::host_port, int> &_address_id;
+    std::unordered_map<dsn::host_port, disk_load> _node_loads;
     std::vector<int> _partition_counts;
+
+    std::shared_ptr<dns_resolver> _dns_resolver;
 
     FRIEND_TEST(copy_primary_operation, misc);
     FRIEND_TEST(copy_replica_operation, get_all_partitions);
@@ -283,10 +288,11 @@ public:
     copy_primary_operation(const std::shared_ptr<app_state> app,
                            const app_mapper &apps,
                            node_mapper &nodes,
-                           const std::vector<dsn::rpc_address> &address_vec,
-                           const std::unordered_map<dsn::rpc_address, int> &address_id,
+                           const std::vector<dsn::host_port> &address_vec,
+                           const std::unordered_map<dsn::host_port, int> &address_id,
                            bool have_lower_than_average,
-                           int replicas_low);
+                           int replicas_low,
+                           const std::shared_ptr<dns_resolver> &resolver);
     ~copy_primary_operation() = default;
 
 private:

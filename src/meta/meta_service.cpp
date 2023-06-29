@@ -229,7 +229,7 @@ error_code meta_service::remote_storage_initialize()
 }
 
 // visited in protection of failure_detector::_lock
-void meta_service::set_node_state(const std::vector<rpc_address> &nodes, bool is_alive)
+void meta_service::set_node_state(const std::vector<host_port> &nodes, bool is_alive)
 {
     for (auto &node : nodes) {
         if (is_alive) {
@@ -248,16 +248,16 @@ void meta_service::set_node_state(const std::vector<rpc_address> &nodes, bool is
     if (!_started) {
         return;
     }
-    for (const rpc_address &address : nodes) {
+    for (const auto &hp : nodes) {
         tasking::enqueue(
             LPC_META_STATE_HIGH,
             nullptr,
-            std::bind(&server_state::on_change_node_state, _state.get(), address, is_alive),
+            std::bind(&server_state::on_change_node_state, _state.get(), hp, is_alive),
             server_state::sStateHash);
     }
 }
 
-void meta_service::get_node_state(/*out*/ std::map<rpc_address, bool> &all_nodes)
+void meta_service::get_node_state(/*out*/ std::map<host_port, bool> &all_nodes)
 {
     zauto_lock l(_failure_detector->_lock);
     for (auto &node : _alive_set)
@@ -328,11 +328,10 @@ void meta_service::start_service()
 
     _alive_nodes_count->set(_alive_set.size());
 
-    for (const dsn::rpc_address &node : _alive_set) {
+    for (const auto &node : _alive_set) {
         // sync alive set and the failure_detector
-        // TODO(liguohao): change _alive_set type
-        _failure_detector->unregister_worker(host_port(node));
-        _failure_detector->register_worker(host_port(node), true);
+        _failure_detector->unregister_worker(node);
+        _failure_detector->register_worker(node, true);
     }
 
     _ranger_resource_policy_manager =
@@ -341,13 +340,13 @@ void meta_service::start_service()
     _access_controller = security::create_meta_access_controller(_ranger_resource_policy_manager);
 
     _started = true;
-    for (const dsn::rpc_address &node : _alive_set) {
+    for (const auto &node : _alive_set) {
         tasking::enqueue(LPC_META_STATE_HIGH,
                          nullptr,
                          std::bind(&server_state::on_change_node_state, _state.get(), node, true),
                          server_state::sStateHash);
     }
-    for (const dsn::rpc_address &node : _dead_set) {
+    for (const auto &node : _dead_set) {
         tasking::enqueue(LPC_META_STATE_HIGH,
                          nullptr,
                          std::bind(&server_state::on_change_node_state, _state.get(), node, false),
@@ -561,12 +560,10 @@ void meta_service::register_rpc_handlers()
 }
 
 meta_leader_state meta_service::check_leader(dsn::message_ex *req,
-                                             dsn::rpc_address *forward_address)
+                                             dsn::host_port *forward_address)
 {
-    // TODO(liguohao): change forward_address to forward_address
-    host_port hp;
-    if (!_failure_detector->get_leader(&hp)) {
-        auto leader = _dns_resolver->resolve_address(hp);
+    host_port leader;
+    if (!_failure_detector->get_leader(&leader)) {
         if (!req->header->context.u.is_forward_supported) {
             if (forward_address != nullptr)
                 *forward_address = leader;
@@ -575,11 +572,11 @@ meta_leader_state meta_service::check_leader(dsn::message_ex *req,
 
         LOG_DEBUG("leader address: {}", leader);
         if (!leader.is_invalid()) {
-            dsn_rpc_forward(req, leader);
+            dsn_rpc_forward(req, _dns_resolver->resolve_address(leader));
             return meta_leader_state::kNotLeaderAndCanForwardRpc;
         } else {
             if (forward_address != nullptr)
-                forward_address->set_invalid();
+                forward_address->reset();
             return meta_leader_state::kNotLeaderAndCannotForwardRpc;
         }
     }
@@ -692,7 +689,8 @@ void meta_service::on_list_nodes(configuration_list_nodes_rpc rpc)
         if (request.status == node_status::NS_INVALID || request.status == node_status::NS_ALIVE) {
             info.status = node_status::NS_ALIVE;
             for (auto &node : _alive_set) {
-                info.address = node;
+                info.address = _dns_resolver->resolve_address(node);
+                info.__set_hp_address(node);
                 response.infos.push_back(info);
             }
         }
@@ -700,7 +698,8 @@ void meta_service::on_list_nodes(configuration_list_nodes_rpc rpc)
             request.status == node_status::NS_UNALIVE) {
             info.status = node_status::NS_UNALIVE;
             for (auto &node : _dead_set) {
-                info.address = node;
+                info.address = _dns_resolver->resolve_address(node);
+                info.__set_hp_address(node);
                 response.infos.push_back(info);
             }
         }
@@ -752,11 +751,12 @@ void meta_service::on_query_cluster_info(configuration_cluster_info_rpc rpc)
 void meta_service::on_query_configuration_by_index(configuration_query_by_index_rpc rpc)
 {
     query_cfg_response &response = rpc.response();
-    rpc_address forward_address;
-    if (!check_status_and_authz(rpc, &forward_address)) {
-        if (!forward_address.is_invalid()) {
+    host_port forward_hp;
+    if (!check_status_and_authz(rpc, &forward_hp)) {
+        if (!forward_hp.is_invalid()) {
             partition_configuration config;
-            config.primary = forward_address;
+            config.primary = _dns_resolver->resolve_address(forward_hp);
+            config.__set_hp_primary(forward_hp);
             response.partitions.push_back(std::move(config));
         }
         return;

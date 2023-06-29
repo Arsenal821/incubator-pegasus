@@ -22,17 +22,17 @@
 #include "client/replication_ddl_client.h"
 #include "command_executor.h"
 #include "meta_admin_types.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/rpc/rpc_host_port.h"
 #include "utils/error_code.h"
 
 bool validate_ip(shell_context *sc,
                  const std::string &ip_str,
-                 dsn::rpc_address &target_address,
+                 dsn::host_port &target_hp,
                  std::string &err_info)
 {
-    if (!target_address.from_string_ipv4(ip_str.c_str())) {
-        err_info = fmt::format("invalid ip:port={}, can't transform it into rpc_address", ip_str);
+    if (!target_hp.from_string(ip_str)) {
+        err_info = fmt::format("invalid ip:port={}, can't transform it into host_port", ip_str);
         return false;
     }
 
@@ -44,7 +44,7 @@ bool validate_ip(shell_context *sc,
     }
 
     for (const auto &node : nodes) {
-        if (dsn::host_port(target_address) == node.first) {
+        if (target_hp == node.first) {
             return true;
         }
     }

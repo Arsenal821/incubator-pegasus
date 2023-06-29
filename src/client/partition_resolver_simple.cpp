@@ -413,13 +413,17 @@ void partition_resolver_simple::handle_pending_requests(std::deque<request_conte
 /*search in cache*/
 host_port partition_resolver_simple::get_host_port(const partition_configuration &config) const
 {
+    auto pc = config;
+    FILL_HP_OPTIONAL_SECTION(pc, primary);
+    FILL_HP_LIST_OPTIONAL_SECTION(pc, last_drops);
+
     if (_app_is_stateful) {
-        return host_port(config.primary);
+        return pc.hp_primary;
     } else {
-        if (config.last_drops.size() == 0) {
+        if (pc.last_drops.size() == 0) {
             return host_port();
         } else {
-            return host_port(config.last_drops[rand::next_u32(0, config.last_drops.size() - 1)]);
+            return pc.hp_last_drops[rand::next_u32(0, pc.last_drops.size() - 1)];
         }
     }
 }

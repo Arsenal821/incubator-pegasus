@@ -182,7 +182,7 @@ bool redis_parser::eat(char c)
         --_total_length;
         return true;
     } else {
-        LOG_ERROR("{}: expect token: {}, got {}", _remote_address.to_string(), c, peek());
+        LOG_ERROR("{}: expect token: {}, got {}", _remote_host_port.to_string(), c, peek());
         return false;
     }
 }
@@ -209,12 +209,12 @@ bool redis_parser::end_array_size()
     int32_t count = 0;
     if (dsn_unlikely(!dsn::buf2int32(dsn::string_view(_current_size), count))) {
         LOG_ERROR(
-            "{}: invalid size string \"{}\"", _remote_address.to_string(), _current_size.c_str());
+            "{}: invalid size string \"{}\"", _remote_host_port.to_string(), _current_size.c_str());
         return false;
     }
     if (dsn_unlikely(count <= 0)) {
         LOG_ERROR("{}: array size should be positive in redis request, but got {}",
-                  _remote_address.to_string(),
+                  _remote_host_port.to_string(),
                   count);
         return false;
     }
@@ -248,7 +248,7 @@ bool redis_parser::end_bulk_string_size()
     if (dsn_unlikely(!dsn::buf2int32(
             dsn::string_view(_current_size.c_str(), _current_size.length()), length))) {
         LOG_ERROR(
-            "{}: invalid size string \"{}\"", _remote_address.to_string(), _current_size.c_str());
+            "{}: invalid size string \"{}\"", _remote_host_port.to_string(), _current_size.c_str());
         return false;
     }
 
@@ -267,7 +267,7 @@ bool redis_parser::end_bulk_string_size()
     }
 
     LOG_ERROR(
-        "{}: invalid bulk string length: {}", _remote_address.to_string(), _current_str.length);
+        "{}: invalid bulk string length: {}", _remote_host_port.to_string(), _current_str.length);
     return false;
 }
 
@@ -919,7 +919,7 @@ void redis_parser::counter_internal(message_entry &entry)
     if (dsn::utils::iequals(command, "INCR") || dsn::utils::iequals(command, "DECR")) {
         if (entry.request.sub_requests.size() != 2) {
             LOG_WARNING("{}: command {} seqid({}) with invalid arguments count: {}",
-                        _remote_address,
+                        _remote_host_port,
                         command,
                         entry.sequence_id,
                         entry.request.sub_requests.size());
@@ -929,7 +929,7 @@ void redis_parser::counter_internal(message_entry &entry)
     } else if (dsn::utils::iequals(command, "INCRBY") || dsn::utils::iequals(command, "DECRBY")) {
         if (entry.request.sub_requests.size() != 3) {
             LOG_WARNING("{}: command {} seqid({}) with invalid arguments count: {}",
-                        _remote_address,
+                        _remote_host_port,
                         command,
                         entry.sequence_id,
                         entry.request.sub_requests.size());
@@ -938,7 +938,7 @@ void redis_parser::counter_internal(message_entry &entry)
         }
         if (!dsn::buf2int64(entry.request.sub_requests[2].data, increment)) {
             LOG_WARNING("{}: command {} seqid({}) with invalid 'increment': {}",
-                        _remote_address,
+                        _remote_host_port,
                         command,
                         entry.sequence_id,
                         entry.request.sub_requests[2].data.to_string());
@@ -958,7 +958,7 @@ void redis_parser::counter_internal(message_entry &entry)
         ::dsn::error_code ec, dsn::message_ex *, dsn::message_ex *response) {
         if (_is_session_reset.load(std::memory_order_acquire)) {
             LOG_WARNING("{}: command {} seqid({}) got reply, but session has reset",
-                        _remote_address,
+                        _remote_host_port,
                         command,
                         entry.sequence_id);
             return;
@@ -966,7 +966,7 @@ void redis_parser::counter_internal(message_entry &entry)
 
         if (::dsn::ERR_OK != ec) {
             LOG_WARNING("{}: command {} seqid({}) got reply with error = {}",
-                        _remote_address,
+                        _remote_host_port,
                         command,
                         entry.sequence_id,
                         ec);

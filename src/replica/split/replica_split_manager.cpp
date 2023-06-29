@@ -38,6 +38,7 @@
 #include "replica/replication_app_base.h"
 #include "runtime/api_layer1.h"
 #include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/rpc/rpc_holder.h"
 #include "runtime/task/async_calls.h"
 #include "runtime/task/task.h"
@@ -118,7 +119,7 @@ void replica_split_manager::parent_start_split(
                      tracker(),
                      std::bind(&replica_stub::create_child_replica,
                                _stub,
-                               _replica->_config.primary,
+                               _replica->_config.hp_primary,
                                _replica->_app_info,
                                _child_init_ballot,
                                _child_gpid,
@@ -129,7 +130,7 @@ void replica_split_manager::parent_start_split(
 
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica_split_manager::child_init_replica(gpid parent_gpid,
-                                               rpc_address primary_address,
+                                               host_port primary_address,
                                                ballot init_ballot) // on child partition
 {
     FAIL_POINT_INJECT_F("replica_child_init_replica", [](dsn::string_view) {});
@@ -145,7 +146,8 @@ void replica_split_manager::child_init_replica(gpid parent_gpid,
 
     // update replica config
     _replica->_config.ballot = init_ballot;
-    _replica->_config.primary = primary_address;
+    _replica->_config.primary = _stub->get_dns_resolver()->resolve_address(primary_address);
+    _replica->_config.__set_hp_primary(primary_address);
     _replica->_config.status = partition_status::PS_PARTITION_SPLIT;
 
     // initialize split context
@@ -578,7 +580,8 @@ void replica_split_manager::child_notify_catch_up() // on child partition
     request->parent_gpid = _replica->_split_states.parent_gpid;
     request->child_gpid = get_gpid();
     request->child_ballot = get_ballot();
-    request->child_address = _stub->_primary_address;
+    request->child_address = _stub->primary_address();
+    request->__set_hp_child_address(_stub->_primary_host_port);
 
     LOG_INFO_PREFIX("send notification to primary parent[{}@{}], ballot={}",
                     _replica->_split_states.parent_gpid,
@@ -650,11 +653,11 @@ void replica_split_manager::parent_handle_child_catch_up(
                     request.child_address.to_string(),
                     request.child_ballot);
 
-    _replica->_primary_states.caught_up_children.insert(request.child_address);
+    _replica->_primary_states.caught_up_children.insert(request.hp_child_address);
     // _primary_states.statuses is a map structure: rpc address -> partition_status
     // it stores replica's rpc address and partition_status of this replica group
     for (auto &iter : _replica->_primary_states.statuses) {
-        if (_replica->_primary_states.caught_up_children.find(_replica->get_dns_resolver()->resolve_address(iter.first)) ==
+        if (_replica->_primary_states.caught_up_children.find(iter.first) ==
             _replica->_primary_states.caught_up_children.end()) {
             // there are child partitions not caught up its parent
             return;
@@ -738,36 +741,38 @@ void replica_split_manager::update_child_group_partition_count(
         return;
     }
 
-    auto not_replied_addresses = std::make_shared<std::unordered_set<rpc_address>>();
+    auto not_replied_addresses = std::make_shared<std::unordered_set<host_port>>();
     // _primary_states.statuses is a map structure: rpc address -> partition_status
     for (const auto &kv : _replica->_primary_states.statuses) {
-        not_replied_addresses->insert(_replica->get_dns_resolver()->resolve_address(kv.first));
+        not_replied_addresses->insert(kv.first);
     }
     for (const auto &iter : _replica->_primary_states.statuses) {
         parent_send_update_partition_count_request(
-            _replica->get_dns_resolver()->resolve_address(iter.first), new_partition_count, not_replied_addresses);
+            iter.first, new_partition_count, not_replied_addresses);
     }
 }
 
 // ThreadPool: THREAD_POOL_REPLICATION
 void replica_split_manager::parent_send_update_partition_count_request(
-    const rpc_address &address,
+    const host_port &hp,
     int32_t new_partition_count,
-    std::shared_ptr<std::unordered_set<rpc_address>> &not_replied_addresses) // on primary parent
+    std::shared_ptr<std::unordered_set<host_port>> &not_replied_addresses) // on primary parent
 {
     FAIL_POINT_INJECT_F("replica_parent_update_partition_count_request", [](dsn::string_view) {});
 
     CHECK_EQ_PREFIX(status(), partition_status::PS_PRIMARY);
 
+    auto address = _replica->get_dns_resolver()->resolve_address(hp);
     auto request = std::make_unique<update_child_group_partition_count_request>();
     request->new_partition_count = new_partition_count;
     request->target_address = address;
+    request->__set_hp_target_address(hp);
     request->child_pid = _child_gpid;
     request->ballot = get_ballot();
 
     LOG_INFO_PREFIX(
         "send update child group partition count request to node({}), new partition_count = {}",
-        address.to_string(),
+        hp.to_string(),
         new_partition_count);
     update_child_group_partition_count_rpc rpc(std::move(request),
                                                RPC_SPLIT_UPDATE_CHILD_PARTITION_COUNT,
@@ -840,7 +845,7 @@ void replica_split_manager::on_update_child_group_partition_count_reply(
     error_code ec,
     const update_child_group_partition_count_request &request,
     const update_child_group_partition_count_response &response,
-    std::shared_ptr<std::unordered_set<rpc_address>> &not_replied_addresses) // on primary parent
+    std::shared_ptr<std::unordered_set<host_port>> &not_replied_addresses) // on primary parent
 {
     _replica->_checker.only_one_thread_access();
 
@@ -874,7 +879,7 @@ void replica_split_manager::on_update_child_group_partition_count_reply(
             tracker(),
             std::bind(&replica_split_manager::parent_send_update_partition_count_request,
                       this,
-                      request.target_address,
+                      request.hp_target_address,
                       request.new_partition_count,
                       not_replied_addresses),
             get_gpid().thread_hash(),
@@ -897,7 +902,7 @@ void replica_split_manager::on_update_child_group_partition_count_reply(
                     request.new_partition_count);
 
     // update group partition_count succeed
-    not_replied_addresses->erase(request.target_address);
+    not_replied_addresses->erase(request.hp_target_address);
     if (not_replied_addresses->empty()) {
         LOG_INFO_PREFIX("update child({}) group partition_count, new_partition_count = {}",
                         request.child_pid,
@@ -946,7 +951,8 @@ void replica_split_manager::register_child_on_meta(ballot b) // on primary paren
     request.app = _replica->_app_info;
     request.child_config = child_config;
     request.parent_config = _replica->_primary_states.membership;
-    request.primary_address = _stub->_primary_address;
+    request.primary_address = _stub->primary_address();
+    request.__set_hp_primary_address(_stub->_primary_host_port);
 
     // reject client request
     _replica->update_local_configuration_with_no_ballot_change(partition_status::PS_INACTIVE);
@@ -1444,11 +1450,11 @@ void replica_split_manager::primary_parent_handle_stop_split(
         return;
     }
 
-    _replica->_primary_states.split_stopped_secondary.insert(req->node);
+    _replica->_primary_states.split_stopped_secondary.insert(req->hp_node);
     auto count = 0;
     for (auto &iter : _replica->_primary_states.statuses) {
         if (iter.second == partition_status::PS_SECONDARY &&
-            _replica->_primary_states.split_stopped_secondary.find(_replica->get_dns_resolver()->resolve_address(iter.first)) !=
+            _replica->_primary_states.split_stopped_secondary.find(iter.first) !=
                 _replica->_primary_states.split_stopped_secondary.end()) {
             ++count;
         }

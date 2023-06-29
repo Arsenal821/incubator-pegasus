@@ -149,7 +149,7 @@ void nfs_client_impl::begin_remote_copy(std::shared_ptr<remote_copy_request> &rc
                                 end_get_file_size(err, std::move(resp), req);
                             },
                             std::chrono::milliseconds(FLAGS_rpc_timeout_ms),
-                            req->file_size_req.source);
+                            _dns_resolver->resolve_address(req->file_size_req.hp_source));
 }
 
 void nfs_client_impl::end_get_file_size(::dsn::error_code err,
@@ -300,7 +300,7 @@ void nfs_client_impl::continue_copy()
                 copy_req.is_last = req->is_last;
                 copy_req.__set_source_disk_tag(ureq->file_size_req.source_disk_tag);
                 copy_req.__set_pid(ureq->file_size_req.pid);
-                copy_req.__set_hp_source(ureq->file_size_req.__isset.hp_source ? ureq->file_size_req.hp_source : host_port(ureq->file_size_req.source));
+                copy_req.__set_hp_source(ureq->file_size_req.hp_source);
                 req->remote_copy_task =
                     async_nfs_copy(copy_req,
                                    [=](error_code err, copy_response &&resp) {
@@ -314,7 +314,7 @@ void nfs_client_impl::continue_copy()
                                        }
                                    },
                                    std::chrono::milliseconds(FLAGS_rpc_timeout_ms),
-                                   req->file_ctx->user_req->file_size_req.source);
+                                   _dns_resolver->resolve_address(req->file_ctx->user_req->file_size_req.hp_source));
             } else {
                 --ureq->concurrent_copy_count;
                 --_concurrent_copy_request_count;
@@ -347,12 +347,7 @@ void nfs_client_impl::end_copy(::dsn::error_code err,
         _recent_copy_fail_count->increment();
 
         if (!fc->user_req->is_finished) {
-            host_port hp;
-            if (fc->user_req->file_size_req.__isset.hp_source) {
-                hp = fc->user_req->file_size_req.hp_source;
-            } else {
-                hp = host_port(fc->user_req->file_size_req.source);
-            }
+            host_port hp = fc->user_req->file_size_req.hp_source;
             if (reqc->retry_count > 0) {
                 LOG_WARNING("[nfs_service] remote copy failed, source = {}({}), dir = {}, file = {}, "
                             "err = {}, retry_count = {}",

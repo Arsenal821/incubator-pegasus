@@ -406,7 +406,7 @@ pegasus_server_impl::pegasus_server_impl(dsn::replication::replica *r)
       _manual_compact_svc(this),
       _partition_version(0)
 {
-    _primary_address = dsn::rpc_address(dsn_primary_address()).to_string();
+    _primary_address = dsn_primary_host_port().to_string();
     _gpid = get_gpid();
 
     _read_hotkey_collector =

@@ -128,7 +128,7 @@ TEST(cluster_balance_policy, get_app_migration_info)
     app->partitions[0].primary = address;
 
     node_state ns;
-    ns.set_addr(address);
+    ns.set_hp(host_port((address));
     ns.put_partition(gpid(appid, 0), true);
     node_mapper nodes;
     nodes[address] = ns;
@@ -183,7 +183,7 @@ TEST(cluster_balance_policy, get_node_migration_info)
     all_apps[appid] = app;
 
     node_state ns;
-    ns.set_addr(address);
+    ns.set_hp(host_port((address));
     gpid pid = gpid(appid, 0);
     ns.put_partition(pid, true);
 

@@ -39,7 +39,6 @@
 #include "common/replication_enums.h"
 #include "meta_data.h"
 #include "runtime/api_layer1.h"
-#include "runtime/rpc/rpc_address.h"
 #include "runtime/rpc/rpc_message.h"
 #include "utils/flags.h"
 #include "utils/fmt_logging.h"
@@ -101,7 +100,7 @@ void when_update_replicas(config_type::type t, const std::function<void(bool)> &
     }
 }
 
-void maintain_drops(std::vector<rpc_address> &drops, const rpc_address &node, config_type::type t)
+void maintain_drops(std::vector<host_port> &drops, const host_port &node, config_type::type t)
 {
     auto action = [&drops, &node](bool is_adding) {
         auto it = std::find(drops.begin(), drops.end(), node);
@@ -121,7 +120,7 @@ void maintain_drops(std::vector<rpc_address> &drops, const rpc_address &node, co
     when_update_replicas(t, action);
 }
 
-bool construct_replica(meta_view view, const gpid &pid, int max_replica_count)
+bool construct_replica(meta_view view, const gpid &pid, int max_replica_count, const std::shared_ptr<dns_resolver> &resolver)
 {
     partition_configuration &pc = *get_config(*view.apps, pid);
     config_context &cc = *get_config_context(*view.apps, pid);
@@ -141,7 +140,8 @@ bool construct_replica(meta_view view, const gpid &pid, int max_replica_count)
                  invalid_ballot,
                  "the ballot of server must not be invalid_ballot, node = {}",
                  server.node);
-    pc.primary = server.node;
+    pc.primary = resolver->resolve_address(server.node);
+    pc.__set_hp_primary(server.node);
     pc.ballot = server.ballot;
     pc.partition_flags = 0;
     pc.max_replica_count = max_replica_count;
@@ -164,7 +164,8 @@ bool construct_replica(meta_view view, const gpid &pid, int max_replica_count)
         if (pc.last_drops.size() + 1 >= max_replica_count)
             break;
         // similar to cc.drop_list, pc.last_drop is also a stack structure
-        pc.last_drops.insert(pc.last_drops.begin(), iter->node);
+        pc.last_drops.insert(pc.last_drops.begin(), resolver->resolve_address(iter->node));
+        pc.hp_last_drops.insert(pc.hp_last_drops.begin(), iter->node);
         LOG_INFO("construct for ({}), select {} into last_drops, ballot({}), "
                  "committed_decree({}), prepare_decree({})",
                  pid,
@@ -178,7 +179,7 @@ bool construct_replica(meta_view view, const gpid &pid, int max_replica_count)
     return true;
 }
 
-bool collect_replica(meta_view view, const rpc_address &node, const replica_info &info)
+bool collect_replica(meta_view view, const host_port &node, const replica_info &info)
 {
     partition_configuration &pc = *get_config(*view.apps, info.pid);
     // current partition is during partition split
@@ -212,12 +213,12 @@ void proposal_actions::reset_tracked_current_learner()
     current_learner.last_prepared_decree = invalid_decree;
 }
 
-void proposal_actions::track_current_learner(const dsn::rpc_address &node, const replica_info &info)
+void proposal_actions::track_current_learner(const dsn::host_port &node, const replica_info &info)
 {
     if (empty())
         return;
     configuration_proposal_action &act = acts.front();
-    if (act.node != node)
+    if (act.hp_node != node)
         return;
 
     // currently we only handle add secondary
@@ -335,7 +336,7 @@ void config_context::check_size()
     }
 }
 
-std::vector<dropped_replica>::iterator config_context::find_from_dropped(const rpc_address &node)
+std::vector<dropped_replica>::iterator config_context::find_from_dropped(const host_port &node)
 {
     return std::find_if(dropped.begin(), dropped.end(), [&node](const dropped_replica &r) {
         return r.node == node;
@@ -343,14 +344,14 @@ std::vector<dropped_replica>::iterator config_context::find_from_dropped(const r
 }
 
 std::vector<dropped_replica>::const_iterator
-config_context::find_from_dropped(const rpc_address &node) const
+config_context::find_from_dropped(const host_port &node) const
 {
     return std::find_if(dropped.begin(), dropped.end(), [&node](const dropped_replica &r) {
         return r.node == node;
     });
 }
 
-bool config_context::remove_from_dropped(const rpc_address &node)
+bool config_context::remove_from_dropped(const host_port &node)
 {
     auto iter = find_from_dropped(node);
     if (iter != dropped.end()) {
@@ -361,7 +362,7 @@ bool config_context::remove_from_dropped(const rpc_address &node)
     return false;
 }
 
-bool config_context::record_drop_history(const rpc_address &node)
+bool config_context::record_drop_history(const host_port &node)
 {
     auto iter = find_from_dropped(node);
     if (iter != dropped.end())
@@ -373,7 +374,7 @@ bool config_context::record_drop_history(const rpc_address &node)
     return true;
 }
 
-int config_context::collect_drop_replica(const rpc_address &node, const replica_info &info)
+int config_context::collect_drop_replica(const host_port &node, const replica_info &info)
 {
     bool in_dropped = false;
     auto iter = find_from_dropped(node);
@@ -434,7 +435,7 @@ bool config_context::check_order()
     return true;
 }
 
-std::vector<serving_replica>::iterator config_context::find_from_serving(const rpc_address &node)
+std::vector<serving_replica>::iterator config_context::find_from_serving(const host_port &node)
 {
     return std::find_if(serving.begin(), serving.end(), [&node](const serving_replica &r) {
         return r.node == node;
@@ -442,14 +443,14 @@ std::vector<serving_replica>::iterator config_context::find_from_serving(const r
 }
 
 std::vector<serving_replica>::const_iterator
-config_context::find_from_serving(const rpc_address &node) const
+config_context::find_from_serving(const host_port &node) const
 {
     return std::find_if(serving.begin(), serving.end(), [&node](const serving_replica &r) {
         return r.node == node;
     });
 }
 
-bool config_context::remove_from_serving(const rpc_address &node)
+bool config_context::remove_from_serving(const host_port &node)
 {
     auto iter = find_from_serving(node);
     if (iter != serving.end()) {
@@ -459,7 +460,7 @@ bool config_context::remove_from_serving(const rpc_address &node)
     return false;
 }
 
-void config_context::collect_serving_replica(const rpc_address &node, const replica_info &info)
+void config_context::collect_serving_replica(const host_port &node, const replica_info &info)
 {
     auto iter = find_from_serving(node);
     auto compact_status = info.__isset.manual_compact_status ? info.manual_compact_status
@@ -473,12 +474,12 @@ void config_context::collect_serving_replica(const rpc_address &node, const repl
     }
 }
 
-void config_context::adjust_proposal(const rpc_address &node, const replica_info &info)
+void config_context::adjust_proposal(const host_port &node, const replica_info &info)
 {
     lb_actions.track_current_learner(node, info);
 }
 
-bool config_context::get_disk_tag(const rpc_address &node, /*out*/ std::string &disk_tag) const
+bool config_context::get_disk_tag(const host_port &node, /*out*/ std::string &disk_tag) const
 {
     auto iter = find_from_serving(node);
     if (iter == serving.end()) {

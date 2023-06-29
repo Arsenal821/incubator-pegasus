@@ -41,7 +41,7 @@
 #include "meta_admin_types.h"
 #include "pegasus_utils.h"
 #include "perf_counter/perf_counter_utils.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "shell/command_executor.h"
 #include "shell/command_helper.h"
 #include "shell/command_utils.h"
@@ -270,8 +270,8 @@ bool app_disk(command_executor *e, shell_context *sc, arguments args)
         {fmt::format("replica*app.pegasus*disk.storage.sst(MB)@{}.", app_id),
          fmt::format("replica*app.pegasus*disk.storage.sst.count@{}.", app_id)});
 
-    std::map<dsn::rpc_address, std::map<int32_t, double>> disk_map;
-    std::map<dsn::rpc_address, std::map<int32_t, double>> count_map;
+    std::map<dsn::host_port, std::map<int32_t, double>> disk_map;
+    std::map<dsn::host_port, std::map<int32_t, double>> count_map;
     for (int i = 0; i < nodes.size(); ++i) {
         if (!results[i].first) {
             std::cout << "ERROR: query perf counter from node " << nodes[i].hp.to_string()
@@ -298,9 +298,9 @@ bool app_disk(command_executor *e, shell_context *sc, arguments args)
                 m.name, app_id_x, partition_index_x, counter_name);
             CHECK(parse_ret, "name = {}", m.name);
             if (m.name.find("sst(MB)") != std::string::npos) {
-                disk_map[sc->resolver->resolve_address(nodes[i].hp)][partition_index_x] = m.value;
+                disk_map[nodes[i].hp][partition_index_x] = m.value;
             } else if (m.name.find("sst.count") != std::string::npos) {
-                count_map[sc->resolver->resolve_address(nodes[i].hp)][partition_index_x] = m.value;
+                count_map[nodes[i].hp][partition_index_x] = m.value;
             }
         }
     }
@@ -326,10 +326,10 @@ bool app_disk(command_executor *e, shell_context *sc, arguments args)
     for (int i = 0; i < partitions.size(); i++) {
         const dsn::partition_configuration &p = partitions[i];
         int replica_count = 0;
-        if (!p.primary.is_invalid()) {
+        if (!p.hp_primary.is_invalid()) {
             replica_count++;
         }
-        replica_count += p.secondaries.size();
+        replica_count += p.hp_secondaries.size();
         std::string replica_count_str;
         {
             std::stringstream oss;
@@ -337,10 +337,10 @@ bool app_disk(command_executor *e, shell_context *sc, arguments args)
             replica_count_str = oss.str();
         }
         std::string primary_str("-");
-        if (!p.primary.is_invalid()) {
+        if (!p.hp_primary.is_invalid()) {
             bool disk_found = false;
             double disk_value = 0;
-            auto f1 = disk_map.find(p.primary);
+            auto f1 = disk_map.find(p.hp_primary);
             if (f1 != disk_map.end()) {
                 auto &sub_map = f1->second;
                 auto f2 = sub_map.find(p.pid.get_partition_index());
@@ -355,7 +355,7 @@ bool app_disk(command_executor *e, shell_context *sc, arguments args)
             }
             bool count_found = false;
             double count_value = 0;
-            auto f3 = count_map.find(p.primary);
+            auto f3 = count_map.find(p.hp_primary);
             if (f3 != count_map.end()) {
                 auto &sub_map = f3->second;
                 auto f3 = sub_map.find(p.pid.get_partition_index());
@@ -366,11 +366,11 @@ bool app_disk(command_executor *e, shell_context *sc, arguments args)
             }
             std::stringstream oss;
             std::string hostname;
-            std::string ip = p.primary.to_string();
+            std::string ip = p.hp_primary.to_string();
             if (resolve_ip && dsn::utils::hostname_from_ip_port(ip.c_str(), &hostname)) {
                 oss << hostname << "(";
             } else {
-                oss << p.primary.to_string() << "(";
+                oss << p.hp_primary.to_string() << "(";
             };
             if (disk_found)
                 oss << disk_value;
@@ -388,12 +388,12 @@ bool app_disk(command_executor *e, shell_context *sc, arguments args)
         {
             std::stringstream oss;
             oss << "[";
-            for (int j = 0; j < p.secondaries.size(); j++) {
+            for (int j = 0; j < p.hp_secondaries.size(); j++) {
                 if (j != 0)
                     oss << ",";
                 bool found = false;
                 double value = 0;
-                auto f1 = disk_map.find(p.secondaries[j]);
+                auto f1 = disk_map.find(p.hp_secondaries[j]);
                 if (f1 != disk_map.end()) {
                     auto &sub_map = f1->second;
                     auto f2 = sub_map.find(p.pid.get_partition_index());
@@ -406,7 +406,7 @@ bool app_disk(command_executor *e, shell_context *sc, arguments args)
                 }
                 bool count_found = false;
                 double count_value = 0;
-                auto f3 = count_map.find(p.secondaries[j]);
+                auto f3 = count_map.find(p.hp_secondaries[j]);
                 if (f3 != count_map.end()) {
                     auto &sub_map = f3->second;
                     auto f3 = sub_map.find(p.pid.get_partition_index());
@@ -417,11 +417,11 @@ bool app_disk(command_executor *e, shell_context *sc, arguments args)
                 }
 
                 std::string hostname;
-                std::string ip = p.secondaries[j].to_string();
+                std::string ip = p.hp_secondaries[j].to_string();
                 if (resolve_ip && dsn::utils::hostname_from_ip_port(ip.c_str(), &hostname)) {
                     oss << hostname << "(";
                 } else {
-                    oss << p.secondaries[j].to_string() << "(";
+                    oss << p.hp_secondaries[j].to_string() << "(";
                 };
                 if (found)
                     oss << value;

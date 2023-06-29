@@ -129,7 +129,7 @@ bool app_balance_policy::copy_secondary(const std::shared_ptr<app_state> &app, b
     int replicas_low = app->partition_count / _alive_nodes;
 
     std::unique_ptr<copy_replica_operation> operation = std::make_unique<copy_secondary_operation>(
-        app, apps, nodes, address_vec, address_id, replicas_low);
+        app, apps, nodes, address_vec, address_id, _svc->get_dns_resolver(), replicas_low);
     return operation->start(_migration_result);
 }
 
@@ -137,10 +137,11 @@ copy_secondary_operation::copy_secondary_operation(
     const std::shared_ptr<app_state> app,
     const app_mapper &apps,
     node_mapper &nodes,
-    const std::vector<dsn::rpc_address> &address_vec,
-    const std::unordered_map<dsn::rpc_address, int> &address_id,
+    const std::vector<dsn::host_port> &address_vec,
+    const std::unordered_map<dsn::host_port, int> &address_id,
+    const std::shared_ptr<dns_resolver> &resolver,
     int replicas_low)
-    : copy_replica_operation(app, apps, nodes, address_vec, address_id), _replicas_low(replicas_low)
+    : copy_replica_operation(app, apps, nodes, address_vec, address_id, resolver), _replicas_low(replicas_low)
 {
 }
 
@@ -164,7 +165,7 @@ int copy_secondary_operation::get_partition_count(const node_state &ns) const
 bool copy_secondary_operation::can_select(gpid pid, migration_list *result)
 {
     int id_max = *_ordered_address_ids.rbegin();
-    const node_state &max_ns = _nodes.at(_address_vec[id_max]);
+    const node_state &max_ns = _nodes.at(host_port(_address_vec[id_max]));
     if (max_ns.served_as(pid) == partition_status::PS_PRIMARY) {
         LOG_DEBUG("{}: skip gpid({}.{}) coz it is primary",
                   _app->get_logname(),
@@ -183,7 +184,7 @@ bool copy_secondary_operation::can_select(gpid pid, migration_list *result)
     }
 
     int id_min = *_ordered_address_ids.begin();
-    const node_state &min_ns = _nodes.at(_address_vec[id_min]);
+    const node_state &min_ns = _nodes.at(host_port(_address_vec[id_min]));
     if (min_ns.served_as(pid) != partition_status::PS_INACTIVE) {
         LOG_DEBUG("{}: skip gpid({}.{}) coz it is already a member on the target node",
                   _app->get_logname(),

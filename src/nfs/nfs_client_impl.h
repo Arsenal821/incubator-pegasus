@@ -43,7 +43,6 @@
 #include "nfs_types.h"
 #include "perf_counter/perf_counter_wrapper.h"
 #include "runtime/rpc/dns_resolver.h"
-#include "runtime/rpc/rpc_address.h"
 #include "runtime/rpc/rpc_host_port.h"
 #include "runtime/task/async_calls.h"
 #include "runtime/task/task.h"

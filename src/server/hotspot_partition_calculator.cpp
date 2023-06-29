@@ -219,20 +219,20 @@ void hotspot_partition_calculator::send_detect_hotkey_request(
     std::vector<dsn::partition_configuration> partitions;
     _shell_context->ddl_client->list_app(app_name, app_id, partition_count, partitions);
 
-    auto target_address = partitions[partition_index].primary;
+    auto target_hp = partitions[partition_index].hp_primary;
     dsn::replication::detect_hotkey_response resp;
     dsn::replication::detect_hotkey_request req;
     req.type = hotkey_type;
     req.action = action;
     req.pid = dsn::gpid(app_id, partition_index);
-    auto error = _shell_context->ddl_client->detect_hotkey(target_address, req, resp);
+    auto error = _shell_context->ddl_client->detect_hotkey(target_hp, req, resp);
 
     LOG_INFO("{} {} hotkey detection in {}.{}, server address: {}",
              (action == dsn::replication::detect_action::STOP) ? "Stop" : "Start",
              (hotkey_type == dsn::replication::hotkey_type::WRITE) ? "write" : "read",
              app_name,
              partition_index,
-             target_address.to_string());
+             target_hp.to_string());
 
     if (error != dsn::ERR_OK) {
         LOG_ERROR("Hotkey detect rpc sending failed, in {}.{}, error_hint:{}",

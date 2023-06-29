@@ -574,8 +574,8 @@ void replica_stub::initialize(bool clear /* = false*/)
 
 void replica_stub::initialize(const replication_options &opts, bool clear /* = false*/)
 {
-    _primary_address = dsn_primary_address();
-    strcpy(_primary_address_str, _primary_address.to_string());
+    _primary_host_port = dsn_primary_host_port();
+    strcpy(_primary_address_str, _primary_host_port.to_string().c_str());
     LOG_INFO("primary_address = {}", _primary_address_str);
 
     set_options(opts);
@@ -1419,7 +1419,8 @@ void replica_stub::query_configuration_by_node()
     dsn::message_ex *msg = dsn::message_ex::create_request(RPC_CM_CONFIG_SYNC);
 
     configuration_query_by_node_request req;
-    req.node = _primary_address;
+    req.node = primary_address();
+    req.__set_hp_node(_primary_host_port);
 
     // TODO: send stored replicas may cost network, we shouldn't config the frequency
     get_local_replicas(req.stored_replicas);
@@ -1577,7 +1578,7 @@ void replica_stub::on_node_query_reply_scatter(replica_stub_ptr this_,
                                 req.__isset.meta_split_status ? req.meta_split_status
                                                               : split_status::NOT_SPLIT);
     } else {
-        if (req.config.primary == _primary_address) {
+        if (req.config.hp_primary == _primary_host_port) {
             LOG_INFO("{}@{}: replica not exists on replica server, which is primary, remove it "
                      "from meta server",
                      req.config.pid,
@@ -1625,12 +1626,14 @@ void replica_stub::remove_replica_on_meta_server(const app_info &info,
     request->info = info;
     request->config = config;
     request->config.ballot++;
-    request->node = _primary_address;
+    request->node = primary_address();
+    request->__set_hp_node(_primary_host_port);
     request->type = config_type::CT_DOWNGRADE_TO_INACTIVE;
 
-    if (_primary_address == config.primary) {
+    if (_primary_host_port == config.hp_primary) {
         request->config.primary.set_invalid();
-    } else if (replica_helper::remove_node(_primary_address, request->config.secondaries)) {
+        request->config.hp_primary.reset();
+    } else if (replica_helper::remove_node(primary_address(), request->config.secondaries)&&replica_helper::remove_node(_primary_host_port, request->config.hp_secondaries)) {
     } else {
         return;
     }
@@ -2182,12 +2185,12 @@ void replica_stub::open_replica(
     }
 
     if (nullptr != group_check) {
-        rpc::call_one_way_typed(_primary_address,
+        rpc::call_one_way_typed(primary_address(),
                                 RPC_LEARN_ADD_LEARNER,
                                 *group_check,
                                 group_check->config.pid.thread_hash());
     } else if (nullptr != configuration_update) {
-        rpc::call_one_way_typed(_primary_address,
+        rpc::call_one_way_typed(primary_address(),
                                 RPC_CONFIG_PROPOSAL,
                                 *configuration_update,
                                 configuration_update->config.pid.thread_hash());
@@ -2401,9 +2404,9 @@ void replica_stub::notify_replica_state_update(const replica_configuration &conf
             tasking::enqueue(
                 LPC_REPLICA_STATE_CHANGE_NOTIFICATION,
                 &_tracker,
-                std::bind(_replica_state_subscriber, _primary_address, config, is_closing));
+                std::bind(_replica_state_subscriber, _primary_host_port, config, is_closing));
         } else {
-            _replica_state_subscriber(_primary_address, config, is_closing);
+            _replica_state_subscriber(_primary_host_port, config, is_closing);
         }
     }
 }
@@ -2920,7 +2923,7 @@ uint64_t replica_stub::gc_tcmalloc_memory(bool release_all)
 //
 // partition split
 //
-void replica_stub::create_child_replica(rpc_address primary_address,
+void replica_stub::create_child_replica(host_port primary_address,
                                         app_info app,
                                         ballot init_ballot,
                                         gpid child_gpid,

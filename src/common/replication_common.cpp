@@ -165,6 +165,18 @@ int32_t replication_options::app_mutation_2pc_min_replica_count(int32_t app_max_
     }
 }
 
+/*static*/ bool replica_helper::remove_node(::dsn::host_port node,
+                                            /*inout*/ std::vector<::dsn::host_port> &nodeList)
+{
+    auto it = std::find(nodeList.begin(), nodeList.end(), node);
+    if (it != nodeList.end()) {
+        nodeList.erase(it);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 /*static*/ bool replica_helper::remove_node(::dsn::rpc_address node,
                                             /*inout*/ std::vector<::dsn::rpc_address> &nodeList)
 {
@@ -178,7 +190,7 @@ int32_t replication_options::app_mutation_2pc_min_replica_count(int32_t app_max_
 }
 
 /*static*/ bool replica_helper::get_replica_config(const partition_configuration &partition_config,
-                                                   ::dsn::rpc_address node,
+                                                   ::dsn::host_port node,
                                                    /*out*/ replica_configuration &replica_config)
 {
     replica_config.pid = partition_config.pid;
@@ -186,12 +198,12 @@ int32_t replication_options::app_mutation_2pc_min_replica_count(int32_t app_max_
     replica_config.ballot = partition_config.ballot;
     replica_config.learner_signature = invalid_signature;
 
-    if (node == partition_config.primary) {
+    if (node == partition_config.hp_primary) {
         replica_config.status = partition_status::PS_PRIMARY;
         return true;
-    } else if (std::find(partition_config.secondaries.begin(),
-                         partition_config.secondaries.end(),
-                         node) != partition_config.secondaries.end()) {
+    } else if (std::find(partition_config.hp_secondaries.begin(),
+                         partition_config.hp_secondaries.end(),
+                         node) != partition_config.hp_secondaries.end()) {
         replica_config.status = partition_status::PS_SECONDARY;
         return true;
     } else {

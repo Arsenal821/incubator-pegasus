@@ -491,8 +491,9 @@ dsn::error_code replication_ddl_client::list_nodes(
         return resp.err;
     }
 
-    for (const dsn::replication::node_info &n : resp.infos) {
-        nodes[host_port(n.address)] = n.status;
+    for (dsn::replication::node_info &n : resp.infos) {
+        FILL_HP_OPTIONAL_SECTION(n, address);
+        nodes[n.hp_address] = n.status;
     }
 
     return dsn::ERR_OK;
@@ -531,7 +532,7 @@ dsn::error_code replication_ddl_client::list_nodes(const dsn::replication::node_
         return r;
     }
 
-    std::map<dsn::rpc_address, list_nodes_helper> tmp_map;
+    std::map<dsn::host_port, list_nodes_helper> tmp_map;
     int alive_node_count = 0;
     for (auto &kv : nodes) {
         if (kv.second == dsn::replication::node_status::NS_ALIVE)
@@ -539,7 +540,7 @@ dsn::error_code replication_ddl_client::list_nodes(const dsn::replication::node_
         std::string status_str = enum_to_string(kv.second);
         status_str = status_str.substr(status_str.find("NS_") + 3);
         tmp_map.emplace(
-            _dns_resolver->resolve_address(kv.first),
+            kv.first,
             list_nodes_helper(host_name_resolve(resolve_ip, kv.first.to_string()), status_str));
     }
 
@@ -561,14 +562,14 @@ dsn::error_code replication_ddl_client::list_nodes(const dsn::replication::node_
 
             for (int i = 0; i < partitions.size(); i++) {
                 const dsn::partition_configuration &p = partitions[i];
-                if (!p.primary.is_invalid()) {
-                    auto find = tmp_map.find(p.primary);
+                if (!p.hp_primary.is_invalid()) {
+                    auto find = tmp_map.find(p.hp_primary);
                     if (find != tmp_map.end()) {
                         find->second.primary_count++;
                     }
                 }
                 for (int j = 0; j < p.secondaries.size(); j++) {
-                    auto find = tmp_map.find(p.secondaries[j]);
+                    auto find = tmp_map.find(p.hp_secondaries[j]);
                     if (find != tmp_map.end()) {
                         find->second.secondary_count++;
                     }
@@ -747,7 +748,7 @@ dsn::error_code replication_ddl_client::list_app(const std::string &app_name,
         tp_details.add_column("replica_count");
         tp_details.add_column("primary");
         tp_details.add_column("secondaries");
-        std::map<rpc_address, std::pair<int, int>> node_stat;
+        std::map<host_port, std::pair<int, int>> node_stat;
 
         int total_prim_count = 0;
         int total_sec_count = 0;
@@ -758,7 +759,7 @@ dsn::error_code replication_ddl_client::list_app(const std::string &app_name,
             int replica_count = 0;
             if (!p.primary.is_invalid()) {
                 replica_count++;
-                node_stat[p.primary].first++;
+                node_stat[p.hp_primary].first++;
                 total_prim_count++;
             }
             replica_count += p.secondaries.size();
@@ -787,7 +788,7 @@ dsn::error_code replication_ddl_client::list_app(const std::string &app_name,
                 if (j != 0)
                     oss << ",";
                 oss << host_name_resolve(resolve_ip, p.secondaries[j].to_std_string());
-                node_stat[p.secondaries[j]].second++;
+                node_stat[p.hp_secondaries[j]].second++;
             }
             oss << "]";
             tp_details.append_data(oss.str());
@@ -801,7 +802,7 @@ dsn::error_code replication_ddl_client::list_app(const std::string &app_name,
         tp_nodes.add_column("secondary");
         tp_nodes.add_column("total");
         for (auto &kv : node_stat) {
-            tp_nodes.add_row(host_name_resolve(resolve_ip, kv.first.to_std_string()));
+            tp_nodes.add_row(host_name_resolve(resolve_ip, kv.first.to_string()));
             tp_nodes.append_data(kv.second.first);
             tp_nodes.append_data(kv.second.second);
             tp_nodes.append_data(kv.second.first + kv.second.second);
@@ -890,7 +891,7 @@ replication_ddl_client::send_balancer_proposal(const configuration_balancer_requ
     return resp.err;
 }
 
-dsn::error_code replication_ddl_client::do_recovery(const std::vector<rpc_address> &replica_nodes,
+dsn::error_code replication_ddl_client::do_recovery(const std::vector<host_port> &replica_nodes,
                                                     int wait_seconds,
                                                     bool skip_bad_nodes,
                                                     bool skip_lost_partitions,
@@ -909,15 +910,17 @@ dsn::error_code replication_ddl_client::do_recovery(const std::vector<rpc_addres
 
     auto req = std::make_shared<configuration_recovery_request>();
     req->recovery_set.clear();
-    for (const dsn::rpc_address &node : replica_nodes) {
-        if (std::find(req->recovery_set.begin(), req->recovery_set.end(), node) !=
-            req->recovery_set.end()) {
+    req->__set_hp_recovery_set(std::vector<host_port>());
+    for (const auto &node : replica_nodes) {
+        if (std::find(req->hp_recovery_set.begin(), req->hp_recovery_set.end(), node) !=
+            req->hp_recovery_set.end()) {
             out << "duplicate replica node " << node.to_string() << ", just ingore it" << std::endl;
         } else {
-            req->recovery_set.push_back(node);
+            req->hp_recovery_set.push_back(node);
+            req->recovery_set.push_back(_dns_resolver->resolve_address(node));
         }
     }
-    if (req->recovery_set.empty()) {
+    if (req->hp_recovery_set.empty()) {
         out << "node set for recovery it empty" << std::endl;
         return ERR_INVALID_PARAMETERS;
     }
@@ -929,7 +932,7 @@ dsn::error_code replication_ddl_client::do_recovery(const std::vector<rpc_addres
     out << "Skip lost partitions: " << (skip_lost_partitions ? "true" : "false") << std::endl;
     out << "Node list:" << std::endl;
     out << "=============================" << std::endl;
-    for (auto &node : req->recovery_set) {
+    for (auto &node : req->hp_recovery_set) {
         out << node.to_string() << std::endl;
     }
     out << "=============================" << std::endl;
@@ -1591,14 +1594,15 @@ replication_ddl_client::ddd_diagnose(gpid pid, std::vector<ddd_partition_info> &
 }
 
 void replication_ddl_client::query_disk_info(
-    const std::vector<dsn::rpc_address> &targets,
+    const std::vector<dsn::host_port> &targets,
     const std::string &app_name,
-    /*out*/ std::map<dsn::rpc_address, error_with<query_disk_info_response>> &resps)
+    /*out*/ std::map<dsn::host_port, error_with<query_disk_info_response>> &resps)
 {
-    std::map<dsn::rpc_address, query_disk_info_rpc> query_disk_info_rpcs;
+    std::map<dsn::host_port, query_disk_info_rpc> query_disk_info_rpcs;
     for (const auto &target : targets) {
         auto request = std::make_unique<query_disk_info_request>();
-        request->node = target;
+        request->node = _dns_resolver->resolve_address(target);
+        request->__set_hp_node(target);
         request->app_name = app_name;
         query_disk_info_rpcs.emplace(target,
                                      query_disk_info_rpc(std::move(request), RPC_QUERY_DISK_INFO));
@@ -1649,14 +1653,14 @@ replication_ddl_client::clear_bulk_load(const std::string &app_name)
     return call_rpc_sync(clear_bulk_load_rpc(std::move(req), RPC_CM_CLEAR_BULK_LOAD));
 }
 
-error_code replication_ddl_client::detect_hotkey(const dsn::rpc_address &target,
+error_code replication_ddl_client::detect_hotkey(const dsn::host_port &target,
                                                  detect_hotkey_request &req,
                                                  detect_hotkey_response &resp)
 {
-    std::map<dsn::rpc_address, detect_hotkey_rpc> detect_hotkey_rpcs;
+    std::map<dsn::host_port, detect_hotkey_rpc> detect_hotkey_rpcs;
     auto request = std::make_unique<detect_hotkey_request>(req);
     detect_hotkey_rpcs.emplace(target, detect_hotkey_rpc(std::move(request), RPC_DETECT_HOTKEY));
-    std::map<dsn::rpc_address, error_with<detect_hotkey_response>> resps;
+    std::map<dsn::host_port, error_with<detect_hotkey_response>> resps;
     call_rpcs_sync(detect_hotkey_rpcs, resps);
     resp = resps.begin()->second.get_value();
     return resps.begin()->second.get_error().code();
@@ -1715,15 +1719,15 @@ replication_ddl_client::query_partition_split(const std::string &app_name)
 }
 
 error_with<add_new_disk_response>
-replication_ddl_client::add_new_disk(const rpc_address &target_node, const std::string &disk_str)
+replication_ddl_client::add_new_disk(const host_port &target_node, const std::string &disk_str)
 {
     auto req = std::make_unique<add_new_disk_request>();
     req->disk_str = disk_str;
 
-    std::map<rpc_address, add_new_disk_rpc> add_new_disk_rpcs;
+    std::map<host_port, add_new_disk_rpc> add_new_disk_rpcs;
     add_new_disk_rpcs.emplace(target_node, add_new_disk_rpc(std::move(req), RPC_ADD_NEW_DISK));
 
-    std::map<rpc_address, error_with<add_new_disk_response>> resps;
+    std::map<host_port, error_with<add_new_disk_response>> resps;
     call_rpcs_sync(add_new_disk_rpcs, resps);
     return resps.begin()->second.get_value();
 }

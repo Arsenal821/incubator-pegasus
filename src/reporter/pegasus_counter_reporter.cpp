@@ -56,7 +56,7 @@
 #include "perf_counter/perf_counter.h"
 #include "perf_counter/perf_counters.h"
 #include "runtime/api_layer1.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/service_app.h"
 #include "utils/api_utilities.h"
 #include "utils/flags.h"
@@ -148,11 +148,9 @@ void pegasus_counter_reporter::start()
     if (_report_timer != nullptr)
         return;
 
-    dsn::rpc_address addr(dsn_primary_address());
-    char buf[1000];
-    pegasus::utils::addr2host(addr, buf, 1000);
-    _local_host = buf;
-    _local_port = addr.port();
+    auto hp = dsn_primary_host_port();
+    _local_host = hp.host();
+    _local_port = hp.port();
 
     _app_name = dsn::service_app::current_service_app_info().full_name;
 

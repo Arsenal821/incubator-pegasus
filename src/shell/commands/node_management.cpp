@@ -170,7 +170,7 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
         return true;
     }
 
-    std::map<dsn::rpc_address, list_nodes_helper> tmp_map;
+    std::map<dsn::host_port, list_nodes_helper> tmp_map;
     int alive_node_count = 0;
     for (auto &kv : nodes) {
         if (kv.second == dsn::replication::node_status::NS_ALIVE)
@@ -179,9 +179,9 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
         status_str = status_str.substr(status_str.find("NS_") + 3);
         std::string node_name = kv.first.to_string();
         if (resolve_ip) {
-            node_name = sc->resolver->resolve_address(kv.first).to_std_string();
+            node_name = sc->resolver->resolve_address(kv.first).to_string();
         }
-        tmp_map.emplace(sc->resolver->resolve_address(kv.first), list_nodes_helper(node_name, status_str));
+        tmp_map.emplace(kv.first, list_nodes_helper(node_name, status_str));
     }
 
     if (detailed) {
@@ -205,13 +205,13 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
 
             for (const dsn::partition_configuration &p : partitions) {
                 if (!p.primary.is_invalid()) {
-                    auto find = tmp_map.find(p.primary);
+                    auto find = tmp_map.find(p.hp_primary);
                     if (find != tmp_map.end()) {
                         find->second.primary_count++;
                     }
                 }
-                for (const dsn::rpc_address &addr : p.secondaries) {
-                    auto find = tmp_map.find(addr);
+                for (const auto &hp : p.hp_secondaries) {
+                    auto find = tmp_map.find(hp);
                     if (find != tmp_map.end()) {
                         find->second.secondary_count++;
                     }
@@ -240,7 +240,7 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
 
         for (int i = 0; i < nodes.size(); ++i) {
             auto hp = nodes[i].hp;
-            auto tmp_it = tmp_map.find(sc->resolver->resolve_address(hp));
+            auto tmp_it = tmp_map.find(hp);
             if (tmp_it == tmp_map.end())
                 continue;
             if (!results[i].first) {
@@ -300,7 +300,7 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
 
         for (int i = 0; i < nodes.size(); ++i) {
             auto hp = nodes[i].hp;
-            auto tmp_it = tmp_map.find(sc->resolver->resolve_address(hp));
+            auto tmp_it = tmp_map.find(hp);
             if (tmp_it == tmp_map.end())
                 continue;
             if (!results[i].first) {
@@ -359,7 +359,7 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
 
         for (int i = 0; i < nodes.size(); ++i) {
             auto hp = nodes[i].hp;
-            auto tmp_it = tmp_map.find(sc->resolver->resolve_address(hp));
+            auto tmp_it = tmp_map.find(hp);
             if (tmp_it == tmp_map.end())
                 continue;
             if (!results[i].first) {

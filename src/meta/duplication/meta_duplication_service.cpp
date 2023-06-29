@@ -273,7 +273,7 @@ void meta_duplication_service::duplication_sync(duplication_sync_rpc rpc)
     auto &response = rpc.response();
     response.err = ERR_OK;
 
-    node_state *ns = get_node_state(_state->_nodes, request.node, false);
+    node_state *ns = get_node_state(_state->_nodes, host_port(request.node), false);
     if (ns == nullptr) {
         LOG_WARNING("node({}) is not found in meta server", request.node.to_string());
         response.err = ERR_OBJECT_NOT_FOUND;

@@ -122,14 +122,16 @@ void replica::broadcast_group_check()
     }
 
     for (auto it = _primary_states.statuses.begin(); it != _primary_states.statuses.end(); ++it) {
-        if (it->first == host_port(_stub->_primary_address))
+        if (it->first == _stub->_primary_host_port)
             continue;
 
-        ::dsn::rpc_address addr = _dns_resolver->resolve_address(it->first);
+        auto hp = it->first;
+        auto addr = _dns_resolver->resolve_address(hp);
         std::shared_ptr<group_check_request> request(new group_check_request);
 
         request->app = _app_info;
         request->node = addr;
+        request->__set_hp_node(hp);
         _primary_states.get_replica_config(it->second, request->config);
         request->last_committed_decree = last_committed_decree();
         request->__set_confirmed_decree(_duplication_mgr->min_confirmed_decree());
@@ -143,12 +145,12 @@ void replica::broadcast_group_check()
         }
 
         if (request->config.status == partition_status::PS_POTENTIAL_SECONDARY) {
-            auto it = _primary_states.learners.find(addr);
-            CHECK(it != _primary_states.learners.end(), "learner {} is missing", addr);
+            auto it = _primary_states.learners.find(hp);
+            CHECK(it != _primary_states.learners.end(), "learner {} is missing", hp);
             request->config.learner_signature = it->second.signature;
         }
 
-        LOG_INFO_PREFIX("send group check to {} with state {}", addr, enum_to_string(it->second));
+        LOG_INFO_PREFIX("send group check to {} with state {}", hp, enum_to_string(it->second));
 
         dsn::task_ptr callback_task =
             rpc::call(addr,
@@ -162,7 +164,7 @@ void replica::broadcast_group_check()
                       std::chrono::milliseconds(0),
                       get_gpid().thread_hash());
 
-        _primary_states.group_check_pending_replies[host_port(addr)] = callback_task;
+        _primary_states.group_check_pending_replies[hp] = callback_task;
     }
 
     // send empty prepare when necessary
@@ -224,7 +226,8 @@ void replica::on_group_check(const group_check_request &request,
     }
 
     response.pid = get_gpid();
-    response.node = _stub->_primary_address;
+    response.node = _stub->primary_address();
+    response.__set_hp_node(_stub->_primary_host_port);
     response.err = ERR_OK;
     if (status() == partition_status::PS_ERROR) {
         response.err = ERR_INVALID_STATE;
@@ -254,16 +257,16 @@ void replica::on_group_check_reply(error_code err,
         if (ERR_OK == err) {
             err = resp->err;
         }
-        handle_remote_failure(req->config.status, req->node, err, "group check");
+        handle_remote_failure(req->config.status, req->hp_node, err, "group check");
         _stub->_counter_replicas_recent_group_check_fail_count->increment();
     } else {
         if (resp->learner_status_ == learner_status::LearningSucceeded &&
             req->config.status == partition_status::PS_POTENTIAL_SECONDARY) {
-            handle_learning_succeeded_on_primary(req->node, resp->learner_signature);
+            handle_learning_succeeded_on_primary(req->hp_node, resp->learner_signature);
         }
         _split_mgr->primary_parent_handle_stop_split(req, resp);
         if (req->config.status == partition_status::PS_SECONDARY) {
-            _primary_states.secondary_disk_status[req->node] = resp->disk_status;
+            _primary_states.secondary_disk_status[req->hp_node] = resp->disk_status;
         }
     }
 }

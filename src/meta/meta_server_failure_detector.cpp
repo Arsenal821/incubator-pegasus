@@ -92,19 +92,12 @@ meta_server_failure_detector::~meta_server_failure_detector()
 
 void meta_server_failure_detector::on_worker_disconnected(const std::vector<host_port> &nodes)
 {
-    // TODO(liguohao): Change the type of the 'set_node_state' argument
-    std::vector<rpc_address> addrs;
-    for (const auto &n : nodes) {
-        addrs.emplace_back(_dns_resolver->resolve_address(n));
-    }
-    _svc->set_node_state(addrs, false);
+    _svc->set_node_state(nodes, false);
 }
 
 void meta_server_failure_detector::on_worker_connected(host_port node)
 {
-    // TODO(liguohao): Change the type of the 'set_node_state' argument
-    rpc_address addr = _dns_resolver->resolve_address(node);
-    _svc->set_node_state(std::vector<rpc_address>{addr}, true);
+    _svc->set_node_state({node}, true);
 }
 
 bool meta_server_failure_detector::get_leader(host_port *leader)
@@ -220,11 +213,11 @@ void meta_server_failure_detector::reset_stability_stat(const host_port &node)
 
 void meta_server_failure_detector::leader_initialize(const std::string &lock_service_owner)
 {
-    dsn::rpc_address addr;
-    CHECK(addr.from_string_ipv4(lock_service_owner.c_str()),
-          "parse {} to rpc_address failed",
+    dsn::host_port hp;
+    CHECK(hp.from_string(lock_service_owner),
+          "parse {} to host_port failed",
           lock_service_owner);
-    CHECK_EQ_MSG(addr, dsn_primary_address(), "acquire leader return success, but owner not match");
+    CHECK_EQ_MSG(hp, dsn_primary_host_port(), "acquire leader return success, but owner not match");
     _is_leader.store(true);
     _election_moment.store(dsn_now_ms());
 }

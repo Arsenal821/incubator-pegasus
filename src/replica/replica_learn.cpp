@@ -241,7 +241,8 @@ void replica::init_learn(uint64_t signature)
     request.__set_max_gced_decree(get_max_gced_decree_for_learn());
     request.last_committed_decree_in_app = _app->last_committed_decree();
     request.last_committed_decree_in_prepare_list = _prepare_list->last_committed_decree();
-    request.learner = _stub->_primary_address;
+    request.learner = _stub->primary_address();
+    request.__set_hp_learner(_stub->_primary_host_port);
     request.signature = _potential_secondary_states.learning_version;
     _app->prepare_get_checkpoint(request.app_specific_learn_request);
 
@@ -379,7 +380,7 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
     // but just set state to partition_status::PS_POTENTIAL_SECONDARY
     _primary_states.get_replica_config(partition_status::PS_POTENTIAL_SECONDARY, response.config);
 
-    auto it = _primary_states.learners.find(request.learner);
+    auto it = _primary_states.learners.find(request.hp_learner);
     if (it == _primary_states.learners.end()) {
         response.config.status = partition_status::PS_INACTIVE;
         response.err = ERR_OBJECT_NOT_FOUND;
@@ -462,7 +463,8 @@ void replica::on_learn(dsn::message_ex *msg, const learn_request &request)
                     _prepare_list->count(),
                     learn_start_decree);
 
-    response.address = _stub->_primary_address;
+    response.address = _stub->primary_address();
+    response.__set_hp_address(_stub->_primary_host_port);
     response.prepare_start_decree = invalid_decree;
     response.last_committed_decree = local_committed_decree;
     response.err = ERR_OK;
@@ -1254,7 +1256,7 @@ void replica::handle_learning_error(error_code err, bool is_local_error)
         is_local_error ? partition_status::PS_ERROR : partition_status::PS_INACTIVE);
 }
 
-error_code replica::handle_learning_succeeded_on_primary(::dsn::rpc_address node,
+error_code replica::handle_learning_succeeded_on_primary(::dsn::host_port node,
                                                          uint64_t learn_signature)
 {
     auto it = _primary_states.learners.find(node);
@@ -1289,7 +1291,8 @@ void replica::notify_learn_completion()
     report.last_committed_decree_in_prepare_list = last_committed_decree();
     report.learner_signature = _potential_secondary_states.learning_version;
     report.learner_status_ = _potential_secondary_states.learning_status;
-    report.node = _stub->_primary_address;
+    report.node = _stub->primary_address();
+    report.__set_hp_node(_stub->_primary_host_port);
 
     LOG_INFO_PREFIX("notify_learn_completion[{:#018x}]: learnee = {}, learn_duration = {} ms, "
                     "local_committed_decree = {}, app_committed_decree = {}, app_durable_decree = "
@@ -1348,7 +1351,7 @@ void replica::on_learn_completion_notification(const group_check_response &repor
                          report.node,
                          enum_to_string(report.learner_status_));
     } else {
-        response.err = handle_learning_succeeded_on_primary(report.node, report.learner_signature);
+        response.err = handle_learning_succeeded_on_primary(report.hp_node, report.learner_signature);
         if (response.err != ERR_OK) {
             LOG_ERROR_PREFIX("on_learn_completion_notification[{:#018x}]: learner = {}, handle "
                              "learning succeeded on primary failed, reply {}",
