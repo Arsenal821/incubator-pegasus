@@ -33,6 +33,8 @@
 #include "common/serialization_helper/thrift_helper.h"
 
 namespace dsn {
+class partition_configuration;
+
 namespace serialization {
 
 template <typename T>
@@ -101,5 +103,7 @@ inline void unmarshall(dsn::message_ex *msg, /*out*/ T &val)
     ::dsn::rpc_read_stream reader(msg);
     unmarshall(reader, val, (dsn_msg_serialize_format)msg->header->context.u.serialize_format);
 }
+
+template<> inline void unmarshall(dsn::message_ex *msg, /*out*/ partition_configuration &val);
 
 } // namespace dsn
