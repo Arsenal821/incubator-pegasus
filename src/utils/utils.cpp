@@ -113,20 +113,19 @@ bool hostname_from_ip_port(const char *ip_port, std::string *hostname_result)
         *hostname_result = ip_port;
         return false;
     }
-    if (!hostname(hp, hostname_result)) {
-        *hostname_result = ip_port;
-        return false;
-    }
     return true;
 }
 
-bool hostname(const dsn::host_port &hp, std::string *hostname_result)
+bool hostname(const rpc_address &address, std::string *hostname_result)
 {
-    if (hp.type() != HOST_TYPE_IPV4) {
+    if (address.type() != HOST_TYPE_IPV4) {
         return false;
     }
-    *hostname_result += hp.to_string();
-    return true;
+    if (hostname_from_ip(htonl(address.ip()), hostname_result)) {
+        *hostname_result += ":" + std::to_string(address.port());
+        return true;
+    }
+    return false;
 }
 
 bool list_hostname_from_ip(const char *ip_list, std::string *hostname_result_list)

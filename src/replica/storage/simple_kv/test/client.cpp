@@ -47,7 +47,7 @@
 #include "replica/storage/simple_kv/simple_kv.client.h"
 #include "replica/storage/simple_kv/test/common.h"
 #include "runtime/api_layer1.h"
-#include "runtime/rpc/group_address.h"
+#include "runtime/rpc/group_host_port.h"
 #include "runtime/rpc/rpc_message.h"
 #include "runtime/rpc/serialization.h"
 #include "runtime/task/async_calls.h"
@@ -79,7 +79,7 @@ simple_kv_client_app::~simple_kv_client_app() { stop(); }
     replica_helper::load_meta_servers(meta_servers);
     _meta_server_group.assign_group("meta_servers");
     for (const auto &hp : meta_servers) {
-        LOG_WARNING_IF(!_meta_server_group.group_address()->add(_resolver->resolve_address(hp)),
+        LOG_WARNING_IF(!_meta_server_group.group_host_port()->add(hp),
                        "duplicate adress {}",
                        hp);
     }
@@ -107,9 +107,9 @@ void simple_kv_client_app::run()
     std::string value;
     int timeout_ms;
 
-    rpc_address receiver;
+    host_port receiver;
     dsn::replication::config_type::type type;
-    rpc_address node;
+    host_port node;
 
     while (!g_done) {
         if (test_case::instance().check_client_write(id, key, value, timeout_ms)) {
@@ -154,9 +154,9 @@ void simple_kv_client_app::begin_write(int id,
                              std::chrono::milliseconds(timeout_ms));
 }
 
-void simple_kv_client_app::send_config_to_meta(const rpc_address &receiver,
+void simple_kv_client_app::send_config_to_meta(const host_port &receiver,
                                                dsn::replication::config_type::type type,
-                                               const rpc_address &node)
+                                               const host_port &node)
 {
     dsn::message_ex *req = dsn::message_ex::create_request(RPC_CM_PROPOSE_BALANCER, 30000);
 
@@ -164,15 +164,15 @@ void simple_kv_client_app::send_config_to_meta(const rpc_address &receiver,
     request.gpid = g_default_gpid;
 
     configuration_proposal_action act;
-    act.__set_target(receiver);
-    act.__set_node(node);
+    act.__set_hp_target(receiver);
+    act.__set_hp_node(node);
     act.__set_type(type);
     request.action_list.emplace_back(std::move(act));
     request.__set_force(true);
 
     dsn::marshall(req, request);
 
-    dsn_rpc_call_one_way(_meta_server_group, req);
+    dsn_rpc_call_one_way(_resolver->resolve_address(_meta_server_group), req);
 }
 
 struct read_context

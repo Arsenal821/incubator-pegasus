@@ -33,7 +33,7 @@
 #include "meta/app_balance_policy.h"
 #include "meta/load_balance_policy.h"
 #include "meta/meta_data.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "utils/fail_point.h"
 
 namespace dsn {
@@ -49,9 +49,9 @@ TEST(copy_primary_operation, misc)
     app_mapper apps;
     apps[app_id] = app;
 
-    auto addr1 = rpc_address(1, 1);
-    auto addr2 = rpc_address(1, 2);
-    auto addr3 = rpc_address(1, 3);
+    auto addr1 = host_port("localhost", 1);
+    auto addr2 = host_port("localhost", 2);
+    auto addr3 = host_port("localhost", 3);
 
     node_mapper nodes;
     node_state ns1;
@@ -66,12 +66,13 @@ TEST(copy_primary_operation, misc)
     ns3.put_partition(gpid(app_id, 2), false);
     nodes[addr3] = ns3;
 
-    std::vector<dsn::rpc_address> address_vec{addr1, addr2, addr3};
-    std::unordered_map<dsn::rpc_address, int> address_id;
+    std::vector<dsn::host_port> address_vec{addr1, addr2, addr3};
+    std::unordered_map<dsn::host_port, int> address_id;
     address_id[addr1] = 0;
     address_id[addr2] = 1;
     address_id[addr3] = 2;
-    copy_primary_operation op(app, apps, nodes, address_vec, address_id, false, 0);
+    std::shared_ptr<dns_resolver> resolver = std::make_shared<dns_resolver>();
+    copy_primary_operation op(app, apps, nodes, address_vec, address_id, false, 0, resolver);
 
     /**
      * Test init_ordered_address_ids
@@ -169,9 +170,10 @@ TEST(copy_primary_operation, can_select)
 {
     app_mapper apps;
     node_mapper nodes;
-    std::vector<dsn::rpc_address> address_vec;
-    std::unordered_map<dsn::rpc_address, int> address_id;
-    copy_primary_operation op(nullptr, apps, nodes, address_vec, address_id, false, false);
+    std::vector<dsn::host_port> address_vec;
+    std::unordered_map<dsn::host_port, int> address_id;
+    std::shared_ptr<dns_resolver> resolver = std::make_shared<dns_resolver>();
+    copy_primary_operation op(nullptr, apps, nodes, address_vec, address_id, false, false, resolver);
 
     gpid cannot_select_gpid(1, 1);
     gpid can_select_gpid(1, 2);
@@ -186,9 +188,10 @@ TEST(copy_primary_operation, only_copy_primary)
 {
     app_mapper apps;
     node_mapper nodes;
-    std::vector<dsn::rpc_address> address_vec;
-    std::unordered_map<dsn::rpc_address, int> address_id;
-    copy_primary_operation op(nullptr, apps, nodes, address_vec, address_id, false, false);
+    std::vector<dsn::host_port> address_vec;
+    std::unordered_map<dsn::host_port, int> address_id;
+    std::shared_ptr<dns_resolver> resolver = std::make_shared<dns_resolver>();
+    copy_primary_operation op(nullptr, apps, nodes, address_vec, address_id, false, false, resolver);
 
     ASSERT_TRUE(op.only_copy_primary());
 }
@@ -203,9 +206,9 @@ TEST(copy_secondary_operation, misc)
     app_mapper apps;
     apps[app_id] = app;
 
-    auto addr1 = rpc_address(1, 1);
-    auto addr2 = rpc_address(1, 2);
-    auto addr3 = rpc_address(1, 3);
+    auto addr1 = host_port("localhost", 1);
+    auto addr2 = host_port("localhost", 2);
+    auto addr3 = host_port("localhost", 3);
 
     node_mapper nodes;
     node_state ns1;
@@ -219,12 +222,13 @@ TEST(copy_secondary_operation, misc)
     node_state ns3;
     nodes[addr3] = ns3;
 
-    std::vector<dsn::rpc_address> address_vec{addr1, addr2, addr3};
-    std::unordered_map<dsn::rpc_address, int> address_id;
+    std::vector<dsn::host_port> address_vec{addr1, addr2, addr3};
+    std::unordered_map<dsn::host_port, int> address_id;
     address_id[addr1] = 0;
     address_id[addr2] = 1;
     address_id[addr3] = 2;
-    copy_secondary_operation op(app, apps, nodes, address_vec, address_id, 0);
+    std::shared_ptr<dns_resolver> resolver = std::make_shared<dns_resolver>();
+    copy_secondary_operation op(app, apps, nodes, address_vec, address_id, resolver, 0);
     op.init_ordered_address_ids();
 
     /**

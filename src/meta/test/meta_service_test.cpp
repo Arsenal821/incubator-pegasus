@@ -28,7 +28,7 @@
 #include "meta_admin_types.h"
 #include "meta_test_base.h"
 #include "runtime/rpc/network.sim.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "runtime/rpc/rpc_holder.h"
 #include "runtime/rpc/rpc_message.h"
 #include "runtime/rpc/serialization.h"
@@ -45,17 +45,17 @@ public:
     void check_status_failure()
     {
         fail::setup();
-        fail::cfg("meta_server_failure_detector_get_leader", "return(false#1.2.3.4:10086)");
+        fail::cfg("meta_server_failure_detector_get_leader", "return(false#localhost:10086)");
 
         /** can't forward to others */
         RPC_MOCKING(app_env_rpc)
         {
-            rpc_address leader;
+            host_port leader;
             auto rpc = create_fake_rpc();
             rpc.dsn_request()->header->context.u.is_forward_supported = false;
             ASSERT_FALSE(_ms->check_status_and_authz(rpc, &leader));
             ASSERT_EQ(ERR_FORWARD_TO_OTHERS, rpc.response().err);
-            ASSERT_EQ(leader.to_std_string(), "1.2.3.4:10086");
+            ASSERT_EQ(leader.to_string(), "localhost:10086");
             ASSERT_EQ(app_env_rpc::forward_mail_box().size(), 0);
         }
 
@@ -79,7 +79,7 @@ public:
 
         RPC_MOCKING(app_env_rpc)
         {
-            rpc_address leader;
+            host_port leader;
             auto rpc = create_fake_rpc();
             ASSERT_TRUE(_ms->check_status_and_authz(rpc, &leader));
             ASSERT_EQ(app_env_rpc::forward_mail_box().size(), 0);

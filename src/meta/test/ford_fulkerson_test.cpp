@@ -29,7 +29,7 @@
 #include "dsn.layer2_types.h"
 #include "meta/load_balance_policy.h"
 #include "meta/meta_data.h"
-#include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 
 namespace dsn {
 namespace replication {
@@ -44,11 +44,11 @@ TEST(ford_fulkerson, build_failure)
     node_mapper nodes;
     node_state ns;
     ns.put_partition(gpid(app_id, 0), true);
-    nodes[rpc_address(1, 1)] = ns;
-    nodes[rpc_address(2, 2)] = ns;
-    nodes[rpc_address(3, 3)] = ns;
+    nodes[host_port("localhost", 1)] = ns;
+    nodes[host_port("localhost", 2)] = ns;
+    nodes[host_port("localhost", 3)] = ns;
 
-    std::unordered_map<dsn::rpc_address, int> address_id;
+    std::unordered_map<dsn::host_port, int> address_id;
     auto ff = ford_fulkerson::builder(app, nodes, address_id).build();
     ASSERT_EQ(ff, nullptr);
 }
@@ -61,10 +61,10 @@ TEST(ford_fulkerson, add_edge)
     info.partition_count = 4;
     std::shared_ptr<app_state> app = app_state::create(info);
 
-    std::unordered_map<dsn::rpc_address, int> address_id;
-    auto addr1 = rpc_address(1, 1);
-    auto addr2 = rpc_address(1, 2);
-    auto addr3 = rpc_address(1, 3);
+    std::unordered_map<dsn::host_port, int> address_id;
+    auto addr1 = host_port("localhost", 1);
+    auto addr2 = host_port("localhost", 2);
+    auto addr3 = host_port("localhost", 3);
     address_id[addr1] = 1;
     address_id[addr2] = 2;
     address_id[addr3] = 3;
@@ -88,9 +88,9 @@ TEST(ford_fulkerson, add_edge)
 
 TEST(ford_fulkerson, update_decree)
 {
-    auto addr1 = rpc_address(1, 1);
-    auto addr2 = rpc_address(2, 2);
-    auto addr3 = rpc_address(3, 3);
+    auto addr1 = host_port("localhost", 1);
+    auto addr2 = host_port("localhost", 2);
+    auto addr3 = host_port("localhost", 3);
 
     int32_t app_id = 1;
     dsn::app_info info;
@@ -98,8 +98,8 @@ TEST(ford_fulkerson, update_decree)
     info.partition_count = 1;
     std::shared_ptr<app_state> app = app_state::create(info);
     partition_configuration pc;
-    pc.secondaries.push_back(addr2);
-    pc.secondaries.push_back(addr3);
+    pc.hp_secondaries.push_back(addr2);
+    pc.hp_secondaries.push_back(addr3);
     app->partitions.push_back(pc);
     app->partitions.push_back(pc);
 
@@ -111,7 +111,7 @@ TEST(ford_fulkerson, update_decree)
     nodes[addr2] = ns;
     nodes[addr3] = ns;
 
-    std::unordered_map<dsn::rpc_address, int> address_id;
+    std::unordered_map<dsn::host_port, int> address_id;
     address_id[addr1] = 1;
     address_id[addr2] = 2;
     address_id[addr3] = 3;
@@ -125,9 +125,9 @@ TEST(ford_fulkerson, update_decree)
 
 TEST(ford_fulkerson, find_shortest_path)
 {
-    auto addr1 = rpc_address(1, 1);
-    auto addr2 = rpc_address(2, 2);
-    auto addr3 = rpc_address(3, 3);
+    auto addr1 = host_port("localhost", 1);
+    auto addr2 = host_port("localhost", 2);
+    auto addr3 = host_port("localhost", 3);
 
     int32_t app_id = 1;
     dsn::app_info info;
@@ -136,9 +136,9 @@ TEST(ford_fulkerson, find_shortest_path)
     std::shared_ptr<app_state> app = app_state::create(info);
 
     partition_configuration pc;
-    pc.primary = addr1;
-    pc.secondaries.push_back(addr2);
-    pc.secondaries.push_back(addr3);
+    pc.hp_primary = addr1;
+    pc.hp_secondaries.push_back(addr2);
+    pc.hp_secondaries.push_back(addr3);
     app->partitions[0] = pc;
     app->partitions[1] = pc;
 
@@ -154,7 +154,7 @@ TEST(ford_fulkerson, find_shortest_path)
     nodes[addr2] = ns2;
     nodes[addr3] = ns2;
 
-    std::unordered_map<dsn::rpc_address, int> address_id;
+    std::unordered_map<dsn::host_port, int> address_id;
     address_id[addr1] = 1;
     address_id[addr2] = 2;
     address_id[addr3] = 3;
@@ -222,10 +222,10 @@ TEST(ford_fulkerson, max_value_pos)
     info.partition_count = 4;
     std::shared_ptr<app_state> app = app_state::create(info);
 
-    std::unordered_map<dsn::rpc_address, int> address_id;
-    auto addr1 = rpc_address(1, 1);
-    auto addr2 = rpc_address(1, 2);
-    auto addr3 = rpc_address(1, 3);
+    std::unordered_map<dsn::host_port, int> address_id;
+    auto addr1 = host_port("localhost", 1);
+    auto addr2 = host_port("localhost", 2);
+    auto addr3 = host_port("localhost", 3);
     address_id[addr1] = 1;
     address_id[addr2] = 2;
     address_id[addr3] = 3;
@@ -260,10 +260,10 @@ TEST(ford_fulkerson, select_node)
     info.partition_count = 4;
     std::shared_ptr<app_state> app = app_state::create(info);
 
-    std::unordered_map<dsn::rpc_address, int> address_id;
-    auto addr1 = rpc_address(1, 1);
-    auto addr2 = rpc_address(1, 2);
-    auto addr3 = rpc_address(1, 3);
+    std::unordered_map<dsn::host_port, int> address_id;
+    auto addr1 = host_port("localhost", 1);
+    auto addr2 = host_port("localhost", 2);
+    auto addr3 = host_port("localhost", 3);
     address_id[addr1] = 1;
     address_id[addr2] = 2;
     address_id[addr3] = 3;

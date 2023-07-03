@@ -103,7 +103,7 @@ bool list_hostname_from_ip_port(const char *ip_port_list, std::string *hostname_
 
 // valid_ipv4_rpc_address return TRUE && hostname_result=hostname:port | invalid_ipv4 -> return
 // FALSE
-bool hostname(const dsn::host_port &hp, std::string *hostname_result);
+bool hostname(const dsn::rpc_address &address, std::string *hostname_result);
 
 // valid_ip_network_order -> return TRUE && hostname_result=hostname	|
 // invalid_ip_network_order -> return FALSE
