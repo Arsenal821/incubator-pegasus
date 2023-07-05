@@ -55,7 +55,12 @@ if [[ -n "${USE_TCMALLOC_HEAP_PROFILE}" ]]; then
     fi
 fi
 
-export LD_PRELOAD="${LIB_DIR}/libtcmalloc_and_profiler.so.4"
+# el9 程序包内带的 tcmalloc 可能会引起问题，故包内没有该 lib ,采用环境的系统 lib 
+if [[ -f "${LIB_DIR}/libtcmalloc_and_profiler.so.4" ]]; then
+    export LD_PRELOAD="${LIB_DIR}/libtcmalloc_and_profiler.so.4"
+else
+    echo "${LIB_DIR}/libtcmalloc_and_profiler.so.4 not found! use system lib."
+fi
 
 if [[ ! -f "${BIN_DIR}/${SERVER_BIN}" ]]; then
     echo "${BIN_DIR}/${SERVER_BIN} not found"
