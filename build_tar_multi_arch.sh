@@ -26,7 +26,15 @@ if [[ ${build_type} != 'release' ]] && [[ ${build_type} != 'debug' ]];then
 fi
 
 curPath=$(readlink -f "$(dirname "$0")")
-MAKE_JOB_NUM=${MAKE_JOB_NUM:-32}
+
+# 由于 arm jenkins 编译机性能不足，这里并发给低点
+output=`arch`
+if [ "$output"x == "x86_64"x ]; then
+    MAKE_JOB_NUM=${MAKE_JOB_NUM:-32}
+else
+    MAKE_JOB_NUM=${MAKE_JOB_NUM:-16}
+fi
+
 
 if [ -d $curPath/DSN_ROOT ]; then
     echo "$curPath/DSN_ROOT exist, not need build again."
