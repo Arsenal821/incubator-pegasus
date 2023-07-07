@@ -111,7 +111,7 @@ public:
 
     bool is_initialized() const { return bool(_i); }
 
-    const TRequest &request() const
+    TRequest &request() const
     {
         CHECK(_i, "rpc_holder is uninitialized");
         return *(_i->thrift_request);

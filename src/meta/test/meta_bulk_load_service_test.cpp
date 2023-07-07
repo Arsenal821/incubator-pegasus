@@ -181,10 +181,10 @@ public:
         config.primary = PRIMARY;
         config.secondaries.emplace_back(SECONDARY1);
         config.secondaries.emplace_back(SECONDARY2);
-        config.hp_primary = PRIMARY_HOST;
+        config.hp_primary = PRIMARY_HP;
         config.__set_hp_secondaries(std::vector<host_port>());
-        config.hp_secondaries.emplace_back(SECONDARY1_HOST);
-        config.hp_secondaries.emplace_back(SECONDARY2_HOST);
+        config.hp_secondaries.emplace_back(SECONDARY1_HP);
+        config.hp_secondaries.emplace_back(SECONDARY2_HP);
         app->partitions.clear();
         app->partitions.emplace_back(config);
         mock_meta_bulk_load_context(app->app_id, app->partition_count, status);
@@ -224,12 +224,12 @@ public:
         partition_bulk_load_info &pinfo = bulk_svc()._partition_bulk_load_info[pid];
         pinfo.status = bulk_load_status::BLS_INGESTING;
         pinfo.addresses.clear();
-        pinfo.addresses.emplace_back(PRIMARY_HOST);
-        pinfo.addresses.emplace_back(SECONDARY1_HOST);
+        pinfo.addresses.emplace_back(PRIMARY_HP);
+        pinfo.addresses.emplace_back(SECONDARY1_HP);
         if (use_secondary3) {
-            pinfo.addresses.emplace_back(SECONDARY3_HOST);
+            pinfo.addresses.emplace_back(SECONDARY3_HP);
         } else {
-            pinfo.addresses.emplace_back(SECONDARY2_HOST);
+            pinfo.addresses.emplace_back(SECONDARY2_HP);
         }
         pinfo.ever_ingest_succeed = ever_ingest_succeed;
     }
@@ -243,24 +243,24 @@ public:
         partition_configuration config;
         config.pid = pid;
         config.primary = PRIMARY;
-        config.__set_hp_primary(PRIMARY_HOST);
+        config.__set_hp_primary(PRIMARY_HP);
         config.__set_hp_secondaries(std::vector<host_port>());
         if (same) {
             config.secondaries.emplace_back(SECONDARY1);
             config.secondaries.emplace_back(SECONDARY2);
-            config.hp_secondaries.emplace_back(SECONDARY1_HOST);
-            config.hp_secondaries.emplace_back(SECONDARY2_HOST);
+            config.hp_secondaries.emplace_back(SECONDARY1_HP);
+            config.hp_secondaries.emplace_back(SECONDARY2_HP);
         } else {
             config.secondaries.emplace_back(SECONDARY1);
-            config.hp_secondaries.emplace_back(SECONDARY1_HOST);
+            config.hp_secondaries.emplace_back(SECONDARY1_HP);
             if (secondary_count == 2) {
                 config.secondaries.emplace_back(SECONDARY3);
-                config.hp_secondaries.emplace_back(SECONDARY3_HOST);
+                config.hp_secondaries.emplace_back(SECONDARY3_HP);
             } else if (secondary_count >= 3) {
                 config.secondaries.emplace_back(SECONDARY2);
                 config.secondaries.emplace_back(SECONDARY3);
-                config.hp_secondaries.emplace_back(SECONDARY2_HOST);
-                config.hp_secondaries.emplace_back(SECONDARY3_HOST);
+                config.hp_secondaries.emplace_back(SECONDARY2_HP);
+                config.hp_secondaries.emplace_back(SECONDARY3_HP);
             }
         }
         auto flag = bulk_svc().check_ever_ingestion_succeed(config, APP_NAME, pid);
@@ -309,7 +309,7 @@ public:
                                            const gpid &pid,
                                            error_code rpc_err = ERR_OK)
     {
-        bulk_svc().on_partition_ingestion_reply(rpc_err, std::move(resp), APP_NAME, pid, PRIMARY_HOST);
+        bulk_svc().on_partition_ingestion_reply(rpc_err, std::move(resp), APP_NAME, pid, PRIMARY_HP);
         wait_all();
     }
 
@@ -525,10 +525,10 @@ public:
     const rpc_address SECONDARY2 = rpc_address("127.0.0.1", 10087);
     const rpc_address SECONDARY3 = rpc_address("127.0.0.1", 10080);
 
-    const host_port PRIMARY_HOST = host_port("localhost", 10086);
-    const host_port SECONDARY1_HOST = host_port("localhost", 10085);
-    const host_port SECONDARY2_HOST = host_port("localhost", 10087);
-    const host_port SECONDARY3_HOST = host_port("localhost", 10080);
+    const host_port PRIMARY_HP = host_port("localhost", 10086);
+    const host_port SECONDARY1_HP = host_port("localhost", 10085);
+    const host_port SECONDARY2_HP = host_port("localhost", 10087);
+    const host_port SECONDARY3_HP = host_port("localhost", 10080);
 };
 
 /// start bulk load unit tests
@@ -794,7 +794,7 @@ public:
         _req.pid = gpid(_app_id, _pidx);
         _req.primary_addr = PRIMARY;
         _req.meta_bulk_load_status = status;
-        _req.__set_hp_primary_addr(PRIMARY_HOST);
+        _req.__set_hp_primary_addr(PRIMARY_HP);
     }
 
     void create_basic_response(error_code err, bulk_load_status::type status)
@@ -823,9 +823,9 @@ public:
         _resp.__set_total_download_progress(total_progress);
 
         _resp.__set_hp_group_bulk_load_state(std::map<host_port, partition_bulk_load_state>{});
-        _resp.hp_group_bulk_load_state[PRIMARY_HOST] = state;
-        _resp.hp_group_bulk_load_state[SECONDARY1_HOST] = state;
-        _resp.hp_group_bulk_load_state[SECONDARY2_HOST] = state2;
+        _resp.hp_group_bulk_load_state[PRIMARY_HP] = state;
+        _resp.hp_group_bulk_load_state[SECONDARY1_HP] = state;
+        _resp.hp_group_bulk_load_state[SECONDARY2_HP] = state2;
     }
 
     void mock_response_bulk_load_metadata()
@@ -859,9 +859,9 @@ public:
         _resp.__set_is_group_ingestion_finished(secondary_istatus == ingestion_status::IS_SUCCEED);
 
         _resp.__set_hp_group_bulk_load_state(std::map<host_port, partition_bulk_load_state>{});
-        _resp.hp_group_bulk_load_state[PRIMARY_HOST] = state;
-        _resp.hp_group_bulk_load_state[SECONDARY1_HOST] = state;
-        _resp.hp_group_bulk_load_state[SECONDARY2_HOST] = state2;
+        _resp.hp_group_bulk_load_state[PRIMARY_HP] = state;
+        _resp.hp_group_bulk_load_state[SECONDARY1_HP] = state;
+        _resp.hp_group_bulk_load_state[SECONDARY2_HP] = state2;
 
         set_app_ingesting_count(_app_id, ingestion_count);
     }
@@ -876,12 +876,12 @@ public:
         _resp.group_bulk_load_state[SECONDARY1] = state;
 
         _resp.__set_hp_group_bulk_load_state(std::map<host_port, partition_bulk_load_state>{});
-        _resp.hp_group_bulk_load_state[PRIMARY_HOST] = state;
-        _resp.hp_group_bulk_load_state[SECONDARY1_HOST] = state;
+        _resp.hp_group_bulk_load_state[PRIMARY_HP] = state;
+        _resp.hp_group_bulk_load_state[SECONDARY1_HP] = state;
 
         state2.__set_is_cleaned_up(all_cleaned_up);
         _resp.group_bulk_load_state[SECONDARY2] = state2;
-        _resp.hp_group_bulk_load_state[SECONDARY2_HOST] = state2;
+        _resp.hp_group_bulk_load_state[SECONDARY2_HP] = state2;
         _resp.__set_is_group_bulk_load_context_cleaned_up(all_cleaned_up);
     }
 
@@ -898,9 +898,9 @@ public:
         _resp.group_bulk_load_state[SECONDARY2] = state2;
 
         _resp.__set_hp_group_bulk_load_state(std::map<host_port, partition_bulk_load_state>{});
-        _resp.hp_group_bulk_load_state[PRIMARY_HOST] = state;
-        _resp.hp_group_bulk_load_state[SECONDARY1_HOST] = state;
-        _resp.hp_group_bulk_load_state[SECONDARY2_HOST] = state2;
+        _resp.hp_group_bulk_load_state[PRIMARY_HP] = state;
+        _resp.hp_group_bulk_load_state[SECONDARY1_HP] = state;
+        _resp.hp_group_bulk_load_state[SECONDARY2_HP] = state2;
 
         _resp.__set_is_group_bulk_load_paused(is_group_paused);
     }
@@ -1036,7 +1036,7 @@ TEST_F(bulk_load_process_test, ingestion_one_succeed_update)
     ASSERT_EQ(pinfo.status, bulk_load_status::BLS_SUCCEED);
     ASSERT_TRUE(pinfo.ever_ingest_succeed);
     ASSERT_EQ(pinfo.addresses.size(), 3);
-    ASSERT_EQ(std::find(pinfo.addresses.begin(), pinfo.addresses.end(), SECONDARY3_HOST),
+    ASSERT_EQ(std::find(pinfo.addresses.begin(), pinfo.addresses.end(), SECONDARY3_HP),
               pinfo.addresses.end());
 }
 

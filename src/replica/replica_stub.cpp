@@ -3062,6 +3062,7 @@ void replica_stub::update_disk_holding_replicas()
 
 void replica_stub::on_bulk_load(bulk_load_rpc rpc)
 {
+    FILL_OPTIONAL_HP_IF_NEEDED(rpc.request(), primary_addr);
     const bulk_load_request &request = rpc.request();
     bulk_load_response &response = rpc.response();
 
@@ -3077,6 +3078,7 @@ void replica_stub::on_bulk_load(bulk_load_rpc rpc)
 
 void replica_stub::on_group_bulk_load(group_bulk_load_rpc rpc)
 {
+    FILL_OPTIONAL_HP_IF_NEEDED(rpc.request().config, primary);
     const group_bulk_load_request &request = rpc.request();
     group_bulk_load_response &response = rpc.response();
 

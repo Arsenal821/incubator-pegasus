@@ -157,7 +157,7 @@ void replica_bulk_loader::broadcast_group_bulk_load(const bulk_load_request &met
         request->meta_bulk_load_status = meta_req.meta_bulk_load_status;
         request->remote_root_path = meta_req.remote_root_path;
 
-        LOG_INFO_PREFIX("send group_bulk_load_request to {}", hp.to_string());
+        LOG_INFO_PREFIX("send group_bulk_load_request to {}({})", hp.to_string(), addr.to_string());
 
         group_bulk_load_rpc rpc(
             std::move(request), RPC_GROUP_BULK_LOAD, 0_ms, 0, get_gpid().thread_hash());
@@ -200,8 +200,9 @@ void replica_bulk_loader::on_group_bulk_load(const group_bulk_load_request &requ
         return;
     }
 
-    LOG_INFO_PREFIX("receive group_bulk_load request, primary address = {}, ballot = {}, "
+    LOG_INFO_PREFIX("receive group_bulk_load request, primary address = {}({}), ballot = {}, "
                     "meta bulk_load_status = {}, local bulk_load_status = {}",
+                    request.config.hp_primary.to_string(),
                     request.config.primary.to_string(),
                     request.config.ballot,
                     enum_to_string(request.meta_bulk_load_status),
@@ -238,7 +239,8 @@ void replica_bulk_loader::on_group_bulk_load_reply(error_code err,
     _replica->_primary_states.group_bulk_load_pending_replies.erase(req.hp_target_address);
 
     if (err != ERR_OK) {
-        LOG_ERROR_PREFIX("failed to receive group_bulk_load_reply from {}, error = {}",
+        LOG_ERROR_PREFIX("failed to receive group_bulk_load_reply from {}({}), error = {}",
+                         req.target_address.to_string(),
                          req.hp_target_address.to_string(),
                          err.to_string());
         _replica->_primary_states.reset_node_bulk_load_states(req.hp_target_address);
@@ -246,17 +248,19 @@ void replica_bulk_loader::on_group_bulk_load_reply(error_code err,
     }
 
     if (resp.err != ERR_OK) {
-        LOG_ERROR_PREFIX("receive group_bulk_load response from {} failed, error = {}",
+        LOG_ERROR_PREFIX("receive group_bulk_load response from {}({}) failed, error = {}",
                          req.hp_target_address.to_string(),
+                         req.target_address.to_string(),
                          resp.err.to_string());
         _replica->_primary_states.reset_node_bulk_load_states(req.hp_target_address);
         return;
     }
 
     if (req.config.ballot != get_ballot()) {
-        LOG_ERROR_PREFIX("recevied wrong group_bulk_load response from {}, request ballot = {}, "
+        LOG_ERROR_PREFIX("recevied wrong group_bulk_load response from {}({}), request ballot = {}, "
                          "current ballot = {}",
                          req.hp_target_address.to_string(),
+                         req.target_address.to_string(),
                          req.config.ballot,
                          get_ballot());
         _replica->_primary_states.reset_node_bulk_load_states(req.hp_target_address);
