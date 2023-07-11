@@ -589,8 +589,17 @@ pegasus_server_impl::pegasus_server_impl(dsn::replication::replica *r)
     _data_cf_opts.periodic_compaction_seconds =
         dsn_config_get_value_uint64("pegasus.server",
                                     "rocksdb_periodic_compaction_seconds",
-                                    0,
-                                    "periodic_compaction_seconds, 0 means no periodic compaction");
+                                    0xfffffffffffffffe,
+                                    "Files older than this value will be picked up for compaction, "
+                                    "and re-written to the same level as they were before. Values:"
+                                    "0: Turn off Periodic compactions."
+                                    "UINT64_MAX - 1 (i.e 0xfffffffffffffffe): Let RocksDB control "
+                                    "this feature as needed. For now, RocksDB will change this "
+                                    "value to 30 days so that every file goes through the "
+                                    "compaction process at least once every 30 days if not "
+                                    "compacted sooner.");
+    ddebug_replica("rocksdb_periodic_compaction_seconds = {}",
+                   _data_cf_opts.periodic_compaction_seconds);
 
     // get the checkpoint reserve options.
     _checkpoint_reserve_min_count_in_config = (uint32_t)dsn_config_get_value_uint64(
