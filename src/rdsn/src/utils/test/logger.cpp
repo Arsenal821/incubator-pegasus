@@ -155,6 +155,5 @@ TEST(tools_common, simple_logger)
 
     std::vector<std::string> file_name_list(files.begin(), files.end());
     clear_files(file_name_list);
-
     finish_test_dir();
 }

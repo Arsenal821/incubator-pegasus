@@ -90,7 +90,6 @@ public:
 
 private:
     void create_log_file();
-
     void remove_redundant_files();
 
     inline void add_bytes_if_valid(int bytes)

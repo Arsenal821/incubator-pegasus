@@ -146,7 +146,6 @@ void simple_logger::create_log_file()
     _file_bytes = 0;
 
     uint64_t ts = dsn::utils::get_current_physical_time_ns();
-
     char time_str[32];
     ::dsn::utils::time_ms_to_string_for_log_file_name(ts / 1000000, time_str);
 
@@ -183,6 +182,7 @@ void simple_logger::remove_redundant_files()
 {
     std::vector<std::string> matching_files;
     dsn::utils::glob(_file_path_pattern, matching_files);
+
     auto max_matches = static_cast<size_t>(FLAGS_max_number_of_log_files_on_disk);
     if (matching_files.size() <= max_matches) {
         return;
@@ -204,7 +204,6 @@ void simple_logger::remove_redundant_files()
     // Use mtime to determine which matching files to delete. This could
     // potentially be ambiguous, depending on the resolution of last-modified
     // timestamp in the filesystem, but that is part of the contract.
-
     std::sort(matching_file_mtimes.begin(), matching_file_mtimes.end());
     matching_file_mtimes.resize(matching_file_mtimes.size() - max_matches);
 
@@ -251,7 +250,6 @@ void simple_logger::dsn_logv(const char *file,
     dassert(_log != nullptr, "Log file hasn't been initialized yet");
 
     write_header(log_level);
-
     if (!FLAGS_short_header) {
         write_log("%s:%d:%s(): ", file, line, function);
     }
@@ -286,13 +284,10 @@ void simple_logger::dsn_log(const char *file,
     dassert(_log != nullptr, "Log file hasn't been initialized yet");
 
     write_header(log_level);
-
     if (!FLAGS_short_header) {
         write_log("%s:%d:%s(): ", file, line, function);
     }
     write_log("%s\n", str);
-
-    fprintf(_log, "%s\n", str);
     if (FLAGS_fast_flush || log_level >= LOG_LEVEL_ERROR) {
         ::fflush(_log);
     }
