@@ -368,7 +368,7 @@ bool bulk_load_service::check_partition_status(
     }
 
     pconfig = app->partitions[pid.get_partition_index()];
-    if (pconfig.primary.is_invalid()) {
+    if (pconfig.hp_primary.is_invalid()) {
         LOG_WARNING("app({}) partition({}) primary is invalid, try it later", app_name, pid);
         tasking::enqueue(LPC_META_STATE_NORMAL,
                          _meta_svc->tracker(),
@@ -378,7 +378,7 @@ bool bulk_load_service::check_partition_status(
         return false;
     }
 
-    if (pconfig.secondaries.size() < pconfig.max_replica_count - 1) {
+    if (pconfig.hp_secondaries.size() < pconfig.max_replica_count - 1) {
         bulk_load_status::type p_status;
         {
             zauto_read_lock l(_lock);

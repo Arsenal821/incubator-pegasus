@@ -222,10 +222,11 @@ void replica::init_learn(uint64_t signature)
     if (_app->last_committed_decree() == 0 &&
         _stub->_learn_app_concurrent_count.load() >= FLAGS_learn_app_max_concurrent_count) {
         LOG_WARNING_PREFIX(
-            "init_learn[{:#018x}]: learnee = {}, learn_duration = {} ms, need to learn app "
+            "init_learn[{:#018x}]: learnee = {}({}), learn_duration = {} ms, need to learn app "
             "because app_committed_decree = 0, but learn_app_concurrent_count({}) >= "
             "FLAGS_learn_app_max_concurrent_count({}), skip",
             _potential_secondary_states.learning_version,
+            _config.hp_primary,
             _config.primary,
             _potential_secondary_states.duration_ms(),
             _stub->_learn_app_concurrent_count,
@@ -246,11 +247,12 @@ void replica::init_learn(uint64_t signature)
     request.signature = _potential_secondary_states.learning_version;
     _app->prepare_get_checkpoint(request.app_specific_learn_request);
 
-    LOG_INFO_PREFIX("init_learn[{:#018x}]: learnee = {}, learn_duration = {} ms, max_gced_decree = "
+    LOG_INFO_PREFIX("init_learn[{:#018x}]: learnee = {}({}), learn_duration = {} ms, max_gced_decree = "
                     "{}, local_committed_decree = {}, app_committed_decree = {}, "
                     "app_durable_decree = {}, current_learning_status = {}, total_copy_file_count "
                     "= {}, total_copy_file_size = {}, total_copy_buffer_size = {}",
                     request.signature,
+                    _config.hp_primary,
                     _config.primary,
                     _potential_secondary_states.duration_ms(),
                     request.max_gced_decree,
@@ -586,12 +588,13 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
     }
 
     LOG_INFO_PREFIX(
-        "on_learn_reply_start[{}]: learnee = {}, learn_duration ={} ms, response_err = "
+        "on_learn_reply_start[{}]: learnee = {}({}), learn_duration ={} ms, response_err = "
         "{}, remote_committed_decree = {}, prepare_start_decree = {}, learn_type = {} "
         "learned_buffer_size = {}, learned_file_count = {},to_decree_included = "
         "{}, learn_start_decree = {}, last_commit_decree = {}, current_learning_status = "
         "{} ",
         req.signature,
+        resp.config.hp_primary.to_string(),
         resp.config.primary.to_string(),
         _potential_secondary_states.duration_ms(),
         resp.err.to_string(),
@@ -610,10 +613,11 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
 
     if (resp.err != ERR_OK) {
         if (resp.err == ERR_INACTIVE_STATE || resp.err == ERR_INCONSISTENT_STATE) {
-            LOG_WARNING_PREFIX("on_learn_reply[{:#018x}]: learnee = {}, learnee is updating "
+            LOG_WARNING_PREFIX("on_learn_reply[{:#018x}]: learnee = {}({}), learnee is updating "
                                "ballot(inactive state) or reconciliation(inconsistent state), "
                                "delay to start another round of learning",
                                req.signature,
+                               resp.config.hp_primary,
                                resp.config.primary);
             _potential_secondary_states.learning_round_is_running = false;
             _potential_secondary_states.delay_learning_task =
@@ -629,17 +633,19 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
     }
 
     if (resp.config.ballot > get_ballot()) {
-        LOG_INFO_PREFIX("on_learn_reply[{:#018x}]: learnee = {}, update configuration because "
+        LOG_INFO_PREFIX("on_learn_reply[{:#018x}]: learnee = {}({}), update configuration because "
                         "ballot have changed",
                         req.signature,
+                        resp.config.hp_primary,
                         resp.config.primary);
         CHECK(update_local_configuration(resp.config), "");
     }
 
     if (status() != partition_status::PS_POTENTIAL_SECONDARY) {
         LOG_ERROR_PREFIX(
-            "on_learn_reply[{:#018x}]: learnee = {}, current_status = {}, stop learning",
+            "on_learn_reply[{:#018x}]: learnee = {}({}), current_status = {}, stop learning",
             req.signature,
+            resp.config.hp_primary,
             resp.config.primary,
             enum_to_string(status()));
         return;
@@ -647,9 +653,10 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
 
     // local state is newer than learnee
     if (resp.last_committed_decree < _app->last_committed_decree()) {
-        LOG_WARNING_PREFIX("on_learn_reply[{:#018x}]: learnee = {}, learner state is newer than "
+        LOG_WARNING_PREFIX("on_learn_reply[{:#018x}]: learnee = {}({}), learner state is newer than "
                            "learnee (primary): {} vs {}, create new app",
                            req.signature,
+                           resp.config.hp_primary,
                            resp.config.primary,
                            _app->last_committed_decree(),
                            resp.last_committed_decree);
@@ -660,9 +667,10 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
         auto err = _app->close(true);
         if (err != ERR_OK) {
             LOG_ERROR_PREFIX(
-                "on_learn_reply[{:#018x}]: learnee = {}, close app (with clear_state=true) "
+                "on_learn_reply[{:#018x}]: learnee = {}({}), close app (with clear_state=true) "
                 "failed, err = {}",
                 req.signature,
+                resp.config.hp_primary,
                 resp.config.primary,
                 err);
         }
@@ -690,9 +698,10 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
                                           _private_log->on_partition_reset(get_gpid(), 0));
 
             if (err != ERR_OK) {
-                LOG_ERROR_PREFIX("on_learn_reply[{:#018x}]: learnee = {}, open app (with "
+                LOG_ERROR_PREFIX("on_learn_reply[{:#018x}]: learnee = {}({}), open app (with "
                                  "create_new=true) failed, err = {}",
                                  req.signature,
+                                 resp.config.hp_primary,
                                  resp.config.primary,
                                  err);
             }
@@ -727,9 +736,10 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
         if (++_stub->_learn_app_concurrent_count > FLAGS_learn_app_max_concurrent_count) {
             --_stub->_learn_app_concurrent_count;
             LOG_WARNING_PREFIX(
-                "on_learn_reply[{:#018x}]: learnee = {}, learn_app_concurrent_count({}) >= "
+                "on_learn_reply[{:#018x}]: learnee = {}({}), learn_app_concurrent_count({}) >= "
                 "FLAGS_learn_app_max_concurrent_count({}), skip this round",
                 _potential_secondary_states.learning_version,
+                _config.hp_primary,
                 _config.primary,
                 _stub->_learn_app_concurrent_count,
                 FLAGS_learn_app_max_concurrent_count);
@@ -738,8 +748,9 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
         } else {
             _potential_secondary_states.learn_app_concurrent_count_increased = true;
             LOG_INFO_PREFIX(
-                "on_learn_reply[{:#018x}]: learnee = {}, ++learn_app_concurrent_count = {}",
+                "on_learn_reply[{:#018x}]: learnee = {}({}), ++learn_app_concurrent_count = {}",
                 _potential_secondary_states.learning_version,
+                _config.hp_primary,
                 _config.primary,
                 _stub->_learn_app_concurrent_count.load());
         }
@@ -785,9 +796,10 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
         // reset preparelist
         _potential_secondary_states.learning_start_prepare_decree = resp.prepare_start_decree;
         _prepare_list->truncate(_app->last_committed_decree());
-        LOG_INFO_PREFIX("on_learn_reply[{:#018x}]: learnee = {}, truncate prepare list, "
+        LOG_INFO_PREFIX("on_learn_reply[{:#018x}]: learnee = {}({}), truncate prepare list, "
                         "local_committed_decree = {}, current_learning_status = {}",
                         req.signature,
+                        resp.config.hp_primary,
                         resp.config.primary,
                         _app->last_committed_decree(),
                         enum_to_string(_potential_secondary_states.learning_status));
@@ -816,9 +828,10 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
                     _prepare_list->get_mutation_by_decree(mu->data.header.decree);
                 if (existing_mutation != nullptr &&
                     existing_mutation->data.header.ballot > mu->data.header.ballot) {
-                    LOG_INFO_PREFIX("on_learn_reply[{:#018x}]: learnee = {}, mutation({}) exist on "
+                    LOG_INFO_PREFIX("on_learn_reply[{:#018x}]: learnee = {}({}), mutation({}) exist on "
                                     "the learner with larger ballot {}",
                                     req.signature,
+                                    resp.config.hp_primary,
                                     resp.config.primary,
                                     mu->name(),
                                     existing_mutation->data.header.ballot);
@@ -833,10 +846,11 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
             }
         }
 
-        LOG_INFO_PREFIX("on_learn_reply[{:#018x}]: learnee = {}, learn_duration = {} ms, apply "
+        LOG_INFO_PREFIX("on_learn_reply[{:#018x}]: learnee = {}({}), learn_duration = {} ms, apply "
                         "cache done, prepare_cache_range = <{}, {}>, local_committed_decree = {}, "
                         "app_committed_decree = {}, current_learning_status = {}",
                         req.signature,
+                        resp.config.hp_primary,
                         resp.config.primary,
                         _potential_secondary_states.duration_ms(),
                         cache_range.first,
@@ -879,8 +893,9 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
 
         if (!dsn::utils::filesystem::directory_exists(learn_dir)) {
             LOG_ERROR_PREFIX(
-                "on_learn_reply[{:#018x}]: learnee = {}, create replica learn dir {} failed",
+                "on_learn_reply[{:#018x}]: learnee = {}({}), create replica learn dir {} failed",
                 req.signature,
+                resp.config.hp_primary,
                 resp.config.primary,
                 learn_dir);
 
@@ -902,16 +917,17 @@ void replica::on_learn_reply(error_code err, learn_request &&req, learn_response
         }
 
         bool high_priority = (resp.type == learn_type::LT_APP ? false : true);
-        LOG_INFO_PREFIX("on_learn_reply[{:#018x}]: learnee = {}, learn_duration = {} ms, start to "
+        LOG_INFO_PREFIX("on_learn_reply[{:#018x}]: learnee = {}({}), learn_duration = {} ms, start to "
                         "copy remote files, copy_file_count = {}, priority = {}",
                         req.signature,
+                        resp.config.hp_primary,
                         resp.config.primary,
                         _potential_secondary_states.duration_ms(),
                         resp.state.files.size(),
                         high_priority ? "high" : "low");
 
         _potential_secondary_states.learn_remote_files_task = _stub->_nfs->copy_remote_files(
-            host_port(resp.config.primary),
+            resp.config.hp_primary,
             resp.replica_disk_tag,
             resp.base_local_dir,
             resp.state.files,
@@ -1017,12 +1033,13 @@ void replica::on_copy_remote_state_completed(error_code err,
     decree old_app_committed = _app->last_committed_decree();
     decree old_app_durable = _app->last_durable_decree();
 
-    LOG_INFO_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}, learn_duration = {} "
+    LOG_INFO_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}({}), learn_duration = {} "
                     "ms, copy remote state done, err = {}, copy_file_count = {}, copy_file_size = "
                     "{}, copy_time_used = {} ms, local_committed_decree = {}, app_committed_decree "
                     "= {}, app_durable_decree = {}, prepare_start_decree = {}, "
                     "current_learning_status = {}",
                     req.signature,
+                    resp.config.hp_primary,
                     resp.config.primary,
                     _potential_secondary_states.duration_ms(),
                     err,
@@ -1038,9 +1055,10 @@ void replica::on_copy_remote_state_completed(error_code err,
     if (resp.type == learn_type::LT_APP) {
         --_stub->_learn_app_concurrent_count;
         _potential_secondary_states.learn_app_concurrent_count_increased = false;
-        LOG_INFO_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}, "
+        LOG_INFO_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}({}), "
                         "--learn_app_concurrent_count = {}",
                         _potential_secondary_states.learning_version,
+                        _config.hp_primary,
                         _config.primary,
                         _stub->_learn_app_concurrent_count.load());
     }
@@ -1085,19 +1103,21 @@ void replica::on_copy_remote_state_completed(error_code err,
                 // the learn_start_decree will be set to 0, which makes learner to learn from
                 // scratch
                 CHECK_LE(_app->last_committed_decree(), resp.last_committed_decree);
-                LOG_INFO_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}, "
+                LOG_INFO_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}({}), "
                                 "learn_duration = {} ms, checkpoint duration = {} ns, apply "
                                 "checkpoint succeed, app_committed_decree = {}",
                                 req.signature,
+                                resp.config.hp_primary,
                                 resp.config.primary,
                                 _potential_secondary_states.duration_ms(),
                                 dsn_now_ns() - start_ts,
                                 _app->last_committed_decree());
             } else {
-                LOG_ERROR_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}, "
+                LOG_ERROR_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}({}), "
                                  "learn_duration = {} ms, checkpoint duration = {} ns, apply "
                                  "checkpoint failed, err = {}",
                                  req.signature,
+                                 resp.config.hp_primary,
                                  resp.config.primary,
                                  _potential_secondary_states.duration_ms(),
                                  dsn_now_ns() - start_ts,
@@ -1110,19 +1130,21 @@ void replica::on_copy_remote_state_completed(error_code err,
             auto start_ts = dsn_now_ns();
             err = apply_learned_state_from_private_log(lstate);
             if (err == ERR_OK) {
-                LOG_INFO_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}, "
+                LOG_INFO_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}({}), "
                                 "learn_duration = {} ms, apply_log_duration = {} ns, apply learned "
                                 "state from private log succeed, app_committed_decree = {}",
                                 req.signature,
+                                resp.config.hp_primary,
                                 resp.config.primary,
                                 _potential_secondary_states.duration_ms(),
                                 dsn_now_ns() - start_ts,
                                 _app->last_committed_decree());
             } else {
-                LOG_ERROR_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}, "
+                LOG_ERROR_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}({}), "
                                  "learn_duration = {} ms, apply_log_duration = {} ns, apply "
                                  "learned state from private log failed, err = {}",
                                  req.signature,
+                                 resp.config.hp_primary,
                                  resp.config.primary,
                                  _potential_secondary_states.duration_ms(),
                                  dsn_now_ns() - start_ts,
@@ -1133,12 +1155,13 @@ void replica::on_copy_remote_state_completed(error_code err,
         // reset prepare list to make it catch with app
         _prepare_list->reset(_app->last_committed_decree());
 
-        LOG_INFO_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}, learn_duration = "
+        LOG_INFO_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}({}), learn_duration = "
                         "{} ms, apply checkpoint/log done, err = {}, last_prepared_decree = ({} => "
                         "{}), last_committed_decree = ({} => {}), app_committed_decree = ({} => "
                         "{}), app_durable_decree = ({} => {}), remote_committed_decree = {}, "
                         "prepare_start_decree = {}, current_learning_status = {}",
                         req.signature,
+                        resp.config.hp_primary,
                         resp.config.primary,
                         _potential_secondary_states.duration_ms(),
                         err,
@@ -1162,10 +1185,11 @@ void replica::on_copy_remote_state_completed(error_code err,
         _app->last_committed_decree() > _app->last_durable_decree()) {
         err = background_sync_checkpoint();
 
-        LOG_INFO_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}, learn_duration = "
+        LOG_INFO_PREFIX("on_copy_remote_state_completed[{:#018x}]: learnee = {}({}), learn_duration = "
                         "{} ms, flush done, err = {}, app_committed_decree = {}, "
                         "app_durable_decree = {}",
                         req.signature,
+                        resp.config.hp_primary,
                         resp.config.primary,
                         _potential_secondary_states.duration_ms(),
                         err,
@@ -1197,10 +1221,11 @@ void replica::on_learn_remote_state_completed(error_code err)
     _checker.only_one_thread_access();
 
     if (partition_status::PS_POTENTIAL_SECONDARY != status()) {
-        LOG_WARNING_PREFIX("on_learn_remote_state_completed[{:#018x}]: learnee = {}, "
+        LOG_WARNING_PREFIX("on_learn_remote_state_completed[{:#018x}]: learnee = {}({}), "
                            "learn_duration = {} ms, err = {}, the learner status is not "
                            "PS_POTENTIAL_SECONDARY, but {}, ignore",
                            _potential_secondary_states.learning_version,
+                           _config.hp_primary,
                            _config.primary,
                            _potential_secondary_states.duration_ms(),
                            err,
@@ -1208,10 +1233,11 @@ void replica::on_learn_remote_state_completed(error_code err)
         return;
     }
 
-    LOG_INFO_PREFIX("on_learn_remote_state_completed[{:#018x}]: learnee = {}, learn_duration = {} "
+    LOG_INFO_PREFIX("on_learn_remote_state_completed[{:#018x}]: learnee = {}({}), learn_duration = {} "
                     "ms, err = {}, local_committed_decree = {}, app_committed_decree = {}, "
                     "app_durable_decree = {}, current_learning_status = {}",
                     _potential_secondary_states.learning_version,
+                    _config.hp_primary,
                     _config.primary,
                     _potential_secondary_states.duration_ms(),
                     err,
@@ -1235,8 +1261,9 @@ void replica::handle_learning_error(error_code err, bool is_local_error)
     _checker.only_one_thread_access();
 
     LOG_ERROR_PREFIX(
-        "handle_learning_error[{:#018x}]: learnee = {}, learn_duration = {} ms, err = {}, {}",
+        "handle_learning_error[{:#018x}]: learnee = {}({}), learn_duration = {} ms, err = {}, {}",
         _potential_secondary_states.learning_version,
+        _config.hp_primary,
         _config.primary,
         _potential_secondary_states.duration_ms(),
         err,
@@ -1294,10 +1321,11 @@ void replica::notify_learn_completion()
     report.node = _stub->primary_address();
     report.__set_hp_node(_stub->_primary_host_port);
 
-    LOG_INFO_PREFIX("notify_learn_completion[{:#018x}]: learnee = {}, learn_duration = {} ms, "
+    LOG_INFO_PREFIX("notify_learn_completion[{:#018x}]: learnee = {}({}), learn_duration = {} ms, "
                     "local_committed_decree = {}, app_committed_decree = {}, app_durable_decree = "
                     "{}, current_learning_status = {}",
                     _potential_secondary_states.learning_version,
+                    _config.hp_primary,
                     _config.primary,
                     _potential_secondary_states.duration_ms(),
                     last_committed_decree(),
@@ -1378,10 +1406,11 @@ void replica::on_learn_completion_notification_reply(error_code err,
     }
 
     if (resp.signature != (int64_t)_potential_secondary_states.learning_version) {
-        LOG_ERROR_PREFIX("on_learn_completion_notification_reply[{:#018x}]: learnee = {}, "
+        LOG_ERROR_PREFIX("on_learn_completion_notification_reply[{:#018x}]: learnee = {}({}), "
                          "learn_duration = {} ms, signature not matched, current signature on "
                          "primary is [{:#018x}]",
                          report.learner_signature,
+                         _config.hp_primary,
                          _config.primary,
                          _potential_secondary_states.duration_ms(),
                          resp.signature);
@@ -1389,19 +1418,21 @@ void replica::on_learn_completion_notification_reply(error_code err,
         return;
     }
 
-    LOG_INFO_PREFIX("on_learn_completion_notification_reply[{:#018x}]: learnee = {}, "
+    LOG_INFO_PREFIX("on_learn_completion_notification_reply[{:#018x}]: learnee = {}({}), "
                     "learn_duration = {} ms, response_err = {}",
                     report.learner_signature,
+                    _config.hp_primary,
                     _config.primary,
                     _potential_secondary_states.duration_ms(),
                     resp.err);
 
     if (resp.err != ERR_OK) {
         if (resp.err == ERR_INACTIVE_STATE) {
-            LOG_WARNING_PREFIX("on_learn_completion_notification_reply[{:#018x}]: learnee = {}, "
+            LOG_WARNING_PREFIX("on_learn_completion_notification_reply[{:#018x}]: learnee = {}({}), "
                                "learn_duration = {} ms, learnee is updating ballot, delay to start "
                                "another round of learning",
                                report.learner_signature,
+                               _config.hp_primary,
                                _config.primary,
                                _potential_secondary_states.duration_ms());
             _potential_secondary_states.learning_round_is_running = false;
@@ -1421,8 +1452,9 @@ void replica::on_learn_completion_notification_reply(error_code err,
 
 void replica::on_add_learner(const group_check_request &request)
 {
-    LOG_INFO_PREFIX("process add learner, primary = {}, ballot ={}, status ={}, "
+    LOG_INFO_PREFIX("process add learner, primary = {}({}), ballot ={}, status ={}, "
                     "last_committed_decree = {}, duplicating = {}",
+                    request.config.hp_primary.to_string(),
                     request.config.primary.to_string(),
                     request.config.ballot,
                     enum_to_string(request.config.status),
@@ -1563,12 +1595,13 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
 
     LOG_INFO_PREFIX(
         "apply_learned_state_from_private_log[{}]: duplicating={}, step_back={}, "
-        "learnee = {}, learn_duration = {} ms, apply private log files done, file_count "
+        "learnee = {}({}), learn_duration = {} ms, apply private log files done, file_count "
         "={}, first_learn_start_decree ={}, learn_start_decree = {}, "
         "app_committed_decree = {}",
         _potential_secondary_states.learning_version,
         duplicating,
         step_back,
+        _config.hp_primary.to_string(),
         _config.primary.to_string(),
         _potential_secondary_states.duration_ms(),
         state.files.size(),
@@ -1596,20 +1629,22 @@ error_code replica::apply_learned_state_from_private_log(learn_state &state)
         }
 
         if (state.to_decree_included > last_committed_decree()) {
-            LOG_INFO_PREFIX("apply_learned_state_from_private_log[{}]: learnee ={}, "
+            LOG_INFO_PREFIX("apply_learned_state_from_private_log[{}]: learnee ={}({}), "
                             "learned_to_decree_included({}) > last_committed_decree({}), commit to "
                             "to_decree_included",
                             _potential_secondary_states.learning_version,
+                            _config.hp_primary.to_string(),
                             _config.primary.to_string(),
                             state.to_decree_included,
                             last_committed_decree());
             plist.commit(state.to_decree_included, COMMIT_TO_DECREE_SOFT);
         }
 
-        LOG_INFO_PREFIX(" apply_learned_state_from_private_log[{}]: learnee ={}, "
+        LOG_INFO_PREFIX(" apply_learned_state_from_private_log[{}]: learnee ={}({}), "
                         "learn_duration ={} ms, apply in-buffer private logs done, "
                         "replay_count ={}, app_committed_decree = {}",
                         _potential_secondary_states.learning_version,
+                        _config.hp_primary.to_string(),
                         _config.primary.to_string(),
                         _potential_secondary_states.duration_ms(),
                         replay_count,

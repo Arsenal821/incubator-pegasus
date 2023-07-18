@@ -98,18 +98,20 @@ static void check_cure(app_mapper &apps, node_mapper &nodes, ::dsn::partition_co
     CHECK_EQ(nodes[pc.hp_primary].served_as(pc.pid), partition_status::PS_PRIMARY);
     nodes[pc.hp_primary].remove_partition(pc.pid, true);
     pc.primary.set_invalid();
+    pc.hp_primary.reset();
 
     ps = guardian.cure({&apps, &nodes}, pc.pid, act);
     CHECK_EQ(act.type, config_type::CT_UPGRADE_TO_PRIMARY);
-    CHECK(pc.primary.is_invalid(), "");
+    CHECK(pc.hp_primary.is_invalid(), "");
     CHECK_EQ(act.hp_node, act.hp_target);
     CHECK(is_secondary(pc, act.hp_node), "");
     CHECK(nodes.find(act.hp_node) != nodes.end(), "");
 
     ns = &nodes[act.hp_node];
     pc.primary = act.node;
-    pc.hp_primary = act.hp_node;
+    pc.__set_hp_primary(act.hp_node);
     std::remove(pc.secondaries.begin(), pc.secondaries.end(), pc.primary);
+    std::remove(pc.hp_secondaries.begin(), pc.hp_secondaries.end(), pc.hp_primary);
 
     CHECK_EQ(ns->served_as(pc.pid), partition_status::PS_SECONDARY);
     ns->put_partition(pc.pid, true);
@@ -158,7 +160,7 @@ void meta_service_test_app::balancer_validator()
 
     std::shared_ptr<app_state> &the_app = apps[1];
     for (::dsn::partition_configuration &pc : the_app->partitions) {
-        CHECK(!pc.primary.is_invalid(), "");
+        CHECK(!pc.hp_primary.is_invalid(), "");
         CHECK_GE(pc.secondaries.size(), pc.max_replica_count - 1);
     }
 
@@ -169,6 +171,8 @@ void meta_service_test_app::balancer_validator()
         nodes[hp].remove_partition(pc.pid, false);
     pc.primary.set_invalid();
     pc.secondaries.clear();
+    pc.hp_primary.reset();
+    pc.hp_secondaries.clear();
 
     // cure test
     check_cure(apps, nodes, pc);

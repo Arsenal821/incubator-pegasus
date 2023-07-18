@@ -73,10 +73,10 @@ void verbose_apps(const app_mapper &input_apps)
         const std::shared_ptr<app_state> &app = apps.second;
         std::cout << apps.first << " " << app->partition_count << std::endl;
         for (int i = 0; i < app->partition_count; ++i) {
-            std::cout << app->partitions[i].secondaries.size() + 1 << " "
-                      << app->partitions[i].primary.to_string();
-            for (int j = 0; j < app->partitions[i].secondaries.size(); ++j) {
-                std::cout << " " << app->partitions[i].secondaries[j].to_string();
+            std::cout << app->partitions[i].hp_secondaries.size() + 1 << " "
+                      << app->partitions[i].hp_primary.to_string();
+            for (int j = 0; j < app->partitions[i].hp_secondaries.size(); ++j) {
+                std::cout << " " << app->partitions[i].hp_secondaries[j].to_string();
             }
             std::cout << std::endl;
         }
@@ -89,15 +89,15 @@ void generate_node_mapper(
     const std::vector<dsn::host_port> &input_node_list)
 {
     output_nodes.clear();
-    for (auto &host_port : input_node_list) {
-        get_node_state(output_nodes, host_port, true)->set_alive(true);
+    for (auto &hp : input_node_list) {
+        get_node_state(output_nodes, hp, true)->set_alive(true);
     }
 
     for (auto &kv : input_apps) {
         const std::shared_ptr<app_state> &app = kv.second;
         for (const dsn::partition_configuration &pc : app->partitions) {
             node_state *ns;
-            if (!pc.primary.is_invalid()) {
+            if (!pc.hp_primary.is_invalid()) {
                 ns = get_node_state(output_nodes, pc.hp_primary, true);
                 ns->put_partition(pc.pid, true);
             }
@@ -122,12 +122,11 @@ void generate_app(/*out*/ std::shared_ptr<app_state> &app,
 
         int p = random32(0, 2);
         pc.hp_primary = node_list[indices[p]];
-        pc.hp_secondaries.clear();
         for (unsigned int i = 0; i != indices.size(); ++i)
             if (i != p)
                 pc.hp_secondaries.push_back(node_list[indices[i]]);
 
-        CHECK(!pc.primary.is_invalid(), "");
+        CHECK(!pc.hp_primary.is_invalid(), "");
         CHECK(!is_secondary(pc, pc.hp_primary), "");
         CHECK_EQ(pc.hp_secondaries.size(), 2);
         CHECK_NE(pc.hp_secondaries[0], pc.hp_secondaries[1]);
@@ -147,10 +146,10 @@ void generate_app_serving_replica_info(/*out*/ std::shared_ptr<dsn::replication:
         ri.disk_tag = buffer;
         cc.collect_serving_replica(pc.hp_primary, ri);
 
-        for (const dsn::host_port &host_port : pc.hp_secondaries) {
+        for (const dsn::host_port &hp : pc.hp_secondaries) {
             snprintf(buffer, 256, "disk%u", dsn::rand::next_u32(1, total_disks));
             ri.disk_tag = buffer;
-            cc.collect_serving_replica(host_port, ri);
+            cc.collect_serving_replica(hp, ri);
         }
     }
 }
@@ -292,8 +291,8 @@ void proposal_action_check_and_apply(const configuration_proposal_action &act,
     switch (act.type) {
     case config_type::CT_ASSIGN_PRIMARY:
         CHECK_EQ(act.node, act.target);
-        CHECK(pc.primary.is_invalid(), "");
-        CHECK(pc.secondaries.empty(), "");
+        CHECK(pc.hp_primary.is_invalid(), "");
+        CHECK(pc.hp_secondaries.empty(), "");
 
         pc.primary = act.node;
         pc.hp_primary = act.hp_node;
@@ -319,9 +318,10 @@ void proposal_action_check_and_apply(const configuration_proposal_action &act,
         CHECK(nodes.find(act.hp_node) != nodes.end(), "");
         CHECK(!is_secondary(pc, pc.hp_primary), "");
         nodes[act.hp_node].remove_partition(pc.pid, true);
-        pc.hp_secondaries.push_back(pc.hp_primary);
         pc.secondaries.push_back(pc.primary);
+        pc.hp_secondaries.push_back(pc.hp_primary);
         pc.primary.set_invalid();
+        pc.__set_hp_primary(dsn::host_port());
         break;
 
     case config_type::CT_UPGRADE_TO_PRIMARY:

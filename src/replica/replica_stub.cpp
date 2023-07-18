@@ -1266,10 +1266,11 @@ void replica_stub::on_group_check(group_check_rpc rpc)
         return;
     }
 
-    LOG_INFO("{}@{}: received group check, primary = {}, ballot = {}, status = {}, "
+    LOG_INFO("{}@{}: received group check, primary = {}({}), ballot = {}, status = {}, "
              "last_committed_decree = {}",
              request.config.pid,
              _primary_address_str,
+             request.config.hp_primary,
              request.config.primary,
              request.config.ballot,
              enum_to_string(request.config.status),
@@ -1329,17 +1330,19 @@ void replica_stub::on_learn_completion_notification(learn_completion_notificatio
 void replica_stub::on_add_learner(const group_check_request &request)
 {
     if (!is_connected()) {
-        LOG_WARNING("{}@{}: received add learner, primary = {}, not connected, ignore",
+        LOG_WARNING("{}@{}: received add learner, primary = {}({}), not connected, ignore",
                     request.config.pid,
                     _primary_address_str,
+                    request.config.hp_primary,
                     request.config.primary);
         return;
     }
 
-    LOG_INFO("{}@{}: received add learner, primary = {}, ballot = {}, status = {}, "
+    LOG_INFO("{}@{}: received add learner, primary = {}({}), ballot = {}, status = {}, "
              "last_committed_decree = {}",
              request.config.pid,
              _primary_address_str,
+             request.config.hp_primary,
              request.config.primary,
              request.config.ballot,
              enum_to_string(request.config.status),
@@ -3082,10 +3085,11 @@ void replica_stub::on_group_bulk_load(group_bulk_load_rpc rpc)
     const group_bulk_load_request &request = rpc.request();
     group_bulk_load_response &response = rpc.response();
 
-    LOG_INFO("[{}@{}]: received group bulk load request, primary = {}, ballot = {}, "
+    LOG_INFO("[{}@{}]: received group bulk load request, primary = {}({}), ballot = {}, "
              "meta_bulk_load_status = {}",
              request.config.pid,
              _primary_address_str,
+             request.config.hp_primary.to_string(),
              request.config.primary.to_string(),
              request.config.ballot,
              enum_to_string(request.meta_bulk_load_status));

@@ -426,6 +426,10 @@ void meta_duplication_service::check_follower_app_if_create_completed(
                           p.primary = rpc_address("127.0.0.1", 34801);
                           p.secondaries.emplace_back(rpc_address("127.0.0.2", 34801));
                           p.secondaries.emplace_back(rpc_address("127.0.0.3", 34801));
+                          p.__set_hp_primary(host_port("localhost", 34801));
+                          p.__set_hp_secondaries(std::vector<host_port>());
+                          p.hp_secondaries.emplace_back(host_port("127.0.0.2", 34801));
+                          p.hp_secondaries.emplace_back(host_port("127.0.0.3", 34801));
                           resp.partitions.emplace_back(p);
                       }
                   });
@@ -438,17 +442,17 @@ void meta_duplication_service::check_follower_app_if_create_completed(
                           query_err = ERR_INCONSISTENT_STATE;
                       } else {
                           for (const auto &partition : resp.partitions) {
-                              if (partition.primary.is_invalid()) {
+                              if (partition.hp_primary.is_invalid()) {
                                   query_err = ERR_INACTIVE_STATE;
                                   break;
                               }
 
-                              if (partition.secondaries.empty()) {
+                              if (partition.hp_secondaries.empty()) {
                                   query_err = ERR_NOT_ENOUGH_MEMBER;
                                   break;
                               }
 
-                              for (const auto &secondary : partition.secondaries) {
+                              for (const auto &secondary : partition.hp_secondaries) {
                                   if (secondary.is_invalid()) {
                                       query_err = ERR_INACTIVE_STATE;
                                       break;

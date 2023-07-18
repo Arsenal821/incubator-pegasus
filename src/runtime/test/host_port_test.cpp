@@ -247,7 +247,6 @@ TEST(host_port_test, optional_struct_macro_fuction)
     config.primary = rpc_address("127.0.0.1", 8080);
     config.secondaries = { rpc_address("127.0.0.1", 8081), rpc_address("127.0.0.1", 8082) };
     config.last_drops = { rpc_address("127.0.0.1", 8083) };
-    config.__set_hp_last_drops({ host_port("localhost", 8083) });
 
     FILL_OPTIONAL_HP_IF_NEEDED(config, primary);
     FILL_OPTIONAL_HP_LIST_IF_NEEDED(config, secondaries);

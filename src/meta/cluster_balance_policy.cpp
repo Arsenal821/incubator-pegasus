@@ -224,7 +224,7 @@ bool cluster_balance_policy::get_app_migration_info(std::shared_ptr<app_state> a
     for (auto i = 0; i < app->partitions.size(); ++i) {
         std::map<host_port, partition_status::type> pstatus_map;
         pstatus_map[app->partitions[i].hp_primary] = partition_status::PS_PRIMARY;
-        if (app->partitions[i].secondaries.size() != app->partitions[i].max_replica_count - 1) {
+        if (app->partitions[i].hp_secondaries.size() != app->partitions[i].max_replica_count - 1) {
             // partition is unhealthy
             return false;
         }

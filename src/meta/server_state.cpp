@@ -1493,39 +1493,39 @@ void server_state::request_check(const partition_configuration &old,
 
     switch (request.type) {
     case config_type::CT_ASSIGN_PRIMARY:
-        CHECK_NE(old.primary, request.node);
-        CHECK(std::find(old.secondaries.begin(), old.secondaries.end(), request.node) ==
-                  old.secondaries.end(),
+        CHECK_NE(old.hp_primary, request.hp_node);
+        CHECK(std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) ==
+                  old.hp_secondaries.end(),
               "");
         break;
     case config_type::CT_UPGRADE_TO_PRIMARY:
-        CHECK_NE(old.primary, request.node);
-        CHECK(std::find(old.secondaries.begin(), old.secondaries.end(), request.node) !=
-                  old.secondaries.end(),
+        CHECK_NE(old.hp_primary, request.hp_node);
+        CHECK(std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) !=
+                  old.hp_secondaries.end(),
               "");
         break;
     case config_type::CT_DOWNGRADE_TO_SECONDARY:
-        CHECK_EQ(old.primary, request.node);
-        CHECK(std::find(old.secondaries.begin(), old.secondaries.end(), request.node) ==
-                  old.secondaries.end(),
+        CHECK_EQ(old.hp_primary, request.hp_node);
+        CHECK(std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) ==
+                  old.hp_secondaries.end(),
               "");
         break;
     case config_type::CT_DOWNGRADE_TO_INACTIVE:
     case config_type::CT_REMOVE:
-        CHECK(old.primary == request.node ||
-                  std::find(old.secondaries.begin(), old.secondaries.end(), request.node) !=
-                      old.secondaries.end(),
+        CHECK(old.hp_primary == request.hp_node ||
+                  std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) !=
+                      old.hp_secondaries.end(),
               "");
         break;
     case config_type::CT_UPGRADE_TO_SECONDARY:
-        CHECK_NE(old.primary, request.node);
-        CHECK(std::find(old.secondaries.begin(), old.secondaries.end(), request.node) ==
-                  old.secondaries.end(),
+        CHECK_NE(old.hp_primary, request.hp_node);
+        CHECK(std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) ==
+                  old.hp_secondaries.end(),
               "");
         break;
     case config_type::CT_PRIMARY_FORCE_UPDATE_BALLOT:
-        CHECK_EQ(old.primary, new_config.primary);
-        CHECK(old.secondaries == new_config.secondaries, "");
+        CHECK_EQ(old.hp_primary, new_config.hp_primary);
+        CHECK(old.hp_secondaries == new_config.hp_secondaries, "");
         break;
     default:
         break;
@@ -1798,12 +1798,13 @@ void server_state::drop_partition(std::shared_ptr<app_state> &app, int pidx)
     request.info = *app;
     request.type = config_type::CT_DROP_PARTITION;
     request.node = pc.primary;
+    request.__set_hp_node(pc.hp_primary);
 
     request.config = pc;
     for (auto &node : pc.hp_secondaries) {
         maintain_drops(request.config.hp_last_drops, node, request.type);
     }
-    if (!pc.primary.is_invalid()) {
+    if (!pc.hp_primary.is_invalid()) {
         maintain_drops(request.config.hp_last_drops, pc.hp_primary, request.type);
     }
     request.config.primary.set_invalid();
@@ -1852,8 +1853,9 @@ void server_state::downgrade_primary_to_inactive(std::shared_ptr<app_state> &app
             return;
         } else {
             LOG_WARNING("gpid({}) is syncing another request with remote, cancel it due to the "
-                        "primary({}) is down",
+                        "primary({}({})) is down",
                         pc.pid,
+                        pc.hp_primary,
                         pc.primary);
             cc.cancel_sync();
         }
@@ -1866,8 +1868,10 @@ void server_state::downgrade_primary_to_inactive(std::shared_ptr<app_state> &app
     request.config = pc;
     request.type = config_type::CT_DOWNGRADE_TO_INACTIVE;
     request.node = pc.primary;
+    request.__set_hp_node(pc.hp_primary);
     request.config.ballot++;
     request.config.primary.set_invalid();
+    request.config.__set_hp_primary(host_port());
     maintain_drops(request.config.hp_last_drops, pc.hp_primary, request.type);
 
     cc.stage = config_status::pending_remote_sync;
@@ -1884,7 +1888,7 @@ void server_state::downgrade_secondary_to_inactive(std::shared_ptr<app_state> &a
     partition_configuration &pc = app->partitions[pidx];
     config_context &cc = app->helpers->contexts[pidx];
 
-    CHECK(!pc.primary.is_invalid(), "this shouldn't be called if the primary is invalid");
+    CHECK(!pc.hp_primary.is_invalid(), "this shouldn't be called if the primary is invalid");
     if (config_status::pending_remote_sync != cc.stage) {
         configuration_update_request request;
         request.info = *app;
@@ -1920,18 +1924,23 @@ void server_state::downgrade_stateless_nodes(std::shared_ptr<app_state> &app,
     unsigned i = 0;
     for (; i < pc.hp_secondaries.size(); ++i) {
         if (pc.hp_secondaries[i] == address) {
+            req->node = pc.last_drops[i];
             req->__set_hp_node(pc.hp_last_drops[i]);
             break;
         }
     }
     CHECK(!req->node.is_invalid(), "invalid node address, address = {}", req->node);
     // remove host_node & node from secondaries/last_drops, as it will be sync to remote storage
-    for (++i; i < pc.secondaries.size(); ++i) {
+    for (++i; i < pc.hp_secondaries.size(); ++i) {
         pc.secondaries[i - 1] = pc.secondaries[i];
         pc.last_drops[i - 1] = pc.last_drops[i];
+        pc.hp_secondaries[i - 1] = pc.hp_secondaries[i];
+        pc.hp_last_drops[i - 1] = pc.hp_last_drops[i];
     }
     pc.secondaries.pop_back();
     pc.last_drops.pop_back();
+    pc.hp_secondaries.pop_back();
+    pc.hp_last_drops.pop_back();
 
     if (config_status::pending_remote_sync == cc.stage) {
         LOG_WARNING("gpid({}) is syncing another request with remote, cancel it due to meta is "
@@ -2024,7 +2033,7 @@ void server_state::on_partition_node_dead(std::shared_ptr<app_state> &app,
         if (is_primary(pc, address))
             downgrade_primary_to_inactive(app, pidx);
         else if (is_secondary(pc, address)) {
-            if (!pc.primary.is_invalid())
+            if (!pc.hp_primary.is_invalid())
                 downgrade_secondary_to_inactive(app, pidx, address);
             else if (is_secondary(pc, address)) {
                 LOG_INFO("gpid({}): secondary({}) is down, ignored it due to no primary for this "
@@ -2226,11 +2235,11 @@ error_code server_state::construct_partitions(
                              app->app_id,
                              pc.pid.get_partition_index(),
                              boost::lexical_cast<std::string>(pc));
-                    if (pc.last_drops.size() + 1 < pc.max_replica_count) {
+                    if (pc.hp_last_drops.size() + 1 < pc.max_replica_count) {
                         std::ostringstream oss;
                         oss << "WARNING: partition(" << app->app_id << "."
                             << pc.pid.get_partition_index() << ") only collects "
-                            << (pc.last_drops.size() + 1) << "/" << pc.max_replica_count
+                            << (pc.hp_last_drops.size() + 1) << "/" << pc.max_replica_count
                             << " of replicas, may lost data" << std::endl;
                         hint_message += oss.str();
                     }
@@ -2547,7 +2556,7 @@ bool server_state::check_all_partitions()
     for (int i = 0; i < add_secondary_actions.size(); ++i) {
         gpid &pid = add_secondary_gpids[i];
         partition_configuration &pc = *get_config(_all_apps, pid);
-        if (!add_secondary_proposed[i] && pc.secondaries.empty()) {
+        if (!add_secondary_proposed[i] && pc.hp_secondaries.empty()) {
             configuration_proposal_action &action = add_secondary_actions[i];
             if (_add_secondary_enable_flow_control &&
                 add_secondary_running_nodes[action.hp_node] >= _add_secondary_max_count_for_one_node) {

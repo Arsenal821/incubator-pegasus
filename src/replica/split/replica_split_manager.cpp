@@ -109,10 +109,11 @@ void replica_split_manager::parent_start_split(
     _child_gpid = child_gpid;
     _child_init_ballot = get_ballot();
 
-    LOG_INFO_PREFIX("start to add child({}), init_ballot={}, status={}, primary_address={}",
+    LOG_INFO_PREFIX("start to add child({}), init_ballot={}, status={}, primary_address={}({})",
                     _child_gpid,
                     _child_init_ballot,
                     enum_to_string(status()),
+                    request.config.hp_primary.to_string(),
                     request.config.primary.to_string());
 
     tasking::enqueue(LPC_CREATE_CHILD,
@@ -583,8 +584,9 @@ void replica_split_manager::child_notify_catch_up() // on child partition
     request->child_address = _stub->primary_address();
     request->__set_hp_child_address(_stub->_primary_host_port);
 
-    LOG_INFO_PREFIX("send notification to primary parent[{}@{}], ballot={}",
+    LOG_INFO_PREFIX("send notification to primary parent[{}@{}({})], ballot={}",
                     _replica->_split_states.parent_gpid,
+                    _replica->_config.hp_primary.to_string(),
                     _replica->_config.primary.to_string(),
                     get_ballot());
 
@@ -614,8 +616,9 @@ void replica_split_manager::child_notify_catch_up() // on child partition
             child_handle_split_error("notify_primary_split_catch_up failed");
             return;
         }
-        LOG_INFO_PREFIX("notify primary parent[{}@{}] catch up succeed",
+        LOG_INFO_PREFIX("notify primary parent[{}@{}({})] catch up succeed",
                         _replica->_split_states.parent_gpid,
+                        _replica->_config.hp_primary.to_string(),
                         _replica->_config.primary.to_string());
     });
 }
@@ -731,11 +734,11 @@ void replica_split_manager::update_child_group_partition_count(
     }
 
     if (!_replica->_primary_states.learners.empty() ||
-        _replica->_primary_states.membership.secondaries.size() + 1 <
+        _replica->_primary_states.membership.hp_secondaries.size() + 1 <
             _replica->_primary_states.membership.max_replica_count) {
         LOG_ERROR_PREFIX("there are {} learners or not have enough secondaries(count is {})",
                          _replica->_primary_states.learners.size(),
-                         _replica->_primary_states.membership.secondaries.size());
+                         _replica->_primary_states.membership.hp_secondaries.size());
         parent_handle_split_error(
             "update_child_group_partition_count failed, have learner or lack of secondary", true);
         return;
@@ -944,6 +947,7 @@ void replica_split_manager::register_child_on_meta(ballot b) // on primary paren
     child_config.ballot++;
     child_config.last_committed_decree = 0;
     child_config.last_drops.clear();
+    child_config.hp_last_drops.clear();
     child_config.pid.set_partition_index(_replica->_app_info.partition_count +
                                          get_gpid().get_partition_index());
 
@@ -1177,13 +1181,13 @@ void replica_split_manager::trigger_primary_parent_split(
     _meta_split_status = meta_split_status;
     if (meta_split_status == split_status::SPLITTING) {
         if (!_replica->_primary_states.learners.empty() ||
-            _replica->_primary_states.membership.secondaries.size() + 1 <
+            _replica->_primary_states.membership.hp_secondaries.size() + 1 <
                 _replica->_primary_states.membership.max_replica_count) {
             LOG_WARNING_PREFIX(
                 "there are {} learners or not have enough secondaries(count is {}), wait for "
                 "next round",
                 _replica->_primary_states.learners.size(),
-                _replica->_primary_states.membership.secondaries.size());
+                _replica->_primary_states.membership.hp_secondaries.size());
             return;
         }
 

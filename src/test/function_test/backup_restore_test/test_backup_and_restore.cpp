@@ -183,10 +183,10 @@ public:
             }
             int32_t healthy_partition_count = 0;
             for (const auto &partition : partitions) {
-                if (partition.primary.is_invalid()) {
+                if (partition.hp_primary.is_invalid()) {
                     break;
                 }
-                if (partition.secondaries.size() + 1 < partition.max_replica_count) {
+                if (partition.hp_secondaries.size() + 1 < partition.max_replica_count) {
                     break;
                 }
                 healthy_partition_count++;

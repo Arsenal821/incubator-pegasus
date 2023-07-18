@@ -303,9 +303,10 @@ void partition_resolver_simple::query_config_reply(error_code err,
             for (auto it = resp.partitions.begin(); it != resp.partitions.end(); ++it) {
                 auto &new_config = *it;
 
-                LOG_DEBUG_PREFIX("query config reply, gpid = {}, ballot = {}, primary = {}",
+                LOG_DEBUG_PREFIX("query config reply, gpid = {}, ballot = {}, primary = {}({})",
                                  new_config.pid,
                                  new_config.ballot,
+                                 new_config.hp_primary,
                                  new_config.primary);
 
                 auto it2 = _config_cache.find(new_config.pid.get_partition_index());
@@ -420,7 +421,7 @@ host_port partition_resolver_simple::get_host_port(const partition_configuration
     if (_app_is_stateful) {
         return pc.hp_primary;
     } else {
-        if (pc.last_drops.size() == 0) {
+        if (pc.hp_last_drops.size() == 0) {
             return host_port();
         } else {
             return pc.hp_last_drops[rand::next_u32(0, pc.last_drops.size() - 1)];

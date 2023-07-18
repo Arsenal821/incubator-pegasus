@@ -137,9 +137,9 @@ TEST(meta_data, collect_replica)
 
 #define CLEAR_REPLICA                                                                              \
     do {                                                                                           \
-        pc.hp_primary.reset();                                                                  \
-        pc.hp_secondaries.clear();                                                                    \
-        pc.hp_last_drops.clear();                                                                     \
+        pc.__set_hp_primary(dsn::host_port());                                                                  \
+        pc.__set_hp_secondaries(std::vector<dsn::host_port>());                                                                    \
+        pc.__set_hp_last_drops(std::vector<dsn::host_port>());                                                                     \
         pc.primary.set_invalid();                                                                  \
         pc.secondaries.clear();                                                                    \
         pc.last_drops.clear();                                                                     \

@@ -174,8 +174,10 @@ void server_load_balancer::register_proposals(meta_view view,
         // for these proposals, they should keep the target empty and
         // the meta-server will fill primary as target.
         if (act.target.is_invalid()) {
-            if (!pc.primary.is_invalid())
+            if (!pc.hp_primary.is_invalid()) {
                 act.target = pc.primary;
+                act.__set_hp_target(pc.hp_primary);
+            }
             else {
                 resp.err = ERR_INVALID_PARAMETERS;
                 return;

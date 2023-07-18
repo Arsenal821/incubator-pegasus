@@ -175,8 +175,8 @@ public:
                           ddl_client->list_app(new_app_name, app_id, partition_cnt, p_confs));
                 for (int i = 0; i < p_confs.size(); i++) {
                     const auto &pc = p_confs[i];
-                    ASSERT_FALSE(pc.primary.is_invalid());
-                    ASSERT_EQ(1 + pc.secondaries.size(), pc.max_replica_count);
+                    ASSERT_FALSE(pc.hp_primary.is_invalid());
+                    ASSERT_EQ(1 + pc.hp_secondaries.size(), pc.max_replica_count);
                 }
             },
             180);

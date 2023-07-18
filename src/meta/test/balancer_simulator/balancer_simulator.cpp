@@ -110,7 +110,7 @@ void generate_balanced_apps(/*out*/ app_mapper &apps,
 
     for (dsn::partition_configuration &pc : the_app->partitions) {
         temp.clear();
-        while (pc.secondaries.size() + 1 < pc.max_replica_count) {
+        while (pc.hp_secondaries.size() + 1 < pc.max_replica_count) {
             dsn::host_port n = pq2.pop();
             if (!is_member(pc, n)) {
                 pc.hp_secondaries.push_back(n);
@@ -155,6 +155,7 @@ void random_move_primary(app_mapper &apps, node_mapper &nodes, int primary_move_
             int indice = random32(0, 1);
             nodes[pc.hp_primary].remove_partition(pc.pid, true);
             std::swap(pc.primary, pc.secondaries[indice]);
+            std::swap(pc.hp_primary, pc.hp_secondaries[indice]);
             nodes[pc.hp_primary].put_partition(pc.pid, true);
         }
     }

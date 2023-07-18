@@ -893,7 +893,8 @@ void replica_bulk_loader::report_group_download_progress(/*out*/ bulk_load_respo
     }
     response.group_bulk_load_state[_replica->_primary_states.membership.primary] = primary_state;
     response.hp_group_bulk_load_state[_replica->_primary_states.membership.hp_primary] = primary_state;
-    LOG_INFO_PREFIX("primary = {}, download progress = {}%, status = {}",
+    LOG_INFO_PREFIX("primary = {}({}), download progress = {}%, status = {}",
+                    _replica->_primary_states.membership.hp_primary.to_string(),
                     _replica->_primary_states.membership.primary.to_string(),
                     primary_state.download_progress,
                     primary_state.download_status);
@@ -935,13 +936,14 @@ void replica_bulk_loader::report_group_ingestion_status(/*out*/ bulk_load_respon
     primary_state.__set_ingest_status(_replica->_app->get_ingestion_status());
     response.group_bulk_load_state[_replica->_primary_states.membership.primary] = primary_state;
     response.hp_group_bulk_load_state[_replica->_primary_states.membership.hp_primary] = primary_state;
-    LOG_INFO_PREFIX("primary = {}, ingestion status = {}",
+    LOG_INFO_PREFIX("primary = {}({}), ingestion status = {}",
+                    _replica->_primary_states.membership.hp_primary.to_string(),
                     _replica->_primary_states.membership.primary.to_string(),
                     enum_to_string(primary_state.ingest_status));
 
     bool is_group_ingestion_finish =
         (primary_state.ingest_status == ingestion_status::IS_SUCCEED) &&
-        (_replica->_primary_states.membership.secondaries.size() + 1 ==
+        (_replica->_primary_states.membership.hp_secondaries.size() + 1 ==
          _replica->_primary_states.membership.max_replica_count);
     for (const auto &target_hp : _replica->_primary_states.membership.hp_secondaries) {
         const auto &secondary_state =
@@ -986,7 +988,7 @@ void replica_bulk_loader::report_group_cleaned_up(bulk_load_response &response)
                     primary_state.is_cleaned_up);
 
     bool group_flag = (primary_state.is_cleaned_up) &&
-                      (_replica->_primary_states.membership.secondaries.size() + 1 ==
+                      (_replica->_primary_states.membership.hp_secondaries.size() + 1 ==
                        _replica->_primary_states.membership.max_replica_count);
     for (const auto &target_hp : _replica->_primary_states.membership.hp_secondaries) {
         const auto &secondary_state =
@@ -1019,12 +1021,13 @@ void replica_bulk_loader::report_group_is_paused(bulk_load_response &response)
     primary_state.__set_is_paused(_status == bulk_load_status::BLS_PAUSED);
     response.group_bulk_load_state[_replica->_primary_states.membership.primary] = primary_state;
     response.hp_group_bulk_load_state[_replica->_primary_states.membership.hp_primary] = primary_state;
-    LOG_INFO_PREFIX("primary = {}, bulk_load is_paused = {}",
+    LOG_INFO_PREFIX("primary = {}({}), bulk_load is_paused = {}",
+                    _replica->_primary_states.membership.hp_primary.to_string(),
                     _replica->_primary_states.membership.primary.to_string(),
                     primary_state.is_paused);
 
     bool group_is_paused =
-        primary_state.is_paused && (_replica->_primary_states.membership.secondaries.size() + 1 ==
+        primary_state.is_paused && (_replica->_primary_states.membership.hp_secondaries.size() + 1 ==
                                     _replica->_primary_states.membership.max_replica_count);
     for (const auto &target_hp : _replica->_primary_states.membership.hp_secondaries) {
         partition_bulk_load_state secondary_state =

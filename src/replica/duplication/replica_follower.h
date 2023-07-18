@@ -79,8 +79,9 @@ private:
     {
         std::string app_info = fmt::format("{}.{}", _master_cluster_name, _master_app_name);
         if (_master_replica_config.hp_primary != host_port::s_invalid_host_port) {
-            return fmt::format("{}({}|{})",
+            return fmt::format("{}({}({})|{})",
                                app_info,
+                               _master_replica_config.hp_primary.to_string(),
                                _master_replica_config.primary.to_string(),
                                _master_replica_config.pid.to_string());
         }

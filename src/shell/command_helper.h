@@ -1098,7 +1098,7 @@ inline bool get_app_partition_stat(shell_context *sc,
                 // only primary partition will be counted
                 auto find = app_partitions.find(app_id_x);
                 if (find != app_partitions.end() &&
-                    find->second[partition_index_x].primary == sc->resolver->resolve_address(nodes[i].hp)) {
+                    find->second[partition_index_x].hp_primary == nodes[i].hp) {
                     row_data &row = rows[app_id_name[app_id_x]][partition_index_x];
                     row.row_name = std::to_string(partition_index_x);
                     row.app_id = app_id_x;
@@ -1185,7 +1185,7 @@ get_app_stat(shell_context *sc, const std::string &app_name, std::vector<row_dat
                 if (find == app_partitions.end())
                     continue;
                 dsn::partition_configuration &pc = find->second[partition_index_x];
-                if (pc.primary != sc->resolver->resolve_address(hp))
+                if (pc.hp_primary != hp)
                     continue;
                 update_app_pegasus_perf_counter(rows[app_row_idx[app_id_x]], counter_name, m.value);
             }
@@ -1219,7 +1219,7 @@ get_app_stat(shell_context *sc, const std::string &app_name, std::vector<row_dat
                 CHECK(parse_ret, "name = {}", m.name);
                 CHECK_EQ_MSG(app_id_x, app_id, "name = {}", m.name);
                 CHECK_LT_MSG(partition_index_x, partition_count, "name = {}", m.name);
-                if (partitions[partition_index_x].primary != sc->resolver->resolve_address(hp))
+                if (partitions[partition_index_x].hp_primary != hp)
                     continue;
                 update_app_pegasus_perf_counter(rows[partition_index_x], counter_name, m.value);
             }
@@ -1351,7 +1351,7 @@ inline bool get_storage_size_stat(shell_context *sc, app_storage_size_stat &st_s
             if (find == app_partitions.end()) // app id not found
                 continue;
             dsn::partition_configuration &pc = find->second[partition_index_x];
-            if (pc.primary != sc->resolver->resolve_address(hp)) // not primary replica
+            if (pc.hp_primary != hp) // not primary replica
                 continue;
             if (pc.partition_flags != 0) // already calculated
                 continue;

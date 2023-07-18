@@ -76,11 +76,11 @@ pc_status partition_guardian::cure(meta_view view,
     CHECK(acts.empty(), "");
 
     pc_status status;
-    if (pc.primary.is_invalid())
+    if (pc.hp_primary.is_invalid())
         status = on_missing_primary(view, gpid);
-    else if (static_cast<int>(pc.secondaries.size()) + 1 < pc.max_replica_count)
+    else if (static_cast<int>(pc.hp_secondaries.size()) + 1 < pc.max_replica_count)
         status = on_missing_secondary(view, gpid);
-    else if (static_cast<int>(pc.secondaries.size()) >= pc.max_replica_count)
+    else if (static_cast<int>(pc.hp_secondaries.size()) >= pc.max_replica_count)
         status = on_redundant_secondary(view, gpid);
     else
         status = pc_status::healthy;
@@ -271,7 +271,7 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
     }
     // if nothing in the last_drops, it means that this is a newly created partition, so let's
     // just find a node and assign primary for it.
-    else if (pc.last_drops.empty()) {
+    else if (pc.hp_last_drops.empty()) {
         dsn::host_port min_primary_server;
         newly_partitions *min_primary_server_np = nullptr;
 
@@ -326,7 +326,7 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
                      dr.last_prepared_decree);
         }
 
-        for (int i = 0; i < pc.last_drops.size(); ++i) {
+        for (int i = 0; i < pc.hp_last_drops.size(); ++i) {
             int dropped_index = -1;
             for (int k = 0; k < cc.dropped.size(); k++) {
                 if (cc.dropped[k].node == pc.hp_last_drops[i]) {
@@ -334,20 +334,22 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
                     break;
                 }
             }
-            LOG_INFO("{}: config_context.last_drops[{}]: node({}), dropped_index({})",
+            LOG_INFO("{}: config_context.last_drops[{}({})]: node({}), dropped_index({})",
                      gpid_name,
                      i,
+                     pc.hp_last_drops[i],
                      pc.last_drops[i],
                      dropped_index);
         }
 
         if (pc.hp_last_drops.size() == 1) {
-            LOG_WARNING("{}: the only node({}) is dead, waiting it to come back",
+            LOG_WARNING("{}: the only node({}({})) is dead, waiting it to come back",
                         gpid_name,
+                        pc.hp_last_drops.back(),
                         pc.last_drops.back());
             action.hp_node = pc.hp_last_drops.back();
         } else {
-            std::vector<dsn::host_port> nodes(pc.last_drops.end() - 2, pc.last_drops.end());
+            std::vector<dsn::host_port> nodes(pc.hp_last_drops.end() - 2, pc.hp_last_drops.end());
             std::vector<dropped_replica> collected_info(2);
             bool ready = true;
 
@@ -632,6 +634,7 @@ pc_status partition_guardian::on_missing_secondary(meta_view &view, const dsn::g
     if (!action.hp_node.is_invalid()) {
         action.type = config_type::CT_ADD_SECONDARY;
         action.target = pc.primary;
+        action.__set_hp_target(pc.hp_primary);
 
         newly_partitions *np = get_newly_partitions(*(view.nodes), action.hp_node);
         CHECK_NOTNULL(np, "");

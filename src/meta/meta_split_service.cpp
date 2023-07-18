@@ -306,6 +306,7 @@ void meta_split_service::on_add_child_on_remote_storage_reply(error_code ec,
 
     partition_configuration child_config = app->partitions[child_gpid.get_partition_index()];
     child_config.secondaries = request.child_config.secondaries;
+    child_config.__set_hp_secondaries(request.child_config.hp_secondaries);
     _state->update_configuration_locally(*app, update_child_request);
 
     if (parent_context.msg) {

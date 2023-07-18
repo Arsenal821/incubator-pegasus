@@ -269,11 +269,12 @@ void replica::downgrade_to_secondary_on_primary(configuration_update_request &pr
         return;
 
     CHECK_EQ(proposal.config.pid, _primary_states.membership.pid);
-    CHECK_EQ(proposal.config.primary, _primary_states.membership.primary);
-    CHECK(proposal.config.secondaries == _primary_states.membership.secondaries, "");
-    CHECK_EQ(proposal.node, proposal.config.primary);
+    CHECK_EQ(proposal.config.hp_primary, _primary_states.membership.hp_primary);
+    CHECK(proposal.config.hp_secondaries == _primary_states.membership.hp_secondaries, "");
+    CHECK_EQ(proposal.hp_node, proposal.config.hp_primary);
 
     proposal.config.primary.set_invalid();
+    proposal.config.__set_hp_primary(host_port());
     proposal.config.secondaries.push_back(proposal.node);
 
     update_configuration_on_meta_server(
@@ -286,11 +287,12 @@ void replica::downgrade_to_inactive_on_primary(configuration_update_request &pro
         return;
 
     CHECK_EQ(proposal.config.pid, _primary_states.membership.pid);
-    CHECK_EQ(proposal.config.primary, _primary_states.membership.primary);
-    CHECK(proposal.config.secondaries == _primary_states.membership.secondaries, "");
+    CHECK_EQ(proposal.config.hp_primary, _primary_states.membership.hp_primary);
+    CHECK(proposal.config.hp_secondaries == _primary_states.membership.hp_secondaries, "");
 
-    if (proposal.node == proposal.config.primary) {
+    if (proposal.hp_node == proposal.config.hp_primary) {
         proposal.config.primary.set_invalid();
+        proposal.config.hp_primary.reset();
     } else {
         CHECK(replica_helper::remove_node(proposal.node, proposal.config.secondaries) && replica_helper::remove_node(proposal.hp_node, proposal.config.hp_secondaries),
               "remove node failed, node = {}",
@@ -307,15 +309,16 @@ void replica::remove(configuration_update_request &proposal)
         return;
 
     CHECK_EQ(proposal.config.pid, _primary_states.membership.pid);
-    CHECK_EQ(proposal.config.primary, _primary_states.membership.primary);
-    CHECK(proposal.config.secondaries == _primary_states.membership.secondaries, "");
+    CHECK_EQ(proposal.config.hp_primary, _primary_states.membership.hp_primary);
+    CHECK(proposal.config.hp_secondaries == _primary_states.membership.hp_secondaries, "");
 
     auto st = _primary_states.get_node_status(host_port(proposal.node));
 
     switch (st) {
     case partition_status::PS_PRIMARY:
-        CHECK_EQ(proposal.config.primary, proposal.node);
+        CHECK_EQ(proposal.config.hp_primary, proposal.hp_node);
         proposal.config.primary.set_invalid();
+        proposal.config.hp_primary.reset();
         break;
     case partition_status::PS_SECONDARY: {
         CHECK(replica_helper::remove_node(proposal.node, proposal.config.secondaries) && replica_helper::remove_node(proposal.hp_node, proposal.config.hp_secondaries),
@@ -487,8 +490,8 @@ void replica::on_update_configuration_on_meta_server_reply(
     // post-update work items?
     if (resp.err == ERR_OK) {
         CHECK_EQ(req->config.pid, resp.config.pid);
-        CHECK_EQ(req->config.primary, resp.config.primary);
-        CHECK(req->config.secondaries == resp.config.secondaries, "");
+        CHECK_EQ(req->config.hp_primary, resp.config.hp_primary);
+        CHECK(req->config.hp_secondaries == resp.config.hp_secondaries, "");
 
         switch (req->type) {
         case config_type::CT_UPGRADE_TO_PRIMARY:
@@ -1020,7 +1023,7 @@ bool replica::update_local_configuration(const replica_configuration &config,
             init_prepare(next, false);
         }
 
-        if (_primary_states.membership.secondaries.size() + 1 <
+        if (_primary_states.membership.hp_secondaries.size() + 1 <
             _options->app_mutation_2pc_min_replica_count(_app_info.max_replica_count)) {
             std::vector<mutation_ptr> queued;
             _primary_states.write_queue.clear(queued);

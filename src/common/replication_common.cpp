@@ -197,6 +197,7 @@ int32_t replication_options::app_mutation_2pc_min_replica_count(int32_t app_max_
     replica_config.primary = partition_config.primary;
     replica_config.ballot = partition_config.ballot;
     replica_config.learner_signature = invalid_signature;
+    replica_config.__set_hp_primary(partition_config.hp_primary);
 
     if (node == partition_config.hp_primary) {
         replica_config.status = partition_status::PS_PRIMARY;

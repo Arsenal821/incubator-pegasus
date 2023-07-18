@@ -2795,13 +2795,13 @@ bool calculate_hash_value(command_executor *e, shell_context *sc, arguments args
         tp.add_row_name_and_data("partition_index", partition_index);
         if (partitions.size() > partition_index) {
             ::dsn::partition_configuration &pc = partitions[partition_index];
-            tp.add_row_name_and_data("primary", pc.primary.to_string());
+            tp.add_row_name_and_data("primary", pc.hp_primary.to_string());
 
             std::ostringstream oss;
-            for (int i = 0; i < pc.secondaries.size(); ++i) {
+            for (int i = 0; i < pc.hp_secondaries.size(); ++i) {
                 if (i != 0)
                     oss << ",";
-                oss << pc.secondaries[i].to_string();
+                oss << pc.hp_secondaries[i].to_string();
             }
             tp.add_row_name_and_data("secondaries", oss.str());
         }

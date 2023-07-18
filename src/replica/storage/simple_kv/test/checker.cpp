@@ -95,7 +95,7 @@ public:
             if (pc.hp_secondaries.size() > 0) {
                 action.node = pc.secondaries[0];
                 action.__set_hp_node(pc.hp_secondaries[0]);
-                for (unsigned int i = 1; i < pc.secondaries.size(); ++i)
+                for (unsigned int i = 1; i < pc.hp_secondaries.size(); ++i)
                     if (pc.hp_secondaries[i] < action.hp_node)
                         action.hp_node = pc.hp_secondaries[i];
                 action.type = config_type::CT_UPGRADE_TO_PRIMARY;

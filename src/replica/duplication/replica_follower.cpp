@@ -176,6 +176,7 @@ error_code replica_follower::update_master_replica_config(error_code err, query_
     LOG_INFO_PREFIX(
         "query master[{}] config successfully and update local config: remote={}, gpid={}",
         master_replica_name(),
+        _master_replica_config.hp_primary.to_string(),
         _master_replica_config.primary.to_string(),
         _master_replica_config.pid.to_string());
     return ERR_OK;
