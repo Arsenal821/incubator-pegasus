@@ -58,12 +58,13 @@ uint32_t random32(uint32_t min, uint32_t max)
     return res + min;
 }
 
-void generate_node_list(std::vector<dsn::host_port> &output_list, int min_count, int max_count)
+void generate_node_list(std::vector<std::pair<dsn::host_port, dsn::rpc_address>> &output_list, int min_count, int max_count)
 {
     int count = random32(min_count, max_count);
     output_list.resize(count);
-    for (int i = 0; i < count; ++i)
-        output_list[i] = dsn::host_port("localhost", i + 1);
+    for (int i = 0; i < count; ++i) {
+        output_list[i] = std::make_pair(dsn::host_port("localhost", i + 1), dsn::rpc_address("127.0.0.1", i + 1));
+    }
 }
 
 void verbose_apps(const app_mapper &input_apps)

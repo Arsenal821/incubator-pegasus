@@ -205,8 +205,12 @@ void meta_partition_guardian_test::cure_test()
     ASSERT_TRUE(state->spin_wait_staging(20));
     svc->_started = true;
 
-    std::vector<dsn::host_port> nodes;
+    std::vector<std::pair<dsn::host_port, dsn::rpc_address>> nodes;
     generate_node_list(nodes, 4, 4);
+    std::vector<dsn::host_port> nodes_list;
+    for (const auto& p : nodes) {
+        nodes_list.emplace_back(p.first);
+    }
 
     dsn::partition_configuration &pc = app->partitions[0];
     config_context &cc = *get_config_context(state->_all_apps, dsn::gpid(1, 0));
@@ -222,10 +226,11 @@ void meta_partition_guardian_test::cure_test()
     state->_nodes.clear();
     pc.primary.set_invalid();
     pc.hp_primary.reset();
-    pc.hp_secondaries = {nodes[0], nodes[1]};
+    pc.secondaries = {nodes[0].second, nodes[1].second};
+    pc.__set_hp_secondaries({nodes[0].first, nodes[1].first});
     pc.ballot = 1;
     state->initialize_node_state();
-    svc->set_node_state(nodes, true);
+    svc->set_node_state(nodes_list, true);
     proposal_sent = false;
 
     // check partitions, then ignore the proposal
@@ -283,10 +288,11 @@ void meta_partition_guardian_test::cure_test()
     state->_nodes.clear();
     pc.primary.set_invalid();
     pc.hp_primary.reset();
-    pc.hp_secondaries = {nodes[0], nodes[1]};
+    pc.secondaries = {nodes[0].second, nodes[1].second};
+    pc.__set_hp_secondaries({nodes[0].first, nodes[1].first});
     pc.ballot = 1;
     state->initialize_node_state();
-    svc->set_node_state(nodes, true);
+    svc->set_node_state(nodes_list, true);
     proposal_sent = false;
 
     // check partitions, then inject a event that node[0] is dead
@@ -343,11 +349,13 @@ void meta_partition_guardian_test::cure_test()
     std::cerr << "Case: add secondary, and the message lost" << std::endl;
     // initialize
     state->_nodes.clear();
-    pc.hp_primary = nodes[0];
-    pc.hp_secondaries = {nodes[1]};
+    pc.primary = nodes[0].second;
+    pc.secondaries = {nodes[1].second};
+    pc.__set_hp_primary(nodes[0].first);
+    pc.__set_hp_secondaries({nodes[1].first});
     pc.ballot = 1;
     state->initialize_node_state();
-    svc->set_node_state(nodes, true);
+    svc->set_node_state(nodes_list, true);
     proposal_sent = false;
 
     // check partitions, then ignore the proposal
@@ -359,7 +367,7 @@ void meta_partition_guardian_test::cure_test()
 
         EXPECT_EQ(update_req->type, config_type::CT_ADD_SECONDARY);
         EXPECT_FALSE(is_secondary(pc, update_req->hp_node));
-        EXPECT_EQ(target, nodes[0]);
+        EXPECT_EQ(target, nodes[0].first);
 
         last_addr = update_req->hp_node;
         proposal_sent = true;
@@ -382,7 +390,7 @@ void meta_partition_guardian_test::cure_test()
 
         EXPECT_EQ(update_req->type, config_type::CT_ADD_SECONDARY);
         EXPECT_EQ(update_req->hp_node, last_addr);
-        EXPECT_EQ(target, nodes[0]);
+        EXPECT_EQ(target, nodes[0].first);
 
         proposal_sent = true;
         apply_update_request(*update_req);
@@ -402,11 +410,13 @@ void meta_partition_guardian_test::cure_test()
     std::cerr << "Case: add secondary, but the primary is removing another" << std::endl;
     // initialize
     state->_nodes.clear();
-    pc.hp_primary = nodes[0];
-    pc.hp_secondaries = {nodes[1]};
+    pc.primary = nodes[0].second;
+    pc.secondaries = {nodes[1].second};
+    pc.__set_hp_primary(nodes[0].first);
+    pc.__set_hp_secondaries({nodes[1].first});
     pc.ballot = 1;
     state->initialize_node_state();
-    svc->set_node_state(nodes, true);
+    svc->set_node_state(nodes_list, true);
     proposal_sent = false;
 
     // check partitions, then inject another update_request
@@ -418,7 +428,7 @@ void meta_partition_guardian_test::cure_test()
 
         EXPECT_EQ(update_req->type, config_type::CT_ADD_SECONDARY);
         EXPECT_FALSE(is_secondary(pc, update_req->hp_node));
-        EXPECT_EQ(target, nodes[0]);
+        EXPECT_EQ(target, nodes[0].first);
 
         update_req->config.ballot++;
         update_req->type = config_type::CT_DOWNGRADE_TO_INACTIVE;
@@ -444,11 +454,13 @@ void meta_partition_guardian_test::cure_test()
     std::cerr << "Case: add secondary, and the added secondary is dead" << std::endl;
     // initialize
     state->_nodes.clear();
-    pc.hp_primary = nodes[0];
-    pc.hp_secondaries = {nodes[1]};
+    pc.primary = nodes[0].second;
+    pc.secondaries = {nodes[1].second};
+    pc.__set_hp_primary(nodes[0].first);
+    pc.__set_hp_secondaries({nodes[1].first});
     pc.ballot = 1;
     state->initialize_node_state();
-    svc->set_node_state(nodes, true);
+    svc->set_node_state(nodes_list, true);
     proposal_sent = false;
 
     // check partitions, then inject the nodes[2] dead
@@ -460,7 +472,7 @@ void meta_partition_guardian_test::cure_test()
 
         EXPECT_EQ(update_req->type, config_type::CT_ADD_SECONDARY);
         EXPECT_FALSE(is_secondary(pc, update_req->hp_node));
-        EXPECT_EQ(target, nodes[0]);
+        EXPECT_EQ(target, nodes[0].first);
 
         last_addr = update_req->hp_node;
         svc->set_node_state({update_req->hp_node}, false);
@@ -485,7 +497,7 @@ void meta_partition_guardian_test::cure_test()
         EXPECT_EQ(update_req->type, config_type::CT_ADD_SECONDARY);
         EXPECT_NE(update_req->hp_node, last_addr);
         EXPECT_FALSE(is_secondary(pc, update_req->hp_node));
-        EXPECT_EQ(target, nodes[0]);
+        EXPECT_EQ(target, nodes[0].first);
 
         proposal_sent = true;
         last_addr = update_req->hp_node;
@@ -506,11 +518,13 @@ void meta_partition_guardian_test::cure_test()
     std::cerr << "Case: add secondary, and the primary is dead" << std::endl;
     // initialize
     state->_nodes.clear();
-    pc.hp_primary = nodes[0];
-    pc.hp_secondaries = {nodes[1]};
+    pc.primary = nodes[0].second;
+    pc.__set_hp_primary(nodes[0].first);
+    pc.secondaries = {nodes[1].second};
+    pc.__set_hp_secondaries({nodes[1].first});
     pc.ballot = 1;
     state->initialize_node_state();
-    svc->set_node_state(nodes, true);
+    svc->set_node_state(nodes_list, true);
     proposal_sent = false;
 
     // check partitions, then ignore the proposal
@@ -536,17 +550,18 @@ void meta_partition_guardian_test::cure_test()
                               server_state::sStateHash);
     t->wait();
     PROPOSAL_FLAG_CHECK;
-    CONDITION_CHECK([&] { return pc.hp_primary == nodes[1]; });
+    CONDITION_CHECK([&] { return pc.hp_primary == nodes[1].first; });
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     state->_nodes.clear();
     pc.primary.set_invalid();
     pc.hp_primary.reset();
     pc.hp_secondaries.clear();
-    pc.hp_last_drops = {nodes[0], nodes[1], nodes[2]};
+    pc.last_drops = {nodes[0].second, nodes[1].second, nodes[2].second};
+    pc.__set_hp_last_drops({nodes[0].first, nodes[1].first, nodes[2].first});
     pc.ballot = 4;
     state->initialize_node_state();
-    svc->set_node_state(nodes, true);
+    svc->set_node_state(nodes_list, true);
 
     svc->set_filter([&](const dsn::host_port &target, dsn::message_ex *req) -> cur_ptr {
         dsn::message_ex *recv_request = create_corresponding_receive(req);
@@ -555,8 +570,8 @@ void meta_partition_guardian_test::cure_test()
         destroy_message(recv_request);
 
         EXPECT_EQ(update_req->type, config_type::CT_ASSIGN_PRIMARY);
-        EXPECT_EQ(update_req->hp_node, nodes[2]);
-        EXPECT_EQ(target, nodes[2]);
+        EXPECT_EQ(update_req->hp_node, nodes[2].first);
+        EXPECT_EQ(target, nodes[2].first);
 
         proposal_sent = true;
         svc->set_filter(default_filter);
@@ -565,11 +580,11 @@ void meta_partition_guardian_test::cure_test()
     });
 
     std::cerr << "Case: recover from DDD state, nodes[1] isn't alive" << std::endl;
-    svc->set_node_state({nodes[1]}, false);
+    svc->set_node_state({nodes[1].first}, false);
     cc.dropped = {
-        dropped_replica{nodes[0], dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
-        dropped_replica{nodes[1], dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
-        dropped_replica{nodes[2], dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
+        dropped_replica{nodes[0].first, dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
+        dropped_replica{nodes[1].first, dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
+        dropped_replica{nodes[2].first, dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
     };
     t = dsn::tasking::enqueue(LPC_META_STATE_NORMAL,
                               nullptr,
@@ -581,9 +596,9 @@ void meta_partition_guardian_test::cure_test()
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     std::cerr << "Case: recover from DDD state, nodes[2] is not in dropped" << std::endl;
-    svc->set_node_state({nodes[1]}, true);
-    cc.dropped = {dropped_replica{nodes[0], dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
-                  dropped_replica{nodes[1], dropped_replica::INVALID_TIMESTAMP, 1, 1, 1}};
+    svc->set_node_state({nodes[1].first}, true);
+    cc.dropped = {dropped_replica{nodes[0].first, dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
+                  dropped_replica{nodes[1].first, dropped_replica::INVALID_TIMESTAMP, 1, 1, 1}};
 
     t = dsn::tasking::enqueue(LPC_META_STATE_NORMAL,
                               nullptr,
@@ -597,9 +612,9 @@ void meta_partition_guardian_test::cure_test()
     std::cerr << "Case: recover from DDD state, haven't collect nodes[2]'s info from replica, and "
                  "nodes[2]'s info haven't updated"
               << std::endl;
-    cc.dropped = {dropped_replica{nodes[0], dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
-                  dropped_replica{nodes[1], dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
-                  dropped_replica{nodes[2], 500, -1, -1, -1}};
+    cc.dropped = {dropped_replica{nodes[0].first, dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
+                  dropped_replica{nodes[1].first, dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
+                  dropped_replica{nodes[2].first, 500, -1, -1, -1}};
 
     t = dsn::tasking::enqueue(LPC_META_STATE_NORMAL,
                               nullptr,
@@ -620,8 +635,8 @@ void meta_partition_guardian_test::cure_test()
         destroy_message(recv_request);
 
         EXPECT_EQ(update_req->type, config_type::CT_ASSIGN_PRIMARY);
-        EXPECT_EQ(update_req->hp_node, nodes[1]);
-        EXPECT_EQ(target, nodes[1]);
+        EXPECT_EQ(update_req->hp_node, nodes[1].first);
+        EXPECT_EQ(target, nodes[1].first);
 
         proposal_sent = true;
         svc->set_filter(default_filter);
@@ -629,11 +644,11 @@ void meta_partition_guardian_test::cure_test()
         return update_req;
     });
 
-    cc.dropped = {dropped_replica{nodes[0], dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
-                  dropped_replica{nodes[1], dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
-                  dropped_replica{nodes[2], 500, -1, -1, -1}};
+    cc.dropped = {dropped_replica{nodes[0].first, dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
+                  dropped_replica{nodes[1].first, dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
+                  dropped_replica{nodes[2].first, 500, -1, -1, -1}};
     pc.last_committed_decree = 0;
-    get_node_state(state->_nodes, nodes[2], false)->set_replicas_collect_flag(true);
+    get_node_state(state->_nodes, nodes[2].first, false)->set_replicas_collect_flag(true);
     t = dsn::tasking::enqueue(LPC_META_STATE_NORMAL,
                               nullptr,
                               std::bind(&server_state::check_all_partitions, state),
@@ -641,22 +656,23 @@ void meta_partition_guardian_test::cure_test()
 
     t->wait();
     PROPOSAL_FLAG_CHECK;
-    CONDITION_CHECK([&] { return pc.hp_primary == nodes[1]; });
+    CONDITION_CHECK([&] { return pc.hp_primary == nodes[1].first; });
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
     std::cerr << "Case: recover from DDD, haven't collect nodes[1/2]'s info from replica, and "
                  "nodes[1/2]'s info both have updated"
               << std::endl;
-    cc.dropped = {dropped_replica{nodes[0], dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
-                  dropped_replica{nodes[1], 500, -1, -1, -1},
-                  dropped_replica{nodes[2], 500, -1, -1, -1}};
-    get_node_state(state->_nodes, nodes[1], false)->set_replicas_collect_flag(true);
-    get_node_state(state->_nodes, nodes[2], false)->set_replicas_collect_flag(true);
+    cc.dropped = {dropped_replica{nodes[0].first, dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
+                  dropped_replica{nodes[1].first, 500, -1, -1, -1},
+                  dropped_replica{nodes[2].first, 500, -1, -1, -1}};
+    get_node_state(state->_nodes, nodes[1].first, false)->set_replicas_collect_flag(true);
+    get_node_state(state->_nodes, nodes[2].first, false)->set_replicas_collect_flag(true);
 
     pc.primary.set_invalid();
     pc.hp_primary.reset();
     pc.hp_secondaries.clear();
-    pc.hp_last_drops = {nodes[0], nodes[1], nodes[2]};
+    pc.last_drops = {nodes[0].second, nodes[1].second, nodes[2].second};
+    pc.__set_hp_last_drops({nodes[0].first, nodes[1].first, nodes[2].first});
 
     t = dsn::tasking::enqueue(LPC_META_STATE_NORMAL,
                               nullptr,
@@ -670,9 +686,9 @@ void meta_partition_guardian_test::cure_test()
     std::cerr << "Case: recover from DDD state, larger ballot not match with larger decree"
               << std::endl;
     cc.dropped = {
-        dropped_replica{nodes[0], dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
-        dropped_replica{nodes[1], dropped_replica::INVALID_TIMESTAMP, 1, 0, 1},
-        dropped_replica{nodes[2], dropped_replica::INVALID_TIMESTAMP, 0, 1, 1},
+        dropped_replica{nodes[0].first, dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
+        dropped_replica{nodes[1].first, dropped_replica::INVALID_TIMESTAMP, 1, 0, 1},
+        dropped_replica{nodes[2].first, dropped_replica::INVALID_TIMESTAMP, 0, 1, 1},
     };
 
     t = dsn::tasking::enqueue(LPC_META_STATE_NORMAL,
@@ -686,9 +702,9 @@ void meta_partition_guardian_test::cure_test()
 
     std::cerr << "Case: recover from DDD state, committed decree less than meta's" << std::endl;
     cc.dropped = {
-        dropped_replica{nodes[0], dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
-        dropped_replica{nodes[1], dropped_replica::INVALID_TIMESTAMP, 1, 10, 15},
-        dropped_replica{nodes[2], dropped_replica::INVALID_TIMESTAMP, 1, 15, 15},
+        dropped_replica{nodes[0].first, dropped_replica::INVALID_TIMESTAMP, 1, 1, 1},
+        dropped_replica{nodes[1].first, dropped_replica::INVALID_TIMESTAMP, 1, 10, 15},
+        dropped_replica{nodes[2].first, dropped_replica::INVALID_TIMESTAMP, 1, 15, 15},
     };
     pc.last_committed_decree = 30;
     t = dsn::tasking::enqueue(LPC_META_STATE_NORMAL,
@@ -703,9 +719,9 @@ void meta_partition_guardian_test::cure_test()
     std::cerr << "Case: recover from DDD state, select primary from config_context::dropped"
               << std::endl;
     cc.dropped = {
-        dropped_replica{nodes[0], 12344, -1, -1, -1},
-        dropped_replica{nodes[2], dropped_replica::INVALID_TIMESTAMP, 4, 2, 4},
-        dropped_replica{nodes[1], dropped_replica::INVALID_TIMESTAMP, 4, 3, 4},
+        dropped_replica{nodes[0].first, 12344, -1, -1, -1},
+        dropped_replica{nodes[2].first, dropped_replica::INVALID_TIMESTAMP, 4, 2, 4},
+        dropped_replica{nodes[1].first, dropped_replica::INVALID_TIMESTAMP, 4, 3, 4},
     };
     pc.last_committed_decree = 2;
     svc->set_filter([&](const dsn::host_port &target, dsn::message_ex *req) -> cur_ptr {
@@ -715,8 +731,8 @@ void meta_partition_guardian_test::cure_test()
         destroy_message(recv_request);
 
         EXPECT_EQ(update_req->type, config_type::CT_ASSIGN_PRIMARY);
-        EXPECT_EQ(update_req->hp_node, nodes[1]);
-        EXPECT_EQ(target, nodes[1]);
+        EXPECT_EQ(update_req->hp_node, nodes[1].first);
+        EXPECT_EQ(target, nodes[1].first);
 
         proposal_sent = true;
         svc->set_filter(default_filter);
@@ -730,7 +746,7 @@ void meta_partition_guardian_test::cure_test()
                               server_state::sStateHash);
     t->wait();
     PROPOSAL_FLAG_CHECK;
-    CONDITION_CHECK([&] { return pc.hp_primary == nodes[1]; });
+    CONDITION_CHECK([&] { return pc.hp_primary == nodes[1].first; });
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
     std::cerr << "Case: recover from DDD state, only one primary" << std::endl;
@@ -741,8 +757,8 @@ void meta_partition_guardian_test::cure_test()
         destroy_message(recv_request);
 
         EXPECT_EQ(update_req->type, config_type::CT_ASSIGN_PRIMARY);
-        EXPECT_EQ(update_req->hp_node, nodes[0]);
-        EXPECT_EQ(target, nodes[0]);
+        EXPECT_EQ(update_req->hp_node, nodes[0].first);
+        EXPECT_EQ(target, nodes[0].first);
 
         proposal_sent = true;
         svc->set_filter(default_filter);
@@ -753,11 +769,12 @@ void meta_partition_guardian_test::cure_test()
     pc.primary.set_invalid();
     pc.hp_primary.reset();
     pc.hp_secondaries.clear();
-    pc.hp_last_drops = {nodes[0]};
+    pc.last_drops = {nodes[0].second};
+    pc.__set_hp_last_drops({nodes[0].first});
     state->_nodes.clear();
     pc.ballot = 1;
     state->initialize_node_state();
-    svc->set_node_state({nodes[0], nodes[1], nodes[2]}, true);
+    svc->set_node_state({nodes[0].first, nodes[1].first, nodes[2].first}, true);
 
     t = dsn::tasking::enqueue(LPC_META_STATE_NORMAL,
                               nullptr,
@@ -765,7 +782,7 @@ void meta_partition_guardian_test::cure_test()
                               server_state::sStateHash);
     t->wait();
     PROPOSAL_FLAG_CHECK;
-    CONDITION_CHECK([&] { return pc.hp_primary == nodes[0]; });
+    CONDITION_CHECK([&] { return pc.hp_primary == nodes[0].first; });
 }
 
 static void check_nodes_loads(node_mapper &nodes)
@@ -786,8 +803,12 @@ static void check_nodes_loads(node_mapper &nodes)
 
 void meta_partition_guardian_test::cure()
 {
-    std::vector<dsn::host_port> node_list;
-    generate_node_list(node_list, 20, 100);
+    std::vector<std::pair<dsn::host_port, dsn::rpc_address>> nodes_pairs;
+    std::vector<dsn::host_port> nodes_list;
+    generate_node_list(nodes_pairs, 20, 100);
+    for (const auto& p : nodes_pairs) {
+        nodes_list.emplace_back(p.first);
+    }
 
     app_mapper app;
     node_mapper nodes;
@@ -805,8 +826,8 @@ void meta_partition_guardian_test::cure()
     std::shared_ptr<app_state> the_app = app_state::create(info);
 
     app.emplace(the_app->app_id, the_app);
-    for (const auto &address : node_list) {
-        get_node_state(nodes, address, true)->set_alive(true);
+    for (const auto &hp : nodes_list) {
+        get_node_state(nodes, hp, true)->set_alive(true);
     }
 
     bool all_partitions_healthy = false;
@@ -839,8 +860,8 @@ void meta_partition_guardian_test::cure()
 
 void meta_partition_guardian_test::from_proposal_test()
 {
-    std::vector<dsn::host_port> node_list;
-    generate_node_list(node_list, 3, 3);
+    std::vector<std::pair<dsn::host_port, dsn::rpc_address>> nodes_list;
+    generate_node_list(nodes_list, 3, 3);
 
     app_mapper app;
     node_mapper nodes;
@@ -859,8 +880,8 @@ void meta_partition_guardian_test::from_proposal_test()
     std::shared_ptr<app_state> the_app = app_state::create(info);
 
     app.emplace(the_app->app_id, the_app);
-    for (const dsn::host_port &addr : node_list) {
-        get_node_state(nodes, addr, true)->set_alive(true);
+    for (const auto& p : nodes_list) {
+        get_node_state(nodes, p.first, true)->set_alive(true);
     }
 
     meta_view mv{&app, &nodes};
@@ -871,52 +892,50 @@ void meta_partition_guardian_test::from_proposal_test()
     dsn::partition_configuration &pc = *get_config(app, p);
     config_context &cc = *get_config_context(app, p);
 
-    auto node_addr_0 = _ms->_dns_resolver->resolve_address(node_list[0]);
-    auto node_addr_1 = _ms->_dns_resolver->resolve_address(node_list[1]);
-
     std::cerr << "Case 1: test no proposals in config_context" << std::endl;
     ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 2: test invalid proposal: invalid target" << std::endl;
     cpa2 =
-        new_proposal_action(dsn::rpc_address(), node_addr_0, dsn::host_port(), node_list[0], config_type::CT_UPGRADE_TO_PRIMARY);
+        new_proposal_action(dsn::rpc_address(), nodes_list[0].second, dsn::host_port(), nodes_list[0].first, config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 3: test invalid proposal: invalid node" << std::endl;
     cpa2 =
-        new_proposal_action(node_addr_0, dsn::rpc_address(), node_list[0], dsn::host_port(), config_type::CT_UPGRADE_TO_PRIMARY);
+        new_proposal_action(nodes_list[0].second, dsn::rpc_address(), nodes_list[0].first, dsn::host_port(), config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 4: test invalid proposal: dead target" << std::endl;
-    cpa2 = new_proposal_action(node_addr_0, node_addr_0, node_list[0], node_list[0], config_type::CT_UPGRADE_TO_PRIMARY);
+    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[0].second, nodes_list[0].first, nodes_list[0].first, config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
-    get_node_state(nodes, node_list[0], false)->set_alive(false);
+    get_node_state(nodes, nodes_list[0].first, false)->set_alive(false);
     ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
-    get_node_state(nodes, node_list[0], false)->set_alive(true);
+    get_node_state(nodes, nodes_list[0].first, false)->set_alive(true);
 
     std::cerr << "Case 5: test invalid proposal: dead node" << std::endl;
-    cpa2 = new_proposal_action(node_addr_0, node_addr_1, node_list[0], node_list[1], config_type::CT_ADD_SECONDARY);
+    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[1].second, nodes_list[0].first, nodes_list[1].first, config_type::CT_ADD_SECONDARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
-    get_node_state(nodes, node_list[1], false)->set_alive(false);
+    get_node_state(nodes, nodes_list[1].first, false)->set_alive(false);
     ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
-    get_node_state(nodes, node_list[1], false)->set_alive(true);
+    get_node_state(nodes, nodes_list[1].first, false)->set_alive(true);
 
     std::cerr << "Case 6: test invalid proposal: already have priamry but assign" << std::endl;
-    cpa2 = new_proposal_action(node_addr_0, node_addr_0, node_list[0], node_list[0], config_type::CT_ASSIGN_PRIMARY);
+    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[0].second, nodes_list[0].first, nodes_list[0].first, config_type::CT_ASSIGN_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
-    pc.hp_primary = node_list[1];
+    pc.primary = nodes_list[1].second;
+    pc.__set_hp_primary(nodes_list[1].first);
     ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 7: test invalid proposal: upgrade non-secondary" << std::endl;
-    cpa2 = new_proposal_action(node_addr_0, node_addr_0, node_list[0], node_list[0], config_type::CT_UPGRADE_TO_PRIMARY);
+    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[0].second, nodes_list[0].first, nodes_list[0].first, config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     pc.primary.set_invalid();
     pc.hp_primary.reset();
@@ -924,24 +943,28 @@ void meta_partition_guardian_test::from_proposal_test()
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 8: test invalid proposal: add exist secondary" << std::endl;
-    cpa2 = new_proposal_action(node_addr_0, node_addr_1, node_list[0], node_list[1], config_type::CT_ADD_SECONDARY);
+    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[1].second, nodes_list[0].first, nodes_list[1].first, config_type::CT_ADD_SECONDARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
-    pc.hp_primary = node_list[0];
-    pc.hp_secondaries = {node_list[1]};
+    pc.primary = nodes_list[1].second;
+    pc.__set_hp_primary(nodes_list[1].first);
+    pc.secondaries = {nodes_list[1].second};
+    pc.__set_hp_secondaries({nodes_list[1].first});
     ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 9: test invalid proposal: downgrade non member" << std::endl;
-    cpa2 = new_proposal_action(node_addr_0, node_addr_1, node_list[0], node_list[1], config_type::CT_REMOVE);
+    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[1].second, nodes_list[0].first, nodes_list[1].first, config_type::CT_REMOVE);
     cc.lb_actions.assign_balancer_proposals({cpa2});
-    pc.hp_primary = node_list[0];
+    pc.primary = nodes_list[0].second;
+    pc.__set_hp_primary(nodes_list[0].first);
     pc.hp_secondaries.clear();
     ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 10: test abnormal learning detect" << std::endl;
-    cpa2 = new_proposal_action(node_addr_0, node_addr_1, node_list[0], node_list[1], config_type::CT_ADD_SECONDARY);
-    pc.hp_primary = node_list[0];
+    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[1].second, nodes_list[0].first, nodes_list[1].first, config_type::CT_ADD_SECONDARY);
+    pc.primary = nodes_list[0].second;
+    pc.__set_hp_primary(nodes_list[0].first);
     pc.hp_secondaries.clear();
     cc.lb_actions.assign_balancer_proposals({cpa2});
 
@@ -953,12 +976,12 @@ void meta_partition_guardian_test::from_proposal_test()
     i.last_committed_decree = 10;
     i.last_prepared_decree = 10;
 
-    collect_replica(mv, node_list[1], i);
+    collect_replica(mv, nodes_list[1].first, i);
     ASSERT_TRUE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_ADD_SECONDARY, cpa.type);
 
     i.status = partition_status::PS_ERROR;
-    collect_replica(mv, node_list[1], i);
+    collect_replica(mv, nodes_list[1].first, i);
     ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 }

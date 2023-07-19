@@ -774,13 +774,13 @@ TEST_F(meta_duplication_service_test, fail_mode)
     ASSERT_EQ(dup->status(), duplication_status::DS_PAUSE);
 
     // ensure dup_sync will synchronize fail_mode
-    std::vector<host_port> server_nodes = generate_node_list(3);
-    auto node = server_nodes[0];
+    auto node = generate_node_list(3)[0];
     for (partition_configuration &pc : app->partitions) {
-        pc.hp_primary = server_nodes[0];
+        pc.primary = node.second;
+        pc.__set_hp_primary(node.first);
     }
     initialize_node_state();
-    duplication_sync_response sync_resp = duplication_sync(node, {});
+    duplication_sync_response sync_resp = duplication_sync(node.first, {});
     ASSERT_TRUE(sync_resp.dup_map[app->app_id][dup->id].__isset.fail_mode);
     ASSERT_EQ(sync_resp.dup_map[app->app_id][dup->id].fail_mode, duplication_fail_mode::FAIL_SKIP);
 

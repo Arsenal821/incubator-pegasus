@@ -164,7 +164,10 @@ std::vector<host_port> meta_test_base::ensure_enough_alive_nodes(int min_node_co
         return nodes;
     }
 
-    nodes = generate_node_list(min_node_count);
+    auto node_pairs = generate_node_list(min_node_count);
+    for (const auto& p : node_pairs) {
+        nodes.emplace_back(p.first);
+    }
     _ms->set_node_state(nodes, true);
 
     while (true) {
