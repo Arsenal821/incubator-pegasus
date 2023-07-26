@@ -368,7 +368,7 @@ void meta_service_test_app::adjust_dropped_size()
     req->config = pc;
     req->config.ballot++;
     req->config.secondaries.push_back(nodes[5].second);
-    req->config.hp_secondaries.push_back(nodes[5].first);
+    req->config.__set_hp_secondaries({nodes[5].first});
     req->info = info;
     req->__set_hp_node(nodes[5].first);
     req->type = config_type::CT_UPGRADE_TO_SECONDARY;

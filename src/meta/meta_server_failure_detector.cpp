@@ -126,7 +126,7 @@ bool meta_server_failure_detector::get_leader(host_port *leader)
     }
 
     if (_is_leader.load()) {
-        *leader = host_port(dsn_primary_address());
+        *leader = dsn_primary_host_port();
         return true;
     } else if (_lock_svc == nullptr) {
         leader->reset();
@@ -156,7 +156,7 @@ void meta_server_failure_detector::acquire_leader_lock()
         error_code err;
         auto tasks = _lock_svc->lock(
             _primary_lock_id,
-            dsn_primary_address().to_std_string(),
+            dsn_primary_host_port().to_string(),
             // lock granted
             LPC_META_SERVER_LEADER_LOCK_CALLBACK,
             [this, &err](error_code ec, const std::string &owner, uint64_t version) {

@@ -434,6 +434,7 @@ void meta_partition_guardian_test::cure_test()
         update_req->type = config_type::CT_DOWNGRADE_TO_INACTIVE;
         update_req->node = update_req->config.secondaries[0];
         update_req->hp_node = update_req->config.hp_secondaries[0];
+        update_req->config.secondaries.clear();
         update_req->config.hp_secondaries.clear();
 
         proposal_sent = true;

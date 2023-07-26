@@ -555,9 +555,29 @@ inline int count_partitions(const app_mapper &apps)
 }
 
 void when_update_replicas(config_type::type t, const std::function<void(bool)> &func);
-void maintain_drops(/*inout*/ std::vector<dsn::host_port> &drops,
-                    const dsn::host_port &node,
-                    config_type::type t);
+
+template <typename T>
+void maintain_drops(/*inout*/ std::vector<T> &drops,
+                    const T &node,
+                    config_type::type t)
+{
+    auto action = [&drops, &node](bool is_adding) {
+        auto it = std::find(drops.begin(), drops.end(), node);
+        if (is_adding) {
+            if (it != drops.end()) {
+                drops.erase(it);
+            }
+        } else {
+            CHECK(
+                it == drops.end(), "the node({}) cannot be in drops set before this update", node);
+            drops.push_back(node);
+            if (drops.size() > 3) {
+                drops.erase(drops.begin());
+            }
+        }
+    };
+    when_update_replicas(t, action);
+}
 
 // Try to construct a replica-group by current replica-infos of a gpid
 // ret:

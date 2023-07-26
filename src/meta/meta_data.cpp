@@ -100,26 +100,6 @@ void when_update_replicas(config_type::type t, const std::function<void(bool)> &
     }
 }
 
-void maintain_drops(std::vector<host_port> &drops, const host_port &node, config_type::type t)
-{
-    auto action = [&drops, &node](bool is_adding) {
-        auto it = std::find(drops.begin(), drops.end(), node);
-        if (is_adding) {
-            if (it != drops.end()) {
-                drops.erase(it);
-            }
-        } else {
-            CHECK(
-                it == drops.end(), "the node({}) cannot be in drops set before this update", node);
-            drops.push_back(node);
-            if (drops.size() > 3) {
-                drops.erase(drops.begin());
-            }
-        }
-    };
-    when_update_replicas(t, action);
-}
-
 bool construct_replica(meta_view view, const gpid &pid, int max_replica_count, const std::shared_ptr<dns_resolver> &resolver)
 {
     partition_configuration &pc = *get_config(*view.apps, pid);

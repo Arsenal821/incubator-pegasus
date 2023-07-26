@@ -872,7 +872,9 @@ void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
                     // when register child partition, stage is config_status::pending_remote_sync,
                     // but cc.pending_sync_request is not set, see more in function
                     // 'register_child_on_meta'
-                    if (req == nullptr || req->node == request.node)
+                    if (req == nullptr)
+                        return false;
+                    if ((req->__isset.hp_node && request.__isset.hp_node && req->hp_node == request.hp_node) || req->node == request.node)
                         return false;
                 }
 
@@ -1461,11 +1463,18 @@ void server_state::list_apps(const configuration_list_apps_request &request,
 
 void server_state::send_proposal(host_port target, const configuration_update_request &proposal)
 {
+    host_port hp;
+    if (proposal.__isset.hp_node) {
+        hp = proposal.hp_node;
+    } else {
+        hp = host_port(proposal.node);
+    }
     LOG_INFO("send proposal {} for gpid({}), ballot = {}, target = {}, node = {}",
              ::dsn::enum_to_string(proposal.type),
              proposal.config.pid,
              proposal.config.ballot,
              target,
+             hp,
              proposal.node);
     dsn::message_ex *msg =
         dsn::message_ex::create_request(RPC_CONFIG_PROPOSAL, 0, proposal.config.pid.thread_hash());
@@ -1493,39 +1502,80 @@ void server_state::request_check(const partition_configuration &old,
 
     switch (request.type) {
     case config_type::CT_ASSIGN_PRIMARY:
-        CHECK_NE(old.hp_primary, request.hp_node);
-        CHECK(std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) ==
-                  old.hp_secondaries.end(),
-              "");
+        if (request.__isset.hp_node) {
+            CHECK_NE(old.hp_primary, request.hp_node);
+            CHECK(std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) ==
+                      old.hp_secondaries.end(),
+                  "");
+        } else {
+            CHECK_NE(old.primary, request.node);
+            CHECK(std::find(old.secondaries.begin(), old.secondaries.end(), request.node) ==
+                      old.secondaries.end(),
+                  "");
+        }
         break;
     case config_type::CT_UPGRADE_TO_PRIMARY:
-        CHECK_NE(old.hp_primary, request.hp_node);
-        CHECK(std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) !=
-                  old.hp_secondaries.end(),
-              "");
+        if (request.__isset.hp_node) {
+            CHECK_NE(old.hp_primary, request.hp_node);
+            CHECK(std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) !=
+                      old.hp_secondaries.end(),
+                  "");
+        } else {
+            CHECK_NE(old.primary, request.node);
+            CHECK(std::find(old.secondaries.begin(), old.secondaries.end(), request.node) !=
+                      old.secondaries.end(),
+                  "");
+
+        }
         break;
     case config_type::CT_DOWNGRADE_TO_SECONDARY:
-        CHECK_EQ(old.hp_primary, request.hp_node);
-        CHECK(std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) ==
-                  old.hp_secondaries.end(),
-              "");
+        if (request.__isset.hp_node) {
+            CHECK_EQ(old.hp_primary, request.hp_node);
+            CHECK(std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) ==
+                      old.hp_secondaries.end(),
+                  "");
+        } else {
+            CHECK_EQ(old.primary, request.node);
+            CHECK(std::find(old.secondaries.begin(), old.secondaries.end(), request.node) ==
+                      old.secondaries.end(),
+                  "");
+        }
         break;
     case config_type::CT_DOWNGRADE_TO_INACTIVE:
     case config_type::CT_REMOVE:
-        CHECK(old.hp_primary == request.hp_node ||
-                  std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) !=
-                      old.hp_secondaries.end(),
-              "");
+        if (request.__isset.hp_node) {
+            CHECK(old.hp_primary == request.hp_node ||
+                      std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) !=
+                          old.hp_secondaries.end(),
+                  "");
+        } else {
+            CHECK(old.primary == request.node ||
+                      std::find(old.secondaries.begin(), old.secondaries.end(), request.node) !=
+                          old.secondaries.end(),
+                  "");
+        }
         break;
     case config_type::CT_UPGRADE_TO_SECONDARY:
-        CHECK_NE(old.hp_primary, request.hp_node);
-        CHECK(std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) ==
-                  old.hp_secondaries.end(),
-              "");
+        if (request.__isset.hp_node) {
+            CHECK_NE(old.hp_primary, request.hp_node);
+            CHECK(std::find(old.hp_secondaries.begin(), old.hp_secondaries.end(), request.hp_node) ==
+                      old.hp_secondaries.end(),
+                  "");
+        } else {
+            CHECK_NE(old.primary, request.node);
+            CHECK(std::find(old.secondaries.begin(), old.secondaries.end(), request.node) ==
+                      old.secondaries.end(),
+                  "");
+        }
         break;
     case config_type::CT_PRIMARY_FORCE_UPDATE_BALLOT:
-        CHECK_EQ(old.hp_primary, new_config.hp_primary);
-        CHECK(old.hp_secondaries == new_config.hp_secondaries, "");
+        if (request.__isset.hp_node) {
+            CHECK_EQ(old.hp_primary, new_config.hp_primary);
+            CHECK(old.hp_secondaries == new_config.hp_secondaries, "");
+        } else {
+            CHECK_EQ(old.primary, new_config.primary);
+            CHECK(old.secondaries == new_config.secondaries, "");
+        }
         break;
     default:
         break;
@@ -1544,6 +1594,13 @@ void server_state::update_configuration_locally(
     health_status old_health_status = partition_health_status(old_cfg, min_2pc_count);
     health_status new_health_status = partition_health_status(new_cfg, min_2pc_count);
 
+    host_port hp;
+    if (config_request->__isset.hp_node) {
+        hp = config_request->hp_node;
+    } else {
+        hp = host_port(config_request->node);
+    }
+
     if (app.is_stateful) {
         CHECK(old_cfg.ballot == invalid_ballot || old_cfg.ballot + 1 == new_cfg.ballot,
               "invalid configuration update request, old ballot {}, new ballot {}",
@@ -1552,8 +1609,8 @@ void server_state::update_configuration_locally(
 
         node_state *ns = nullptr;
         if (config_request->type != config_type::CT_DROP_PARTITION) {
-            ns = get_node_state(_nodes, config_request->hp_node, false);
-            CHECK_NOTNULL(ns, "invalid node address, address = {}", config_request->node);
+            ns = get_node_state(_nodes, hp, false);
+            CHECK_NOTNULL(ns, "invalid node address, address = {}({})", hp, config_request->node);
         }
 #ifndef NDEBUG
         request_check(old_cfg, *config_request);
@@ -1594,9 +1651,17 @@ void server_state::update_configuration_locally(
             break;
         case config_type::CT_REGISTER_CHILD: {
             ns->put_partition(gpid, true);
-            for (auto &secondary : config_request->config.hp_secondaries) {
-                auto secondary_node = get_node_state(_nodes, secondary, false);
-                secondary_node->put_partition(gpid, false);
+            if (config_request->config.__isset.hp_secondaries) {
+                for (auto &secondary : config_request->config.hp_secondaries) {
+                    auto secondary_node = get_node_state(_nodes, secondary, false);
+                    secondary_node->put_partition(gpid, false);
+                }
+            } else {
+                for (auto &secondary : config_request->config.secondaries) {
+                    auto hp = host_port(secondary);
+                    auto secondary_node = get_node_state(_nodes, hp, false);
+                    secondary_node->put_partition(gpid, false);
+                }
             }
             break;
         }
@@ -1607,22 +1672,23 @@ void server_state::update_configuration_locally(
     } else {
         CHECK_EQ(old_cfg.ballot, new_cfg.ballot);
 
+        auto host_node = host_port(config_request->host_node);
         new_cfg = old_cfg;
         partition_configuration_stateless pcs(new_cfg);
         if (config_request->type == config_type::type::CT_ADD_SECONDARY) {
-            pcs.hosts().emplace_back(config_request->host_node);
-            pcs.workers().emplace_back(config_request->node);
+            pcs.hosts().emplace_back(host_node);
+            pcs.workers().emplace_back(hp);
         } else {
             auto it =
-                std::remove(pcs.hosts().begin(), pcs.hosts().end(), host_port(config_request->host_node));
+                std::remove(pcs.hosts().begin(), pcs.hosts().end(), host_node);
             pcs.hosts().erase(it);
 
-            it = std::remove(pcs.workers().begin(), pcs.workers().end(), config_request->hp_node);
+            it = std::remove(pcs.workers().begin(), pcs.workers().end(), hp);
             pcs.workers().erase(it);
         }
 
-        auto it = _nodes.find(host_port(config_request->host_node));
-        CHECK(it != _nodes.end(), "invalid node address, address = {}", config_request->host_node);
+        auto it = _nodes.find(host_node);
+        CHECK(it != _nodes.end(), "invalid node address, address = {}({})", host_node, config_request->host_node);
         if (config_type::CT_REMOVE == config_request->type) {
             it->second.remove_partition(gpid, false);
         } else {
@@ -1748,6 +1814,7 @@ void server_state::on_update_configuration_on_remote_reply(
                 } else {
                     config_request->type = action.type;
                     config_request->node = action.node;
+                    config_request->__set_hp_node(action.hp_node);
                     config_request->info = *app;
                     send_proposal(action.hp_target, *config_request);
                 }
@@ -1804,8 +1871,14 @@ void server_state::drop_partition(std::shared_ptr<app_state> &app, int pidx)
     for (auto &node : pc.hp_secondaries) {
         maintain_drops(request.config.hp_last_drops, node, request.type);
     }
+    for (auto &node : pc.secondaries) {
+        maintain_drops(request.config.last_drops, node, request.type);
+    }
     if (!pc.hp_primary.is_invalid()) {
         maintain_drops(request.config.hp_last_drops, pc.hp_primary, request.type);
+    }
+    if (!pc.primary.is_invalid()) {
+        maintain_drops(request.config.last_drops, pc.primary, request.type);
     }
     request.config.primary.set_invalid();
     request.config.secondaries.clear();
@@ -1873,6 +1946,7 @@ void server_state::downgrade_primary_to_inactive(std::shared_ptr<app_state> &app
     request.config.primary.set_invalid();
     request.config.__set_hp_primary(host_port());
     maintain_drops(request.config.hp_last_drops, pc.hp_primary, request.type);
+    maintain_drops(request.config.last_drops, pc.primary, request.type);
 
     cc.stage = config_status::pending_remote_sync;
     cc.pending_sync_request = req;
@@ -2008,6 +2082,7 @@ void server_state::on_update_configuration(
         return;
     } else {
         maintain_drops(cfg_request->config.hp_last_drops, cfg_request->hp_node, cfg_request->type);
+        maintain_drops(cfg_request->config.last_drops, cfg_request->node, cfg_request->type);
     }
 
     if (response.err != ERR_IO_PENDING) {

@@ -1014,10 +1014,11 @@ void replica_stub::on_config_proposal(const configuration_update_request &propos
         return;
     }
 
-    LOG_INFO("{}@{}: received config proposal {} for {}",
+    LOG_INFO("{}@{}: received config proposal {} for {}({})",
              proposal.config.pid,
              _primary_address_str,
              enum_to_string(proposal.type),
+             proposal.hp_node,
              proposal.node);
 
     replica_ptr rep = get_replica(proposal.config.pid);
