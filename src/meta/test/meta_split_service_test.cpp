@@ -376,6 +376,7 @@ public:
     const int32_t PARENT_INDEX = 0;
     const int32_t CHILD_INDEX = 4;
     const host_port NODE = host_port("localhost", 10086);
+    const rpc_address NODE_ADDR = rpc_address("127.0.0.1", 10086);
     std::shared_ptr<app_state> app;
 };
 
@@ -503,6 +504,7 @@ TEST_F(meta_split_service_test, on_config_sync_test)
     info1.pid = pid1;
     info2.pid = pid2;
     configuration_query_by_node_request req;
+    req.node = NODE_ADDR;
     req.__set_hp_node(NODE);
     req.__isset.stored_replicas = true;
     req.stored_replicas.emplace_back(info1);

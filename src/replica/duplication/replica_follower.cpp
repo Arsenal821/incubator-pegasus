@@ -219,8 +219,15 @@ error_code replica_follower::nfs_copy_checkpoint(error_code err, learn_response 
         return ERR_FILE_OPERATION_FAILED;
     }
 
+    host_port hp;
+    if (resp.__isset.hp_address) {
+        hp = resp.hp_address;
+    } else {
+        hp = host_port(resp.address);
+    }
+
     nfs_copy_remote_files(
-        resp.hp_address, resp.replica_disk_tag, resp.base_local_dir, resp.state.files, dest);
+        hp, resp.replica_disk_tag, resp.base_local_dir, resp.state.files, dest);
     return ERR_OK;
 }
 

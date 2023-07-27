@@ -201,8 +201,10 @@ public:
         config.pid = PARENT_GPID;
         config.ballot = INIT_BALLOT;
         config.hp_primary = PRIMARY;
-        config.hp_secondaries.emplace_back(SECONDARY);
+        config.__set_hp_secondaries({SECONDARY});
+        config.secondaries.emplace_back(SECONDARY_ADDR);
         if (!lack_of_secondary) {
+            config.secondaries.emplace_back(SECONDARY_ADDR2);
             config.hp_secondaries.emplace_back(SECONDARY2);
         }
         _parent_replica->set_primary_partition_configuration(config);
@@ -369,10 +371,12 @@ public:
         req.parent_config.pid = PARENT_GPID;
         req.parent_config.ballot = INIT_BALLOT;
         req.parent_config.last_committed_decree = DECREE;
+        req.parent_config.primary = PRIMARY_ADDR;
         req.parent_config.__set_hp_primary(PRIMARY);
         req.child_config.pid = CHILD_GPID;
         req.child_config.ballot = INIT_BALLOT + 1;
         req.child_config.last_committed_decree = 0;
+        req.primary_address = PRIMARY_ADDR;
         req.__set_hp_primary_address(PRIMARY);
 
         register_child_response resp;
@@ -407,6 +411,7 @@ public:
         req.app = _parent_replica->_app_info;
         req.config.ballot = INIT_BALLOT;
         req.config.status = partition_status::PS_SECONDARY;
+        req.node = SECONDARY_ADDR;
         req.__set_hp_node(SECONDARY);
         if (meta_split_status == split_status::PAUSING ||
             meta_split_status == split_status::CANCELING) {
@@ -439,6 +444,7 @@ public:
 
         std::shared_ptr<group_check_request> req = std::make_shared<group_check_request>();
         std::shared_ptr<group_check_response> resp = std::make_shared<group_check_response>();
+        req->node = SECONDARY_ADDR;
         req->__set_hp_node(SECONDARY);
         if (meta_split_status != split_status::NOT_SPLIT) {
             req->__set_meta_split_status(meta_split_status);
@@ -541,7 +547,9 @@ public:
     const host_port PRIMARY = host_port("localhost", 18230);
     const rpc_address PRIMARY_ADDR = rpc_address("127.0.0.1", 18230);
     const host_port SECONDARY = host_port("localhost", 10058);
+    const rpc_address SECONDARY_ADDR = rpc_address("127.0.0.1", 10058);
     const host_port SECONDARY2 = host_port("localhost", 10805);
+    const rpc_address SECONDARY_ADDR2 = rpc_address("127.0.0.1", 10805);
     const gpid PARENT_GPID = gpid(APP_ID, 1);
     const gpid CHILD_GPID = gpid(APP_ID, 9);
     const ballot INIT_BALLOT = 3;

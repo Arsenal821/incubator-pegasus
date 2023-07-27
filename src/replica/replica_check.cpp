@@ -247,27 +247,34 @@ void replica::on_group_check_reply(error_code err,
 {
     _checker.only_one_thread_access();
 
+    host_port hp;
+    if (req->__isset.hp_node) {
+        hp = req->hp_node;
+    } else {
+        hp = host_port(req->node);
+    }
+
     if (partition_status::PS_PRIMARY != status() || req->config.ballot < get_ballot()) {
         return;
     }
 
-    auto r = _primary_states.group_check_pending_replies.erase(host_port(req->node));
-    CHECK_EQ_MSG(r, 1, "invalid node address, address = {}", req->node);
+    auto r = _primary_states.group_check_pending_replies.erase(hp);
+    CHECK_EQ_MSG(r, 1, "invalid node address, address = {}({})", hp, req->node);
 
     if (err != ERR_OK || resp->err != ERR_OK) {
         if (ERR_OK == err) {
             err = resp->err;
         }
-        handle_remote_failure(req->config.status, req->hp_node, err, "group check");
+        handle_remote_failure(req->config.status, hp, err, "group check");
         _stub->_counter_replicas_recent_group_check_fail_count->increment();
     } else {
         if (resp->learner_status_ == learner_status::LearningSucceeded &&
             req->config.status == partition_status::PS_POTENTIAL_SECONDARY) {
-            handle_learning_succeeded_on_primary(req->hp_node, resp->learner_signature);
+            handle_learning_succeeded_on_primary(hp, resp->learner_signature);
         }
         _split_mgr->primary_parent_handle_stop_split(req, resp);
         if (req->config.status == partition_status::PS_SECONDARY) {
-            _primary_states.secondary_disk_status[req->hp_node] = resp->disk_status;
+            _primary_states.secondary_disk_status[hp] = resp->disk_status;
         }
     }
 }
