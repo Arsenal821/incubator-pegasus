@@ -81,7 +81,7 @@ public:
     static bool s_disable_balancer;
 
 public:
-    checker_partition_guardian(meta_service *svc) : partition_guardian(svc) {}
+    checker_partition_guardian(meta_service *svc) : partition_guardian(svc), _svc(svc) {}
     pc_status
     cure(meta_view view, const dsn::gpid &gpid, configuration_proposal_action &action) override
     {
@@ -96,8 +96,10 @@ public:
                 action.node = pc.secondaries[0];
                 action.__set_hp_node(pc.hp_secondaries[0]);
                 for (unsigned int i = 1; i < pc.hp_secondaries.size(); ++i)
-                    if (pc.hp_secondaries[i] < action.hp_node)
+                    if (pc.hp_secondaries[i] < action.hp_node) {
+                        action.node = pc.secondaries[i];
                         action.hp_node = pc.hp_secondaries[i];
+                    }
                 action.type = config_type::CT_UPGRADE_TO_PRIMARY;
                 result = pc_status::ill;
             }
@@ -107,6 +109,7 @@ public:
                 sort_alive_nodes(*view.nodes,
                                  server_load_balancer::primary_comparator(*view.nodes),
                                  sort_result);
+                action.node = _svc->get_dns_resolver()->resolve_address(sort_result[0]);
                 action.__set_hp_node(sort_result[0]);
                 action.type = config_type::CT_ASSIGN_PRIMARY;
                 result = pc_status::ill;
@@ -114,12 +117,14 @@ public:
 
             // DDD
             else {
+                action.node = *pc.last_drops.rbegin();
                 action.__set_hp_node(*pc.hp_last_drops.rbegin());
                 action.type = config_type::CT_ASSIGN_PRIMARY;
-                LOG_ERROR("{} enters DDD state, we are waiting for its last primary node {} to "
+                LOG_ERROR("{} enters DDD state, we are waiting for its last primary node {}({}) to "
                           "come back ...",
                           pc.pid,
-                          action.hp_node);
+                          action.hp_node,
+                          action.node);
                 result = pc_status::dead;
             }
             action.target = action.node;
@@ -133,6 +138,7 @@ public:
 
             for (auto &node : sort_result) {
                 if (!is_member(pc, node)) {
+                    action.node = _svc->get_dns_resolver()->resolve_address(node);
                     action.__set_hp_node(node);
                     break;
                 }
@@ -161,6 +167,8 @@ public:
         }
         std::sort(sorted_node.begin(), sorted_node.end(), cmp);
     }
+
+    meta_service *_svc;
 };
 
 bool test_checker::s_inited = false;

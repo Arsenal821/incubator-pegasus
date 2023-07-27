@@ -151,7 +151,7 @@ bool partition_guardian::from_proposals(meta_view &view,
     }
     action = *(cc.lb_actions.front());
     char reason[1024];
-    if (action.target.is_invalid()) {
+    if (action.hp_target.is_invalid()) {
         sprintf(reason, "action target is invalid");
         goto invalid_action;
     }
@@ -237,7 +237,7 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
     // try to upgrade a secondary to primary if the primary is missing
     if (pc.hp_secondaries.size() > 0) {
         action.node.set_invalid();
-        action.hp_node.reset();
+        action.__set_hp_node(host_port());
 
         for (int i = 0; i < pc.hp_secondaries.size(); ++i) {
             node_state *ns = get_node_state(*(view.nodes), pc.hp_secondaries[i], false);
@@ -251,6 +251,7 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
             if (action.hp_node.is_invalid() ||
                 np->less_primaries(*get_newly_partitions(*(view.nodes), action.hp_node),
                                    gpid.get_app_id())) {
+                action.node = _svc->get_dns_resolver()->resolve_address(ns->host_port());
                 action.__set_hp_node(ns->host_port());
             }
         }
@@ -265,6 +266,7 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
             newly_partitions *np = get_newly_partitions(*(view.nodes), action.hp_node);
             np->newly_add_primary(gpid.get_app_id(), true);
 
+            action.target = action.node;
             action.hp_target = action.hp_node;
             result = pc_status::ill;
         }
@@ -308,7 +310,7 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
         std::string reason;
         config_context &cc = *get_config_context(*view.apps, gpid);
         action.node.set_invalid();
-        action.hp_node.reset();
+        action.__set_hp_node(host_port());
         for (int i = 0; i < cc.dropped.size(); ++i) {
             const dropped_replica &dr = cc.dropped[i];
             char time_buf[30] = {0};
@@ -348,6 +350,7 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
                         pc.hp_last_drops.back(),
                         pc.last_drops.back());
             action.hp_node = pc.hp_last_drops.back();
+            action.node = pc.last_drops.back();
         } else {
             std::vector<dsn::host_port> nodes(pc.hp_last_drops.end() - 2, pc.hp_last_drops.end());
             std::vector<dropped_replica> collected_info(2);
@@ -425,7 +428,8 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
                                               ? previous_dead.node
                                               : recent_dead.node;
                         }
-                        LOG_INFO("{}: select {} as a new primary", gpid_name, action.hp_node);
+                        action.node = _svc->get_dns_resolver()->resolve_address(action.hp_node);
+                        LOG_INFO("{}: select {}({}) as a new primary", gpid_name, action.hp_node, action.node);
                     } else {
                         char buf[1000];
                         sprintf(buf,
@@ -447,6 +451,7 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
 
         if (!action.hp_node.is_invalid()) {
             action.hp_target = action.hp_node;
+            action.target = action.node;
             action.type = config_type::CT_ASSIGN_PRIMARY;
 
             get_newly_partitions(*view.nodes, action.hp_node)
@@ -529,7 +534,7 @@ pc_status partition_guardian::on_missing_secondary(meta_view &view, const dsn::g
         is_emergency = true;
     }
     action.node.set_invalid();
-    action.hp_node.reset();
+    action.__set_hp_node(host_port());
 
     if (is_emergency) {
         std::ostringstream oss;
@@ -564,6 +569,7 @@ pc_status partition_guardian::on_missing_secondary(meta_view &view, const dsn::g
                          cc.prefered_dropped,
                          cc.prefered_dropped - 1);
                 action.hp_node = server.node;
+                action.node = _svc->get_dns_resolver()->resolve_address(server.node);
                 cc.prefered_dropped--;
                 break;
             } else {
@@ -616,6 +622,7 @@ pc_status partition_guardian::on_missing_secondary(meta_view &view, const dsn::g
                   "invalid server address, address = {}",
                   server.node);
             action.hp_node = server.node;
+            action.node = _svc->get_dns_resolver()->resolve_address(server.node);
         }
 
         if (!action.hp_node.is_invalid()) {
@@ -662,6 +669,8 @@ pc_status partition_guardian::on_redundant_secondary(meta_view &view, const dsn:
 
     configuration_proposal_action action;
     action.type = config_type::CT_REMOVE;
+    action.node = pc.secondaries[target];
+    action.target = pc.primary;
     action.hp_node = pc.hp_secondaries[target];
     action.hp_target = pc.hp_primary;
 

@@ -164,6 +164,8 @@ void simple_kv_client_app::send_config_to_meta(const host_port &receiver,
     request.gpid = g_default_gpid;
 
     configuration_proposal_action act;
+    act.target = _resolver->resolve_address(receiver);
+    act.node = _resolver->resolve_address(node);
     act.__set_hp_target(receiver);
     act.__set_hp_node(node);
     act.__set_type(type);

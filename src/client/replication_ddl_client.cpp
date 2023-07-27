@@ -493,7 +493,13 @@ dsn::error_code replication_ddl_client::list_nodes(
 
     for (dsn::replication::node_info &n : resp.infos) {
         FILL_HP_OPTIONAL_SECTION(n, address);
-        nodes[n.hp_address] = n.status;
+        host_port hp;
+        if (n.__isset.hp_address) {
+            hp = n.hp_address;
+        } else {
+            hp = host_port(n.address);
+        }
+        nodes[hp] = n.status;
     }
 
     return dsn::ERR_OK;

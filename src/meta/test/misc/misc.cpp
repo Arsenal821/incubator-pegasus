@@ -232,9 +232,17 @@ void track_disk_info_check_and_apply(const dsn::replication::configuration_propo
     config_context *cc = get_config_context(apps, pid);
     CHECK_NOTNULL(cc, "");
 
-    fs_manager *target_manager = get_fs_manager(manager, act.hp_target);
+    dsn::host_port hp_target, hp_node;
+    if (act.__isset.hp_target) {
+        hp_target = dsn::host_port(act.target);
+    }
+    if (act.__isset.hp_node) {
+        hp_node = dsn::host_port(act.node);
+    }
+
+    fs_manager *target_manager = get_fs_manager(manager, hp_target);
     CHECK_NOTNULL(target_manager, "");
-    fs_manager *node_manager = get_fs_manager(manager, act.hp_node);
+    fs_manager *node_manager = get_fs_manager(manager, hp_node);
     CHECK_NOTNULL(node_manager, "");
 
     std::string dir;
@@ -244,7 +252,7 @@ void track_disk_info_check_and_apply(const dsn::replication::configuration_propo
         auto selected = target_manager->find_best_dir_for_new_replica(pid);
         CHECK_NOTNULL(selected, "");
         selected->holding_replicas[pid.get_app_id()].emplace(pid);
-        cc->collect_serving_replica(act.hp_target, ri);
+        cc->collect_serving_replica(hp_target, ri);
         break;
     }
     case config_type::CT_ADD_SECONDARY:
@@ -252,7 +260,7 @@ void track_disk_info_check_and_apply(const dsn::replication::configuration_propo
         auto selected = node_manager->find_best_dir_for_new_replica(pid);
         CHECK_NOTNULL(selected, "");
         selected->holding_replicas[pid.get_app_id()].emplace(pid);
-        cc->collect_serving_replica(act.hp_node, ri);
+        cc->collect_serving_replica(hp_node, ri);
         break;
     }
     case config_type::CT_DOWNGRADE_TO_SECONDARY:
@@ -262,7 +270,7 @@ void track_disk_info_check_and_apply(const dsn::replication::configuration_propo
     case config_type::CT_REMOVE:
     case config_type::CT_DOWNGRADE_TO_INACTIVE:
         node_manager->remove_replica(pid);
-        cc->remove_from_serving(act.hp_node);
+        cc->remove_from_serving(hp_node);
         break;
 
     default:
@@ -289,6 +297,14 @@ void proposal_action_check_and_apply(const configuration_proposal_action &act,
         track_disk_info_check_and_apply(act, pid, apps, nodes, *manager);
     }
 
+    dsn::host_port hp_target, hp_node;
+    if (act.__isset.hp_target) {
+        hp_target = dsn::host_port(act.target);
+    }
+    if (act.__isset.hp_node) {
+        hp_node = dsn::host_port(act.node);
+    }
+
     switch (act.type) {
     case config_type::CT_ASSIGN_PRIMARY:
         CHECK_EQ(act.node, act.target);
@@ -296,29 +312,29 @@ void proposal_action_check_and_apply(const configuration_proposal_action &act,
         CHECK(pc.hp_secondaries.empty(), "");
 
         pc.primary = act.node;
-        pc.hp_primary = act.hp_node;
-        ns = &nodes[act.hp_node];
+        pc.hp_primary = hp_node;
+        ns = &nodes[hp_node];
         CHECK_EQ(ns->served_as(pc.pid), partition_status::PS_INACTIVE);
         ns->put_partition(pc.pid, true);
         break;
 
     case config_type::CT_ADD_SECONDARY:
-        CHECK_EQ(act.hp_target, pc.hp_primary);
-        CHECK(!is_member(pc, act.hp_node), "");
+        CHECK_EQ(hp_target, pc.hp_primary);
+        CHECK(!is_member(pc, hp_node), "");
 
-        pc.hp_secondaries.push_back(act.hp_node);
-        ns = &nodes[act.hp_node];
+        pc.hp_secondaries.push_back(hp_node);
+        ns = &nodes[hp_node];
         CHECK_EQ(ns->served_as(pc.pid), partition_status::PS_INACTIVE);
         ns->put_partition(pc.pid, false);
 
         break;
 
     case config_type::CT_DOWNGRADE_TO_SECONDARY:
-        CHECK_EQ(act.hp_node, act.hp_target);
-        CHECK_EQ(act.hp_node, pc.hp_primary);
-        CHECK(nodes.find(act.hp_node) != nodes.end(), "");
+        CHECK_EQ(hp_node, hp_target);
+        CHECK_EQ(hp_node, pc.hp_primary);
+        CHECK(nodes.find(hp_node) != nodes.end(), "");
         CHECK(!is_secondary(pc, pc.hp_primary), "");
-        nodes[act.hp_node].remove_partition(pc.pid, true);
+        nodes[hp_node].remove_partition(pc.pid, true);
         pc.secondaries.push_back(pc.primary);
         pc.hp_secondaries.push_back(pc.hp_primary);
         pc.primary.set_invalid();
@@ -327,23 +343,23 @@ void proposal_action_check_and_apply(const configuration_proposal_action &act,
 
     case config_type::CT_UPGRADE_TO_PRIMARY:
         CHECK(pc.hp_primary.is_invalid(), "");
-        CHECK_EQ(act.hp_node, act.hp_target);
-        CHECK(is_secondary(pc, act.hp_node), "");
-        CHECK(nodes.find(act.hp_node) != nodes.end(), "");
+        CHECK_EQ(hp_node, hp_target);
+        CHECK(is_secondary(pc, hp_node), "");
+        CHECK(nodes.find(hp_node) != nodes.end(), "");
 
-        ns = &nodes[act.hp_node];
-        pc.hp_primary = act.hp_node;
-        CHECK(replica_helper::remove_node(act.hp_node, pc.hp_secondaries), "");
+        ns = &nodes[hp_node];
+        pc.hp_primary = hp_node;
+        CHECK(replica_helper::remove_node(hp_node, pc.hp_secondaries), "");
         ns->put_partition(pc.pid, true);
         break;
 
     case config_type::CT_ADD_SECONDARY_FOR_LB:
-        CHECK_EQ(act.hp_target, pc.hp_primary);
-        CHECK(!is_member(pc, act.hp_node), "");
+        CHECK_EQ(hp_target, pc.hp_primary);
+        CHECK(!is_member(pc, hp_node), "");
         CHECK(!act.hp_node.is_invalid(), "");
-        pc.hp_secondaries.push_back(act.hp_node);
+        pc.hp_secondaries.push_back(hp_node);
 
-        ns = &nodes[act.hp_node];
+        ns = &nodes[hp_node];
         ns->put_partition(pc.pid, false);
         CHECK_EQ(ns->served_as(pc.pid), partition_status::PS_SECONDARY);
         break;
@@ -352,12 +368,12 @@ void proposal_action_check_and_apply(const configuration_proposal_action &act,
     case config_type::CT_REMOVE:
     case config_type::CT_DOWNGRADE_TO_INACTIVE:
         CHECK(!pc.hp_primary.is_invalid(), "");
-        CHECK_EQ(pc.hp_primary, act.hp_target);
-        CHECK(is_secondary(pc, act.hp_node), "");
-        CHECK(nodes.find(act.hp_node) != nodes.end(), "");
-        CHECK(replica_helper::remove_node(act.hp_node, pc.hp_secondaries), "");
+        CHECK_EQ(pc.hp_primary, hp_target);
+        CHECK(is_secondary(pc, hp_node), "");
+        CHECK(nodes.find(hp_node) != nodes.end(), "");
+        CHECK(replica_helper::remove_node(hp_node, pc.hp_secondaries), "");
 
-        ns = &nodes[act.hp_node];
+        ns = &nodes[hp_node];
         CHECK_EQ(ns->served_as(pc.pid), partition_status::PS_SECONDARY);
         ns->remove_partition(pc.pid, false);
         break;

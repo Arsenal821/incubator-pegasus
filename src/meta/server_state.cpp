@@ -843,7 +843,11 @@ void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
 
     bool reject_this_request = false;
     response.__isset.gc_replicas = false;
-    LOG_INFO("got config sync request from {}, stored_replicas_count({})",
+
+    host_port hp_node = request.__isset.hp_node ? request.hp_node : host_port(request.node);
+
+    LOG_INFO("got config sync request from {}({}), stored_replicas_count({})",
+             hp_node,
              request.node,
              request.stored_replicas.size());
 
@@ -851,9 +855,9 @@ void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
         zauto_read_lock l(_lock);
 
         // sync the partitions to the replica server
-        node_state *ns = get_node_state(_nodes, request.__isset.hp_node ? request.hp_node : host_port(request.node), false);
+        node_state *ns = get_node_state(_nodes, hp_node, false);
         if (ns == nullptr) {
-            LOG_INFO("node({}) not found in meta server", request.node);
+            LOG_INFO("node({}({})) not found in meta server", hp_node, request.node);
             response.err = ERR_OBJECT_NOT_FOUND;
         } else {
             response.err = ERR_OK;
@@ -874,7 +878,7 @@ void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
                     // 'register_child_on_meta'
                     if (req == nullptr)
                         return false;
-                    if ((req->__isset.hp_node && request.__isset.hp_node && req->hp_node == request.hp_node) || req->node == request.node)
+                    if ((req->__isset.hp_node && req->hp_node == hp_node) || req->node == request.node)
                         return false;
                 }
 
@@ -909,7 +913,7 @@ void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
             // the app is deleted but not expired, we need to ignore it
             // if the app is deleted and expired, we need to gc it
             for (const replica_info &rep : replicas) {
-                LOG_DEBUG("receive stored replica from {}, pid({})", request.node, rep.pid);
+                LOG_DEBUG("receive stored replica from {}({}), pid({})", hp_node, request.node, rep.pid);
                 std::shared_ptr<app_state> app = get_app(rep.pid.get_app_id());
                 if (app == nullptr || rep.pid.get_partition_index() >= app->partition_count) {
                     // This app has garbage partition after cancel split, the canceled child
@@ -919,55 +923,62 @@ void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
                         rep.status == partition_status::PS_ERROR) {
                         response.gc_replicas.push_back(rep);
                         LOG_WARNING(
-                            "notify node({}) to gc replica({}) because it is useless partition "
+                            "notify node({}({})) to gc replica({}) because it is useless partition "
                             "which is caused by cancel split",
+                            hp_node.to_string(),
                             request.node.to_string(),
                             rep.pid);
                     } else {
                         // app is not recognized or partition is not recognized
                         CHECK(false,
-                              "gpid({}) on node({}) is not exist on meta server, administrator "
+                              "gpid({}) on node({}({})) is not exist on meta server, administrator "
                               "should check consistency of meta data",
                               rep.pid,
+                              hp_node,
                               request.node);
                     }
                 } else if (app->status == app_status::AS_DROPPED) {
                     if (app->expire_second == 0) {
-                        LOG_INFO("gpid({}) on node({}) is of dropped table, but expire second is "
+                        LOG_INFO("gpid({}) on node({}({})) is of dropped table, but expire second is "
                                  "not specified, do not delete it for safety reason",
                                  rep.pid,
+                                 hp_node,
                                  request.node);
                     } else if (has_seconds_expired(app->expire_second)) {
                         // can delete replica only when expire second is explicitely specified and
                         // expired.
                         if (level <= meta_function_level::fl_steady) {
-                            LOG_INFO("gpid({}) on node({}) is of dropped and expired table, but "
+                            LOG_INFO("gpid({}) on node({}({})) is of dropped and expired table, but "
                                      "current function level is {}, do not delete it for safety "
                                      "reason",
                                      rep.pid,
+                                     hp_node,
                                      request.node,
                                      _meta_function_level_VALUES_TO_NAMES.find(level)->second);
                         } else {
                             response.gc_replicas.push_back(rep);
-                            LOG_WARNING("notify node({}) to gc replica({}) coz the app is "
+                            LOG_WARNING("notify node({}({})) to gc replica({}) coz the app is "
                                         "dropped and expired",
+                                        hp_node,
                                         request.node,
                                         rep.pid);
                         }
                     }
                 } else if (app->status == app_status::AS_AVAILABLE) {
                     bool is_useful_replica =
-                        collect_replica({&_all_apps, &_nodes}, request.hp_node, rep);
+                        collect_replica({&_all_apps, &_nodes}, hp_node, rep);
                     if (!is_useful_replica) {
                         if (level <= meta_function_level::fl_steady) {
-                            LOG_INFO("gpid({}) on node({}) is useless, but current function "
+                            LOG_INFO("gpid({}) on node({}({})) is useless, but current function "
                                      "level is {}, do not delete it for safety reason",
                                      rep.pid,
+                                     hp_node,
                                      request.hp_node,
                                      _meta_function_level_VALUES_TO_NAMES.find(level)->second);
                         } else {
                             response.gc_replicas.push_back(rep);
-                            LOG_WARNING("notify node({}) to gc replica({}) coz it is useless",
+                            LOG_WARNING("notify node({}({})) to gc replica({}) coz it is useless",
+                                        hp_node,
                                         request.hp_node,
                                         rep.pid);
                         }
@@ -985,8 +996,9 @@ void server_state::on_config_sync(configuration_query_by_node_rpc rpc)
         response.err = ERR_BUSY;
         response.partitions.clear();
     }
-    LOG_INFO("send config sync response to {}, err({}), partitions_count({}), "
+    LOG_INFO("send config sync response to {}({}), err({}), partitions_count({}), "
              "gc_replicas_count({})",
+             hp_node.to_string(),
              request.node.to_string(),
              response.err,
              response.partitions.size(),
@@ -2374,6 +2386,7 @@ server_state::sync_apps_from_replica_nodes(const std::vector<dsn::host_port> &re
 
         auto app_query_req = std::make_unique<query_app_info_request>();
         app_query_req->meta_server = dsn_primary_address();
+        app_query_req->__set_hp_meta_server(dsn_primary_host_port());
         query_app_info_rpc app_rpc(std::move(app_query_req), RPC_QUERY_APP_INFO);
         auto addr = _meta_svc->get_dns_resolver()->resolve_address(replica_nodes[i]);
         app_rpc.call(addr,
@@ -2486,8 +2499,18 @@ void server_state::on_start_recovery(const configuration_recovery_request &req,
              req.skip_bad_nodes ? "true" : "false",
              req.skip_lost_partitions ? "true" : "false");
 
-    resp.err = sync_apps_from_replica_nodes(
-        req.hp_recovery_set, req.skip_bad_nodes, req.skip_lost_partitions, resp.hint_message);
+    if (req.__isset.hp_recovery_set) {
+        resp.err = sync_apps_from_replica_nodes(
+            req.hp_recovery_set, req.skip_bad_nodes, req.skip_lost_partitions, resp.hint_message);
+    } else {
+        auto hp_recovery_set = std::vector<host_port>();
+        for (const auto& addr : req.recovery_set) {
+            hp_recovery_set.emplace_back(host_port(addr));
+        }
+        resp.err = sync_apps_from_replica_nodes(
+            hp_recovery_set, req.skip_bad_nodes, req.skip_lost_partitions, resp.hint_message);
+    }
+
     if (resp.err != dsn::ERR_OK) {
         LOG_ERROR("sync apps from replica nodes failed when do recovery, err = {}", resp.err);
         _all_apps.clear();
