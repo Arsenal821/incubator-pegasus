@@ -650,13 +650,21 @@ void replica_split_manager::parent_handle_child_catch_up(
         return;
     }
 
+    host_port hp;
+    if (request.__isset.hp_child_address) {
+        hp = request.hp_child_address;
+    } else {
+        hp = host_port(request.child_address);
+    }
+
     response.err = ERR_OK;
-    LOG_INFO_PREFIX("receive catch_up request from {}@{}, current ballot={}",
+    LOG_INFO_PREFIX("receive catch_up request from {}@{}({}), current ballot={}",
                     request.child_gpid,
+                    hp,
                     request.child_address.to_string(),
                     request.child_ballot);
 
-    _replica->_primary_states.caught_up_children.insert(request.hp_child_address);
+    _replica->_primary_states.caught_up_children.insert(hp);
     // _primary_states.statuses is a map structure: rpc address -> partition_status
     // it stores replica's rpc address and partition_status of this replica group
     for (auto &iter : _replica->_primary_states.statuses) {
@@ -874,7 +882,8 @@ void replica_split_manager::on_update_child_group_partition_count_reply(
     error_code error = (ec == ERR_OK) ? response.err : ec;
     if (error == ERR_TIMEOUT) {
         LOG_WARNING_PREFIX(
-            "failed to update child node({}) partition_count, error = {}, wait and retry",
+            "failed to update child node({}({})) partition_count, error = {}, wait and retry",
+            request.hp_target_address.to_string(),
             request.target_address.to_string(),
             error);
         tasking::enqueue(
@@ -891,7 +900,8 @@ void replica_split_manager::on_update_child_group_partition_count_reply(
     }
 
     if (error != ERR_OK) {
-        LOG_ERROR_PREFIX("failed to update child node({}) partition_count({}), error = {}",
+        LOG_ERROR_PREFIX("failed to update child node({}({})) partition_count({}), error = {}",
+                         request.hp_target_address.to_string(),
                          request.target_address.to_string(),
                          request.new_partition_count,
                          error);
@@ -899,7 +909,8 @@ void replica_split_manager::on_update_child_group_partition_count_reply(
         return;
     }
 
-    LOG_INFO_PREFIX("update node({}) child({}) partition_count({}) succeed",
+    LOG_INFO_PREFIX("update node({}({})) child({}) partition_count({}) succeed",
+                    request.hp_target_address.to_string(),
                     request.target_address.to_string(),
                     request.child_pid,
                     request.new_partition_count);

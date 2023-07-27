@@ -293,19 +293,25 @@ bool ddd_diagnose(command_executor *e, shell_context *sc, arguments args)
             secondary_latest_dropped = pinfo.config.hp_last_drops[pinfo.config.hp_last_drops.size() - 2];
         int j = 0;
         for (const ddd_node_info &n : pinfo.dropped) {
+            dsn::host_port hp;
+            if (n.__isset.hp_node) {
+                hp = n.hp_node;
+            } else {
+                hp = dsn::host_port(n.node);
+            }
             char time_buf[30] = {0};
             ::dsn::utils::time_ms_to_string(n.drop_time_ms, time_buf);
             out << "    dropped[" << j++ << "]: "
-                << "node(" << n.hp_node.to_string() << "), "
+                << "node(" << hp.to_string() << "), "
                 << "drop_time(" << time_buf << "), "
                 << "alive(" << (n.is_alive ? "true" : "false") << "), "
                 << "collected(" << (n.is_collected ? "true" : "false") << "), "
                 << "ballot(" << n.ballot << "), "
                 << "last_committed(" << n.last_committed_decree << "), "
                 << "last_prepared(" << n.last_prepared_decree << ")";
-            if (n.hp_node == latest_dropped)
+            if (hp == latest_dropped)
                 out << "  <== the latest";
-            else if (n.hp_node == secondary_latest_dropped)
+            else if (hp == secondary_latest_dropped)
                 out << "  <== the secondary latest";
             out << std::endl;
         }

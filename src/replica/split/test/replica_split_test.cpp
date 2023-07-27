@@ -213,6 +213,7 @@ public:
     {
         req.child_pid = CHILD_GPID;
         req.ballot = b;
+        req.target_address = PRIMARY_ADDR;
         req.__set_hp_target_address(PRIMARY);
         req.new_partition_count = NEW_PARTITION_COUNT;
     }
@@ -304,6 +305,7 @@ public:
         req.child_gpid = CHILD_GPID;
         req.parent_gpid = PARENT_GPID;
         req.child_ballot = child_ballot;
+        req.child_address = PRIMARY_ADDR;
         req.__set_hp_child_address(PRIMARY);
 
         notify_cacth_up_response resp;
@@ -537,6 +539,7 @@ public:
     const int32_t OLD_PARTITION_COUNT = 8;
     const int32_t NEW_PARTITION_COUNT = 16;
     const host_port PRIMARY = host_port("localhost", 18230);
+    const rpc_address PRIMARY_ADDR = rpc_address("127.0.0.1", 18230);
     const host_port SECONDARY = host_port("localhost", 10058);
     const host_port SECONDARY2 = host_port("localhost", 10805);
     const gpid PARENT_GPID = gpid(APP_ID, 1);
