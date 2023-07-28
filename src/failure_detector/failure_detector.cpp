@@ -353,10 +353,22 @@ std::string failure_detector::get_allow_list(const std::vector<std::string> &arg
 
 void failure_detector::on_ping_internal(const beacon_msg &beacon, /*out*/ beacon_ack &ack)
 {
+    host_port hp_from_addr, hp_to_addr;
+    if (beacon.__isset.hp_from_addr) {
+        hp_from_addr = beacon.hp_from_addr;
+    } else {
+        hp_from_addr = host_port(beacon.from_addr);
+    }
+    if (beacon.__isset.hp_to_addr) {
+        hp_to_addr = beacon.hp_to_addr;
+    } else {
+        hp_to_addr = host_port(beacon.to_addr);
+    }
+
     ack.time = beacon.time;
     ack.this_node = beacon.to_addr;
     ack.primary_node = dsn_primary_address();
-    ack.__set_hp_this_node(beacon.hp_to_addr);
+    ack.__set_hp_this_node(hp_to_addr);
     ack.__set_hp_primary_node(dsn_primary_host_port());
     ack.is_master = true;
     ack.allowed = true;
@@ -365,22 +377,22 @@ void failure_detector::on_ping_internal(const beacon_msg &beacon, /*out*/ beacon
 
     uint64_t now = dsn_now_ms();
 
-    worker_map::iterator itr = _workers.find(beacon.hp_from_addr);
+    worker_map::iterator itr = _workers.find(hp_from_addr);
     if (itr == _workers.end()) {
         // if is a new worker, check allow list first if need
-        if (_use_allow_list && _allow_list.find(beacon.hp_from_addr) == _allow_list.end()) {
-            LOG_WARNING("new worker[{}] is rejected", beacon.hp_from_addr);
+        if (_use_allow_list && _allow_list.find(hp_from_addr) == _allow_list.end()) {
+            LOG_WARNING("new worker[{}] is rejected", hp_from_addr);
             ack.allowed = false;
             return;
         }
 
         // create new entry for node
-        worker_record record(beacon.hp_from_addr, now);
+        worker_record record(hp_from_addr, now);
         record.is_alive = true;
-        _workers.insert(std::make_pair(beacon.hp_from_addr, record));
+        _workers.insert(std::make_pair(hp_from_addr, record));
 
-        report(beacon.hp_from_addr, false, true);
-        on_worker_connected(beacon.hp_from_addr);
+        report(hp_from_addr, false, true);
+        on_worker_connected(hp_from_addr);
     } else if (is_time_greater_than(now, itr->second.last_beacon_recv_time)) {
         // update last_beacon_recv_time
         itr->second.last_beacon_recv_time = now;
@@ -392,8 +404,8 @@ void failure_detector::on_ping_internal(const beacon_msg &beacon, /*out*/ beacon
         if (itr->second.is_alive == false) {
             itr->second.is_alive = true;
 
-            report(beacon.hp_from_addr, false, true);
-            on_worker_connected(beacon.hp_from_addr);
+            report(hp_from_addr, false, true);
+            on_worker_connected(hp_from_addr);
         }
     } else {
         LOG_INFO("now[{}] <= last_recv_time[{}]", now, itr->second.last_beacon_recv_time);
@@ -402,12 +414,8 @@ void failure_detector::on_ping_internal(const beacon_msg &beacon, /*out*/ beacon
 
 void failure_detector::on_ping(const beacon_msg &beacon, ::dsn::rpc_replier<beacon_ack> &reply)
 {
-    beacon_msg msg = beacon;
-    FILL_HP_OPTIONAL_SECTION(msg, from_addr);
-    FILL_HP_OPTIONAL_SECTION(msg, to_addr);
-
     beacon_ack ack;
-    on_ping_internal(msg, ack);
+    on_ping_internal(beacon, ack);
     reply(ack);
 }
 
@@ -421,37 +429,45 @@ bool failure_detector::end_ping_internal(::dsn::error_code err, const beacon_ack
     /*
      * the caller of the end_ping_internal should lock necessarily!!!
      */
-    beacon_ack ack_msg = ack;
-    FILL_HP_OPTIONAL_SECTION(ack_msg, this_node);
-    FILL_HP_OPTIONAL_SECTION(ack_msg, primary_node);
+    host_port hp_this_node, hp_primary_node;
+    if (ack.__isset.hp_this_node) {
+        hp_this_node = ack.hp_this_node;
+    } else {
+        hp_this_node = host_port(ack.this_node);
+    }
+    if (ack.__isset.hp_primary_node) {
+        hp_primary_node = ack.hp_primary_node;
+    } else {
+        hp_primary_node = host_port(ack.primary_node);
+    }
 
-    uint64_t beacon_send_time = ack_msg.time;
+    uint64_t beacon_send_time = ack.time;
 
     if (err != ERR_OK) {
         LOG_WARNING("ping master({}) failed, timeout_ms = {}, err = {}",
-                    ack_msg.hp_this_node,
+                    hp_this_node,
                     _beacon_timeout_milliseconds,
                     err);
         _recent_beacon_fail_count->increment();
     }
 
-    master_map::iterator itr = _masters.find(ack_msg.hp_this_node);
+    master_map::iterator itr = _masters.find(hp_this_node);
 
     if (itr == _masters.end()) {
         LOG_WARNING("received beacon ack without corresponding master, ignore it, "
                     "remote_master[{}({})], local_worker[{}]",
-                    ack_msg.hp_this_node,
-                    ack_msg.this_node,
+                    hp_this_node,
+                    ack.this_node,
                     dsn_primary_address());
         return false;
     }
 
     master_record &record = itr->second;
-    if (!ack_msg.allowed) {
+    if (!ack.allowed) {
         LOG_WARNING(
             "worker rejected, stop sending beacon message, remote_master[{}({})], local_worker[{}({})]",
-            ack_msg.hp_this_node,
-            ack_msg.this_node,
+            hp_this_node,
+            ack.this_node,
             dsn_primary_host_port(),
             dsn_primary_address());
         record.rejected = true;
@@ -473,9 +489,9 @@ bool failure_detector::end_ping_internal(::dsn::error_code err, const beacon_ack
     }
 
     // if ack is not from master meta, worker should not update its last send time
-    if (!ack_msg.is_master) {
+    if (!ack.is_master) {
         LOG_WARNING(
-            "node[{}({})] is not master, ack.primary_node[{}({})] is real master", ack_msg.hp_this_node, ack_msg.this_node, ack_msg.primary_node, ack_msg.hp_primary_node);
+            "node[{}({})] is not master, ack.primary_node[{}({})] is real master", hp_this_node, ack.this_node, hp_primary_node, ack.primary_node);
         return true;
     }
 
@@ -492,9 +508,9 @@ bool failure_detector::end_ping_internal(::dsn::error_code err, const beacon_ack
     if (!record.is_alive && is_time_greater_than(now, record.last_send_time_for_beacon_with_ack) &&
         now - record.last_send_time_for_beacon_with_ack <= _lease_milliseconds) {
         // report master connected
-        report(ack_msg.hp_this_node, true, true);
+        report(hp_this_node, true, true);
         itr->second.is_alive = true;
-        on_master_connected(ack_msg.hp_this_node);
+        on_master_connected(hp_this_node);
     }
 
     return true;
