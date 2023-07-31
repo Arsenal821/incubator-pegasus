@@ -36,6 +36,7 @@
 #include "runtime/api_layer1.h"
 #include "runtime/global_config.h"
 #include "runtime/rpc/group_address.h"
+#include "runtime/rpc/group_host_port.h"
 #include "runtime/rpc/network.h"
 #include "runtime/rpc/serialization.h"
 #include "runtime/service_engine.h"
@@ -149,6 +150,7 @@ bool rpc_client_matcher::on_recv_reply(network *net, uint64_t key, message_ex *r
             case GRPC_TO_LEADER:
                 if (req->server_address.group_address()->is_update_leader_automatically()) {
                     req->server_address.group_address()->set_leader(addr);
+                    req->server_host_port.group_host_port()->set_leader(host_port(addr));
                 }
                 break;
             default:
@@ -177,6 +179,8 @@ bool rpc_client_matcher::on_recv_reply(network *net, uint64_t key, message_ex *r
                         req->server_address.group_address()->is_update_leader_automatically()) {
                         req->server_address.group_address()->set_leader(
                             reply->header->from_address);
+                        req->server_host_port.group_host_port()->set_leader(
+                            host_port(reply->header->from_address));
                     }
                     break;
                 default:
@@ -670,6 +674,7 @@ void rpc_engine::call_ip(rpc_address addr,
     }
 
     request->to_address = addr;
+    request->to_host_port = host_port(addr);
 
     auto sp = task_spec::get(request->local_rpc_code);
     auto &hdr = *request->header;

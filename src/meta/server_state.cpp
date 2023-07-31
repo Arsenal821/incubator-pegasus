@@ -1481,7 +1481,7 @@ void server_state::send_proposal(host_port target, const configuration_update_re
     } else {
         hp = host_port(proposal.node);
     }
-    LOG_INFO("send proposal {} for gpid({}), ballot = {}, target = {}, node = {}",
+    LOG_INFO("send proposal {} for gpid({}), ballot = {}, target = {}, node = {}({})",
              ::dsn::enum_to_string(proposal.type),
              proposal.config.pid,
              proposal.config.ballot,

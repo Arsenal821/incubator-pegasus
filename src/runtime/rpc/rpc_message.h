@@ -113,7 +113,6 @@ typedef struct message_header
     //
     // in the forwarding case, the from_address is always the orignal client's address
     rpc_address from_address;
-    host_port from_host_port;
 
     struct
     {

@@ -61,7 +61,7 @@ proxy_stub::proxy_stub(const proxy_session::factory &f,
 
 void proxy_stub::on_rpc_request(dsn::message_ex *request)
 {
-    ::dsn::host_port source = request->header->from_host_port;
+    ::dsn::host_port source = ::dsn::host_port(request->header->from_address);
     std::shared_ptr<proxy_session> session;
     {
         ::dsn::zauto_read_lock l(_lock);
@@ -86,7 +86,7 @@ void proxy_stub::on_rpc_request(dsn::message_ex *request)
 
 void proxy_stub::on_recv_remove_session_request(dsn::message_ex *request)
 {
-    ::dsn::host_port source = request->header->from_host_port;
+    ::dsn::host_port source = ::dsn::host_port(request->header->from_address);
     remove_session(source);
 }
 
@@ -113,7 +113,7 @@ proxy_session::proxy_session(proxy_stub *op, dsn::message_ex *first_msg)
     CHECK_NOTNULL(first_msg, "null msg when create session");
     _backup_one_request->add_ref();
 
-    _remote_host_port = _backup_one_request->header->from_host_port;
+    _remote_host_port = ::dsn::host_port(_backup_one_request->header->from_address);
     CHECK_EQ_MSG(_remote_host_port.type(), HOST_TYPE_IPV4, "invalid host_port type");
 }
 

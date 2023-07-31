@@ -98,6 +98,7 @@ bool host_port::from_string(const std::string s)
 
 host_port::host_port(rpc_address addr)
 {
+    reset();
     switch (addr.type()) {
     case HOST_TYPE_IPV4: {
         CHECK(utils::hostname_from_ip(htonl(addr.ip()), &_host),
@@ -107,6 +108,7 @@ host_port::host_port(rpc_address addr)
     } break;
     case HOST_TYPE_GROUP: {
         _group_host_port = new rpc_group_host_port(addr.group_address());
+        _group_host_port->add_ref();
     } break;
     default:
         break;

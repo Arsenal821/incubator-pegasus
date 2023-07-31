@@ -151,11 +151,11 @@ bool partition_guardian::from_proposals(meta_view &view,
     }
     action = *(cc.lb_actions.front());
     char reason[1024];
-    if (action.hp_target.is_invalid()) {
+    if (action.target.is_invalid() || action.hp_target.is_invalid()) {
         sprintf(reason, "action target is invalid");
         goto invalid_action;
     }
-    if (action.hp_node.is_invalid()) {
+    if (action.node.is_invalid() || action.hp_node.is_invalid()) {
         sprintf(reason, "action node is invalid");
         goto invalid_action;
     }
@@ -291,7 +291,9 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
         }
 
         if (min_primary_server_np != nullptr) {
+            action.node = _svc->get_dns_resolver()->resolve_address(min_primary_server);
             action.__set_hp_node(min_primary_server);
+            action.target = action.node;
             action.__set_hp_target(action.hp_node);
             action.type = config_type::CT_ASSIGN_PRIMARY;
             min_primary_server_np->newly_add_primary(gpid.get_app_id(), false);
@@ -450,7 +452,7 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
         }
 
         if (!action.hp_node.is_invalid()) {
-            action.hp_target = action.hp_node;
+            action.__set_hp_target(action.hp_node);
             action.target = action.node;
             action.type = config_type::CT_ASSIGN_PRIMARY;
 
@@ -599,6 +601,7 @@ pc_status partition_guardian::on_missing_secondary(meta_view &view, const dsn::g
                 if (min_server_np == nullptr ||
                     np->less_partitions(*min_server_np, gpid.get_app_id())) {
                     action.__set_hp_node(ns.host_port());
+                    action.node = _svc->get_dns_resolver()->resolve_address(ns.host_port());
                     min_server_np = np;
                 }
             }

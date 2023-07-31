@@ -377,10 +377,10 @@ rpc_session::rpc_session(connection_oriented_network &net,
       _message_sent(0),
       _net(net),
       _remote_addr(remote_addr),
+      _remote_host_port(host_port(remote_addr)),
       _max_buffer_block_count_per_send(net.max_buffer_block_count_per_send()),
       _reader(net.message_buffer_block_size()),
       _parser(parser),
-
       _is_client(is_client),
       _matcher(_net.engine()->matcher()),
       _delay_server_receive_ms(0)
@@ -422,9 +422,15 @@ void rpc_session::on_failure(bool is_write)
 
 bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
 {
-    if (msg->header->from_address.is_invalid())
+    if (msg->header->from_address.is_invalid()) {
         msg->header->from_address = _remote_addr;
+    } else if (msg->header->from_address != _remote_addr) {
+        msg->header->from_address = _remote_addr;
+        LOG_DEBUG("msg from_address {} not be same as socket remote_addr {}, assign it to remote_addr.", msg->header->from_address, _remote_addr);
+    }
+
     msg->to_address = _net.address();
+    msg->to_host_port = _net.host_port();
     msg->io_session = this;
 
     // ignore msg if join point return false
