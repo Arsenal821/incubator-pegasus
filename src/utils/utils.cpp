@@ -45,7 +45,7 @@
 #include <memory>
 #include <vector>
 
-#include "runtime/rpc/rpc_host_port.h"
+#include "runtime/rpc/rpc_address.h"
 #include "utils/fmt_logging.h"
 #include "utils/strings.h"
 
@@ -107,9 +107,13 @@ bool hostname_from_ip(const char *ip, std::string *hostname_result)
 
 bool hostname_from_ip_port(const char *ip_port, std::string *hostname_result)
 {
-    dsn::host_port hp;
-    if (!hp.from_string(ip_port)) {
+    dsn::rpc_address addr;
+    if (!addr.from_string_ipv4(ip_port)) {
         LOG_WARNING("invalid ip_port({})", ip_port);
+        *hostname_result = ip_port;
+        return false;
+    }
+    if (!hostname(addr, hostname_result)) {
         *hostname_result = ip_port;
         return false;
     }

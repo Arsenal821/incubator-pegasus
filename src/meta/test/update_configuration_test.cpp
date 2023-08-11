@@ -437,11 +437,12 @@ void meta_service_test_app::apply_balancer_test()
 
     // initialize data structure
     std::vector<std::pair<dsn::host_port, dsn::rpc_address>> node_list;
+    generate_node_list(node_list, 5, 10);
+
     std::vector<dsn::host_port> hps;
     for (const auto& p : node_list) {
         hps.emplace_back(p.first);
     }
-    generate_node_list(node_list, 5, 10);
 
     server_state *ss = meta_svc->_state.get();
     generate_apps(ss->_all_apps, hps, 5, 5, std::pair<uint32_t, uint32_t>(2, 5), false);

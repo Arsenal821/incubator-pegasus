@@ -66,7 +66,7 @@ public:
             ASSERT_FALSE(_ms->check_status_and_authz(rpc));
             ASSERT_EQ(app_env_rpc::forward_mail_box().size(), 1);
             ASSERT_EQ(app_env_rpc::forward_mail_box()[0].remote_address().to_std_string(),
-                      "1.2.3.4:10086");
+                      "127.0.0.1:10086");
         }
 
         fail::teardown();

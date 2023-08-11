@@ -122,7 +122,7 @@ TEST_F(replica_follower_test, test_init_master_info)
 {
     _app_info.envs.emplace(duplication_constants::kDuplicationEnvMasterClusterKey, "master");
     _app_info.envs.emplace(duplication_constants::kDuplicationEnvMasterMetasKey,
-                           "127.0.0.1:34801,127.0.0.2:34801,127.0.0.3:34802");
+                           "127.0.0.1:34801,127.0.0.1:34802,127.0.0.1:34803");
     update_mock_replica(_app_info);
 
     auto follower = _mock_replica->get_replica_follower();
@@ -130,7 +130,7 @@ TEST_F(replica_follower_test, test_init_master_info)
     ASSERT_EQ(follower->get_master_cluster_name(), "master");
     ASSERT_TRUE(follower->is_need_duplicate());
     ASSERT_TRUE(_mock_replica->is_duplication_follower());
-    std::vector<std::string> test_ip{"127.0.0.1:34801", "127.0.0.2:34801", "127.0.0.3:34802"};
+    std::vector<std::string> test_ip{"127.0.0.1:34801", "127.0.0.1:34802", "127.0.0.1:34803"};
     for (int i = 0; i < follower->get_master_meta_list().size(); i++) {
         ASSERT_EQ(std::string(follower->get_master_meta_list()[i].to_string()), test_ip[i]);
     }
@@ -146,7 +146,7 @@ TEST_F(replica_follower_test, test_duplicate_checkpoint)
 {
     _app_info.envs.emplace(duplication_constants::kDuplicationEnvMasterClusterKey, "master");
     _app_info.envs.emplace(duplication_constants::kDuplicationEnvMasterMetasKey,
-                           "127.0.0.1:34801,127.0.0.2:34801,127.0.0.3:34802");
+                           "127.0.0.1:34801,127.0.0.1:34802,127.0.0.1:34803");
     update_mock_replica(_app_info);
 
     auto follower = _mock_replica->get_replica_follower();
@@ -166,7 +166,7 @@ TEST_F(replica_follower_test, test_async_duplicate_checkpoint_from_master_replic
 {
     _app_info.envs.emplace(duplication_constants::kDuplicationEnvMasterClusterKey, "master");
     _app_info.envs.emplace(duplication_constants::kDuplicationEnvMasterMetasKey,
-                           "127.0.0.1:34801,127.0.0.2:34801,127.0.0.3:34802");
+                           "127.0.0.1:34801,127.0.0.1:34802,127.0.0.1:34803");
     update_mock_replica(_app_info);
 
     auto follower = _mock_replica->get_replica_follower();
@@ -188,7 +188,7 @@ TEST_F(replica_follower_test, test_update_master_replica_config)
 {
     _app_info.envs.emplace(duplication_constants::kDuplicationEnvMasterClusterKey, "master");
     _app_info.envs.emplace(duplication_constants::kDuplicationEnvMasterMetasKey,
-                           "127.0.0.1:34801,127.0.0.2:34801,127.0.0.3:34802");
+                           "127.0.0.1:34801,127.0.0.1:34802,127.0.0.1:34803");
     update_mock_replica(_app_info);
     auto follower = _mock_replica->get_replica_follower();
 
@@ -231,8 +231,8 @@ TEST_F(replica_follower_test, test_update_master_replica_config)
     p.primary = rpc_address("127.0.0.1", 34801);
     p.__set_hp_primary(host_port("localhost", 34801));
     p.__set_hp_secondaries(std::vector<host_port>());
-    p.hp_secondaries.emplace_back(host_port("127.0.0.2", 34801));
-    p.hp_secondaries.emplace_back(host_port("127.0.0.3", 34801));
+    p.hp_secondaries.emplace_back(host_port("localhost", 34802));
+    p.hp_secondaries.emplace_back(host_port("localhost", 34803));
     resp.partitions.emplace_back(p);
     ASSERT_EQ(update_master_replica_config(follower, resp), ERR_OK);
     ASSERT_EQ(master_replica_config(follower).primary, p.primary);
@@ -244,7 +244,7 @@ TEST_F(replica_follower_test, test_nfs_copy_checkpoint)
 {
     _app_info.envs.emplace(duplication_constants::kDuplicationEnvMasterClusterKey, "master");
     _app_info.envs.emplace(duplication_constants::kDuplicationEnvMasterMetasKey,
-                           "127.0.0.1:34801,127.0.0.2:34801,127.0.0.3:34802");
+                           "127.0.0.1:34801,127.0.0.1:34802,127.0.0.1:34803");
     update_mock_replica(_app_info);
     init_nfs();
     auto follower = _mock_replica->get_replica_follower();
@@ -253,7 +253,7 @@ TEST_F(replica_follower_test, test_nfs_copy_checkpoint)
 
     auto resp = learn_response();
     resp.address = rpc_address("127.0.0.1", 34801);
-    resp.__set_hp_address(host_port("127.0.0.1", 34801));
+    resp.__set_hp_address(host_port("localhost", 34801));
 
     std::string dest = utils::filesystem::path_combine(
         _mock_replica->dir(), duplication_constants::kDuplicationCheckpointRootDir);

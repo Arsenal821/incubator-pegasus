@@ -96,10 +96,10 @@ TEST(core, group_address_talk_to_others)
 
     auto typed_callback = [addr](error_code err_code, const std::string &result) {
         EXPECT_EQ(ERR_OK, err_code);
-        dsn::rpc_address addr_got;
+        dsn::host_port hp_got;
         LOG_INFO("talk to others callback, result: {}", result);
-        EXPECT_TRUE(addr_got.from_string_ipv4(result.c_str()));
-        EXPECT_EQ(TEST_PORT_END, addr_got.port());
+        EXPECT_TRUE(hp_got.from_string(result));
+        EXPECT_EQ(TEST_PORT_END, hp_got.port());
     };
     ::dsn::task_ptr resp = ::dsn::rpc::call(addr,
                                             RPC_TEST_STRING_COMMAND,
@@ -109,6 +109,7 @@ TEST(core, group_address_talk_to_others)
     resp->wait();
 }
 
+
 TEST(core, group_address_change_leader)
 {
     ::dsn::rpc_address addr = build_group();
@@ -117,10 +118,10 @@ TEST(core, group_address_change_leader)
     auto typed_callback = [addr, &rpc_err](error_code err_code, const std::string &result) -> void {
         rpc_err = err_code;
         if (ERR_OK == err_code) {
-            ::dsn::rpc_address addr_got;
+            dsn::host_port hp_got;
             LOG_INFO("talk to others callback, result: {}", result);
-            EXPECT_TRUE(addr_got.from_string_ipv4(result.c_str()));
-            EXPECT_EQ(TEST_PORT_END, addr_got.port());
+            EXPECT_TRUE(hp_got.from_string(result));
+            EXPECT_EQ(TEST_PORT_END, hp_got.port());
         }
     };
 
@@ -240,7 +241,7 @@ TEST(core, send_to_invalid_address)
 {
     ::dsn::rpc_address group = build_group();
     /* here we assume 10.255.254.253:32766 is not assigned */
-    group.group_address()->set_leader(dsn::rpc_address("10.255.254.253", 32766));
+    group.group_address()->set_leader(dsn::rpc_address("127.0.0.1", 32766));
 
     rpc_reply_handler action_on_succeed =
         [](error_code err, dsn::message_ex *, dsn::message_ex *resp) {

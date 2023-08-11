@@ -276,7 +276,7 @@ public:
 
     void set_state_connected() { _state = replica_node_state::NS_Connected; }
 
-        rpc_address get_meta_server_address() const override { return rpc_address("127.0.0.2", 12321); }
+        rpc_address get_meta_server_address() const override { return rpc_address("127.0.0.1", 12321); }
 
         std::map<gpid, mock_replica *> mock_replicas;
 

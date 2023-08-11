@@ -114,6 +114,7 @@ void generate_node_mapper(
 void generate_app(/*out*/ std::shared_ptr<app_state> &app,
                   const std::vector<dsn::host_port> &node_list)
 {
+    auto resolver = std::make_shared<dsn::dns_resolver>();
     for (dsn::partition_configuration &pc : app->partitions) {
         pc.ballot = random32(1, 10000);
         std::vector<int> indices(3, 0);
@@ -122,10 +123,15 @@ void generate_app(/*out*/ std::shared_ptr<app_state> &app,
         indices[2] = random32(indices[1] + 1, node_list.size() - 1);
 
         int p = random32(0, 2);
-        pc.hp_primary = node_list[indices[p]];
-        for (unsigned int i = 0; i != indices.size(); ++i)
-            if (i != p)
+        pc.__set_hp_primary(node_list[indices[p]]);
+        pc.__set_hp_secondaries(std::vector<dsn::host_port>());
+        pc.primary = resolver->resolve_address(node_list[indices[p]]);
+        for (unsigned int i = 0; i != indices.size(); ++i) {
+            if (i != p) {
+                pc.secondaries.push_back(resolver->resolve_address(node_list[indices[i]]));
                 pc.hp_secondaries.push_back(node_list[indices[i]]);
+            }
+        }
 
         CHECK(!pc.hp_primary.is_invalid(), "");
         CHECK(!is_secondary(pc, pc.hp_primary), "");
@@ -309,10 +315,12 @@ void proposal_action_check_and_apply(const configuration_proposal_action &act,
     case config_type::CT_ASSIGN_PRIMARY:
         CHECK_EQ(act.node, act.target);
         CHECK(pc.hp_primary.is_invalid(), "");
+        CHECK(pc.primary.is_invalid(), "");
         CHECK(pc.hp_secondaries.empty(), "");
+        CHECK(pc.secondaries.empty(), "");
 
         pc.primary = act.node;
-        pc.hp_primary = hp_node;
+        pc.__set_hp_primary(hp_node);
         ns = &nodes[hp_node];
         CHECK_EQ(ns->served_as(pc.pid), partition_status::PS_INACTIVE);
         ns->put_partition(pc.pid, true);
@@ -320,9 +328,11 @@ void proposal_action_check_and_apply(const configuration_proposal_action &act,
 
     case config_type::CT_ADD_SECONDARY:
         CHECK_EQ(hp_target, pc.hp_primary);
+        CHECK_EQ(act.target, pc.primary);
         CHECK(!is_member(pc, hp_node), "");
 
         pc.hp_secondaries.push_back(hp_node);
+        pc.secondaries.push_back(act.node);
         ns = &nodes[hp_node];
         CHECK_EQ(ns->served_as(pc.pid), partition_status::PS_INACTIVE);
         ns->put_partition(pc.pid, false);
@@ -330,7 +340,9 @@ void proposal_action_check_and_apply(const configuration_proposal_action &act,
         break;
 
     case config_type::CT_DOWNGRADE_TO_SECONDARY:
+        CHECK_EQ(act.node, act.target);
         CHECK_EQ(hp_node, hp_target);
+        CHECK_EQ(act.node, pc.primary);
         CHECK_EQ(hp_node, pc.hp_primary);
         CHECK(nodes.find(hp_node) != nodes.end(), "");
         CHECK(!is_secondary(pc, pc.hp_primary), "");
@@ -343,21 +355,31 @@ void proposal_action_check_and_apply(const configuration_proposal_action &act,
 
     case config_type::CT_UPGRADE_TO_PRIMARY:
         CHECK(pc.hp_primary.is_invalid(), "");
+        CHECK(pc.primary.is_invalid(), "");
         CHECK_EQ(hp_node, hp_target);
+        CHECK_EQ(act.node, act.target);
         CHECK(is_secondary(pc, hp_node), "");
         CHECK(nodes.find(hp_node) != nodes.end(), "");
 
         ns = &nodes[hp_node];
         pc.hp_primary = hp_node;
+        pc.primary = act.node;
         CHECK(replica_helper::remove_node(hp_node, pc.hp_secondaries), "");
+        CHECK(replica_helper::remove_node(act.node, pc.secondaries), "");
         ns->put_partition(pc.pid, true);
         break;
 
     case config_type::CT_ADD_SECONDARY_FOR_LB:
         CHECK_EQ(hp_target, pc.hp_primary);
+        CHECK_EQ(act.target, pc.primary);
         CHECK(!is_member(pc, hp_node), "");
         CHECK(!act.hp_node.is_invalid(), "");
+        CHECK(!act.node.is_invalid(), "");
+        if (!pc.__isset.hp_secondaries) {
+            pc.__set_hp_secondaries(std::vector<dsn::host_port>());
+        }
         pc.hp_secondaries.push_back(hp_node);
+        pc.secondaries.push_back(act.node);
 
         ns = &nodes[hp_node];
         ns->put_partition(pc.pid, false);
@@ -368,10 +390,13 @@ void proposal_action_check_and_apply(const configuration_proposal_action &act,
     case config_type::CT_REMOVE:
     case config_type::CT_DOWNGRADE_TO_INACTIVE:
         CHECK(!pc.hp_primary.is_invalid(), "");
+        CHECK(!pc.primary.is_invalid(), "");
         CHECK_EQ(pc.hp_primary, hp_target);
+        CHECK_EQ(pc.primary, act.target);
         CHECK(is_secondary(pc, hp_node), "");
         CHECK(nodes.find(hp_node) != nodes.end(), "");
         CHECK(replica_helper::remove_node(hp_node, pc.hp_secondaries), "");
+        CHECK(replica_helper::remove_node(act.node, pc.secondaries), "");
 
         ns = &nodes[hp_node];
         CHECK_EQ(ns->served_as(pc.pid), partition_status::PS_SECONDARY);
@@ -409,10 +434,12 @@ void migration_check_and_apply(app_mapper &apps,
 
         for (unsigned int j = 0; j < proposal->action_list.size(); ++j) {
             configuration_proposal_action &act = proposal->action_list[j];
-            LOG_DEBUG("the {}th round of action, type: {}, node: {}, target: {}",
+            LOG_DEBUG("the {}th round of action, type: {}, node: {}({}), target: {}({})",
                       j,
                       dsn::enum_to_string(act.type),
+                      act.hp_node,
                       act.node,
+                      act.hp_target,
                       act.target);
             proposal_action_check_and_apply(act, proposal->gpid, apps, nodes, manager);
         }

@@ -424,9 +424,6 @@ bool rpc_session::on_recv_message(message_ex *msg, int delay_ms)
 {
     if (msg->header->from_address.is_invalid()) {
         msg->header->from_address = _remote_addr;
-    } else if (msg->header->from_address != _remote_addr) {
-        msg->header->from_address = _remote_addr;
-        LOG_DEBUG("msg from_address {} not be same as socket remote_addr {}, assign it to remote_addr.", msg->header->from_address, _remote_addr);
     }
 
     msg->to_address = _net.address();

@@ -832,6 +832,7 @@ function run_start_onebox()
         sed "s/@META_PORT@/$meta_port/;s/@REPLICA_PORT@/34800/;s/@PROMETHEUS_PORT@/$prometheus_port/" ${ROOT}/config-server.ini >config.ini
         $PWD/pegasus_server config.ini -app_list meta &>result &
         PID=$!
+        sleep 1
         ps -ef | grep '/pegasus_server config.ini' | grep "\<$PID\>"
         cd ..
     done
@@ -845,6 +846,7 @@ function run_start_onebox()
         sed "s/@META_PORT@/34600/;s/@REPLICA_PORT@/$replica_port/;s/@PROMETHEUS_PORT@/$prometheus_port/" ${ROOT}/config-server.ini >config.ini
         $PWD/pegasus_server config.ini -app_list replica &>result &
         PID=$!
+        sleep 1
         ps -ef | grep '/pegasus_server config.ini' | grep "\<$PID\>"
         cd ..
     done

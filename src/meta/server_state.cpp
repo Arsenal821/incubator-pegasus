@@ -594,6 +594,7 @@ error_code server_state::sync_apps_to_remote_storage()
             init_app_partition_node(app, i, init_callback);
         }
     }
+
     tracker.wait_outstanding_tasks();
     t = _meta_svc->get_remote_storage()->set_data(_apps_root,
                                                   blob(unlock_state, 0, strlen(unlock_state)),
@@ -624,6 +625,9 @@ dsn::error_code server_state::sync_apps_from_remote_storage()
                                                             const blob &value) mutable {
                 if (ec == ERR_OK) {
                     partition_configuration pc;
+                    pc.__isset.hp_secondaries = true;
+                    pc.__isset.hp_last_drops = true;
+                    pc.__isset.hp_primary = true;
                     dsn::json::json_forwarder<partition_configuration>::decode(value, pc);
 
                     CHECK(pc.pid.get_app_id() == app->app_id &&
@@ -1097,6 +1101,7 @@ void server_state::init_app_partition_node(std::shared_ptr<app_state> &app,
     std::string app_partition_path = get_partition_path(*app, pidx);
     dsn::blob value =
         dsn::json::json_forwarder<partition_configuration>::encode(app->partitions[pidx]);
+
     _meta_svc->get_remote_storage()->create_node(
         app_partition_path, LPC_META_STATE_HIGH, on_create_app_partition, value);
 }

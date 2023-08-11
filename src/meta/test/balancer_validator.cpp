@@ -151,6 +151,7 @@ void meta_service_test_app::balancer_validator()
     for (int i = 0; i < 1000000 && glb.balance({&apps, &nodes}, ml); ++i) {
         LOG_DEBUG("the {}th round of balancer", i);
         migration_check_and_apply(apps, nodes, ml, &manager);
+
         glb.check({&apps, &nodes}, ml);
         LOG_DEBUG("balance checker operation count = {}", ml.size());
     }

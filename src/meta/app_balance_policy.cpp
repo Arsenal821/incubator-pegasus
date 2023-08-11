@@ -80,6 +80,7 @@ void app_balance_policy::balance(bool checker, const meta_view *global_view, mig
 {
     init(global_view, list);
     const app_mapper &apps = *_global_view->apps;
+
     if (!execute_balance(apps,
                          checker,
                          _balancer_in_turn,

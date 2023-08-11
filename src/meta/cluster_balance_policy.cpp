@@ -545,8 +545,14 @@ bool cluster_balance_policy::apply_move(const move_info &move,
     partition_configuration pc;
     pc.pid = move.pid;
     pc.hp_primary = primary_hp;
-    auto source_addr = _svc->get_dns_resolver()->resolve_address(source);
-    auto target_addr = _svc->get_dns_resolver()->resolve_address(target);
+    std::shared_ptr<dsn::dns_resolver> resolver;
+    if (_svc == nullptr) {
+        resolver = std::make_shared<dsn::dns_resolver>();
+    } else {
+        resolver = _svc->get_dns_resolver();
+    }
+    auto source_addr = resolver->resolve_address(source);
+    auto target_addr = resolver->resolve_address(target);
     list[move.pid] = generate_balancer_request(*_global_view->apps, pc, move.type, source_addr, target_addr, source, target);
     _migration_result->emplace(
         move.pid, generate_balancer_request(*_global_view->apps, pc, move.type, source_addr, target_addr, source, target));

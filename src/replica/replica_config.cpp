@@ -257,6 +257,9 @@ void replica::upgrade_to_secondary_on_primary(::dsn::host_port node)
     partition_configuration newConfig = _primary_states.membership;
 
     // add secondary
+    if (!newConfig.__isset.hp_secondaries) {
+        newConfig.__set_hp_secondaries(std::vector<dsn::host_port>());
+    }
     newConfig.hp_secondaries.push_back(node);
     newConfig.secondaries.push_back(_stub->get_dns_resolver()->resolve_address(node));
 
@@ -276,6 +279,10 @@ void replica::downgrade_to_secondary_on_primary(configuration_update_request &pr
     proposal.config.primary.set_invalid();
     proposal.config.__set_hp_primary(host_port());
     proposal.config.secondaries.push_back(proposal.node);
+    if (!proposal.config.__isset.hp_secondaries) {
+        proposal.config.__set_hp_secondaries(std::vector<dsn::host_port>());
+    }
+    proposal.config.hp_secondaries.push_back(proposal.hp_node);
 
     update_configuration_on_meta_server(
         config_type::CT_DOWNGRADE_TO_SECONDARY, proposal.hp_node, proposal.config);

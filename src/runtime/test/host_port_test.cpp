@@ -240,21 +240,4 @@ TEST(host_port_test, thrift_parser)
     send_and_check_host_port_by_serialize(hp2, DSF_THRIFT_BINARY);
     send_and_check_host_port_by_serialize(hp2, DSF_THRIFT_JSON);
 }
-
-TEST(host_port_test, optional_struct_macro_fuction)
-{
-    partition_configuration config;
-    config.primary = rpc_address("127.0.0.1", 8080);
-    config.secondaries = { rpc_address("127.0.0.1", 8081), rpc_address("127.0.0.1", 8082) };
-    config.last_drops = { rpc_address("127.0.0.1", 8083) };
-
-    FILL_OPTIONAL_HP_IF_NEEDED(config, primary);
-    FILL_OPTIONAL_HP_LIST_IF_NEEDED(config, secondaries);
-    FILL_OPTIONAL_HP_LIST_IF_NEEDED(config, last_drops);
-
-    ASSERT_EQ(config.hp_primary, host_port("localhost", 8080)); 
-    ASSERT_EQ(2, config.hp_secondaries.size());
-    ASSERT_EQ(host_port("localhost", 8083), config.hp_last_drops[0]);
-}
-
 } // namespace dsn

@@ -424,12 +424,12 @@ void meta_duplication_service::check_follower_app_if_create_completed(
                       while (count-- > 0) {
                           partition_configuration p;
                           p.primary = rpc_address("127.0.0.1", 34801);
-                          p.secondaries.emplace_back(rpc_address("127.0.0.2", 34801));
-                          p.secondaries.emplace_back(rpc_address("127.0.0.3", 34801));
+                          p.secondaries.emplace_back(rpc_address("127.0.0.1", 34802));
+                          p.secondaries.emplace_back(rpc_address("127.0.0.1", 34803));
                           p.__set_hp_primary(host_port("localhost", 34801));
                           p.__set_hp_secondaries(std::vector<host_port>());
-                          p.hp_secondaries.emplace_back(host_port("127.0.0.2", 34801));
-                          p.hp_secondaries.emplace_back(host_port("127.0.0.3", 34801));
+                          p.hp_secondaries.emplace_back(host_port("localhost", 34802));
+                          p.hp_secondaries.emplace_back(host_port("localhost", 34803));
                           resp.partitions.emplace_back(p);
                       }
                   });
