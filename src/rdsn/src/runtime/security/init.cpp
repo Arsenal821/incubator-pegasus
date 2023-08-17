@@ -21,11 +21,14 @@
 
 #include <dsn/dist/fmt_logging.h>
 #include <dsn/utility/flags.h>
+#include <dsn/utility/strings.h>
 
 namespace dsn {
 namespace security {
+DSN_DECLARE_bool(enable_auth);
 DSN_DECLARE_string(krb5_config);
 DSN_DECLARE_string(krb5_keytab);
+DSN_DECLARE_string(krb5_principal);
 
 /***
  * set kerberos envs(for more details:
@@ -41,6 +44,12 @@ void set_krb5_env(bool is_server)
 
 error_s init_kerberos(bool is_server)
 {
+    // When FLAGS_enable_auth is set but lacks of necessary parameters to execute kinit by itself,
+    // then try to obtain the principal under the current Unix account for identity
+    // authentication automatically.
+    if (FLAGS_enable_auth && 0 == strlen(FLAGS_krb5_keytab) && 0 == strlen(FLAGS_krb5_principal)) {
+        return run_get_principal_without_kinit();
+    }
     // set kerberos env
     set_krb5_env(is_server);
 
