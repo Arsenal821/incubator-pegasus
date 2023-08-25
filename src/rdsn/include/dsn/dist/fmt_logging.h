@@ -27,9 +27,10 @@
 
 #define dlog_f(level, ...)                                                                         \
     do {                                                                                           \
-        if (level >= dsn_log_start_level)                                                          \
+        if (level >= dsn_log_start_level) {                                                        \
             dsn_log(                                                                               \
                 __FILENAME__, __FUNCTION__, __LINE__, level, fmt::format(__VA_ARGS__).c_str());    \
+        }                                                                                          \
     } while (false)
 #define dinfo_f(...) dlog_f(LOG_LEVEL_INFORMATION, __VA_ARGS__)
 #define ddebug_f(...) dlog_f(LOG_LEVEL_DEBUG, __VA_ARGS__)
@@ -39,9 +40,8 @@
 #define dassert_f(x, ...)                                                                          \
     do {                                                                                           \
         if (dsn_unlikely(!(x))) {                                                                  \
-            dlog_f(LOG_LEVEL_FATAL, "assertion expression: " #x);                                  \
-            dlog_f(LOG_LEVEL_FATAL, __VA_ARGS__);                                                  \
-            dsn_coredump();                                                                        \
+            derror_f("assertion expression: " #x);                                                 \
+            dfatal_f(__VA_ARGS__);                                                                 \
         }                                                                                          \
     } while (false)
 

@@ -32,10 +32,15 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <dsn/dist/fmt_logging.h>
+#include <dsn/utility/fail_point.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/glob_posix.h>
 #include <dsn/utility/safe_strerror_posix.h>
 #include <dsn/utility/flags.h>
+#include <dsn/utility/ports.h>
+#include <dsn/utility/string_conv.h>
+#include <dsn/utility/string_view.h>
 #include <dsn/utils/time_utils.h>
 #include <fmt/format.h>
 
@@ -66,6 +71,28 @@ DSN_DEFINE_string("tools.simple_logger",
 DSN_DEFINE_validator(stderr_start_level, [](const char *level) -> bool {
     return strcmp(level, "LOG_LEVEL_INVALID") != 0;
 });
+
+namespace {
+
+inline void process_fatal_log(dsn_log_level_t log_level)
+{
+    if (dsn_likely(log_level < LOG_LEVEL_FATAL)) {
+        return;
+    }
+
+    bool coredump = true;
+    FAIL_POINT_INJECT_NOT_RETURN_F("coredump_for_fatal_log", [&coredump](dsn::string_view str) {
+        dassert_f(buf2bool(str, coredump),
+                  "invalid coredump toggle for fatal log, should be true or false: {}",
+                  str);
+    });
+
+    if (dsn_likely(coredump)) {
+        dsn_coredump();
+    }
+}
+
+} // anonymous namespace
 
 screen_logger::screen_logger(bool short_header) : logging_provider("./", "")
 {
@@ -100,9 +127,7 @@ void screen_logger::dsn_logv(const char *file,
     vprintf(fmt, args);
     printf("\n");
 
-    if (dsn_unlikely(log_level >= LOG_LEVEL_FATAL)) {
-        dsn_coredump();
-    }
+    process_fatal_log(log_level);
 }
 
 void screen_logger::flush() { ::fflush(stdout); }
@@ -272,6 +297,8 @@ void simple_logger::dsn_logv(const char *file,
         printf("\n");
     }
 
+    process_fatal_log(log_level);
+
     if (_file_bytes >= FLAGS_max_log_file_bytes) {
         create_log_file();
     }
@@ -304,9 +331,7 @@ void simple_logger::dsn_log(const char *file,
         printf("%s\n", str);
     }
 
-    if (dsn_unlikely(log_level >= LOG_LEVEL_FATAL)) {
-        dsn_coredump();
-    }
+    process_fatal_log(log_level);
 
     if (_file_bytes >= FLAGS_max_log_file_bytes) {
         create_log_file();

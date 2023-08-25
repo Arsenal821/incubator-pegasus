@@ -43,18 +43,20 @@ public:
     screen_logger(const char *log_dir, const char *role_name);
     virtual ~screen_logger(void);
 
-    virtual void dsn_logv(const char *file,
-                          const char *function,
-                          const int line,
-                          dsn_log_level_t log_level,
-                          const char *fmt,
-                          va_list args);
+    void dsn_logv(const char *file,
+                  const char *function,
+                  const int line,
+                  dsn_log_level_t log_level,
+                  const char *fmt,
+                  va_list args) override;
 
-    virtual void dsn_log(const char *file,
-                         const char *function,
-                         const int line,
-                         dsn_log_level_t log_level,
-                         const char *str){};
+    void dsn_log(const char *file,
+                 const char *function,
+                 const int line,
+                 dsn_log_level_t log_level,
+                 const char *str) override
+    {
+    }
 
     virtual void flush();
 
@@ -73,18 +75,18 @@ public:
     simple_logger(const char *log_dir, const char *role_name);
     virtual ~simple_logger(void);
 
-    virtual void dsn_logv(const char *file,
-                          const char *function,
-                          const int line,
-                          dsn_log_level_t log_level,
-                          const char *fmt,
-                          va_list args);
+    void dsn_logv(const char *file,
+                  const char *function,
+                  const int line,
+                  dsn_log_level_t log_level,
+                  const char *fmt,
+                  va_list args) override;
 
-    virtual void dsn_log(const char *file,
-                         const char *function,
-                         const int line,
-                         dsn_log_level_t log_level,
-                         const char *str);
+    void dsn_log(const char *file,
+                 const char *function,
+                 const int line,
+                 dsn_log_level_t log_level,
+                 const char *str) override;
 
     virtual void flush();
 

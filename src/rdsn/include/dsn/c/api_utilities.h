@@ -86,19 +86,33 @@ extern DSN_API void dsn_coredump();
 // __FILENAME__ macro comes from the cmake, in which we calculate a filename without path.
 #define dlog(level, ...)                                                                           \
     do {                                                                                           \
-        if (level >= dsn_log_start_level)                                                          \
+        if (level >= dsn_log_start_level) {                                                        \
             dsn_logf(__FILENAME__, __FUNCTION__, __LINE__, level, __VA_ARGS__);                    \
+        }                                                                                          \
     } while (false)
 #define dinfo(...) dlog(LOG_LEVEL_INFORMATION, __VA_ARGS__)
 #define ddebug(...) dlog(LOG_LEVEL_DEBUG, __VA_ARGS__)
 #define dwarn(...) dlog(LOG_LEVEL_WARNING, __VA_ARGS__)
 #define derror(...) dlog(LOG_LEVEL_ERROR, __VA_ARGS__)
 #define dfatal(...) dlog(LOG_LEVEL_FATAL, __VA_ARGS__)
+
+// TODO(wangdan): dsn_coredump() is unnecessary here, since dfatal() would call it in dsn_logv().
+//
+// However, removing it would lead to "undefined reference to ..." as below:
+// ../libdsn_utils.so: undefined reference to `dsn::ranger::operator|(dsn::ranger::access_type, ...'
+// ../libdsn_utils.so: undefined reference to `dsn_exit(int)'
+// ../libdsn_utils.so: undefined reference to `dsn::perf_counters::get_app_counter(char const*, ...'
+// ../libdsn_utils.so: undefined reference to `dsn::perf_counters::perf_counters()'
+// ../libdsn_utils.so: undefined reference to `dsn::perf_counters::~perf_counters()'
+// ../libdsn_utils.so: undefined reference to `dsn::tools::sys_exit'
+// ../libdsn_utils.so: undefined reference to `dsn_coredump()'
+//
+// We could leave it here, until it could be resolved.
 #define dassert(x, ...)                                                                            \
     do {                                                                                           \
         if (dsn_unlikely(!(x))) {                                                                  \
-            dlog(LOG_LEVEL_FATAL, "assertion expression: " #x);                                    \
-            dlog(LOG_LEVEL_FATAL, __VA_ARGS__);                                                    \
+            derror("assertion expression: " #x);                                                   \
+            dfatal(__VA_ARGS__);                                                                   \
             dsn_coredump();                                                                        \
         }                                                                                          \
     } while (false)
