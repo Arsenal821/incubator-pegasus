@@ -101,6 +101,14 @@ DSN_DEFINE_bool("replication",
                 true,
                 "true means ignore broken data disk when initialize");
 
+DSN_DEFINE_bool(
+    "replication",
+    crash_on_slog_error,
+    false,
+    "whether to exit the process while fail to open slog. If true, the process will exit and leave "
+    "the corrupted slog and replicas to be handled by the administrator. If false, the process "
+    "will continue, and remove the slog and move all the replicas to corresponding error "
+    "directories");
 DSN_DEFINE_uint32("replication",
                   max_concurrent_manual_emergency_checkpointing_count,
                   10,
@@ -651,6 +659,9 @@ void replica_stub::initialize(const replication_options &opts, bool clear /* = f
     if (err == ERR_OK) {
         ddebug("replay shared log succeed, time_used = %" PRIu64 " ms", finish_time - start_time);
     } else {
+        if (FLAGS_crash_on_slog_error) {
+            dfatal_f("replay shared log failed, err = {}, please check the error details", err);
+        }
         derror("replay shared log failed, err = %s, time_used = %" PRIu64 " ms, clear all logs ...",
                err.to_string(),
                finish_time - start_time);
