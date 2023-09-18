@@ -70,7 +70,7 @@ protected:
     virtual bool parse(dsn::message_ex *msg) = 0;
     dsn::message_ex *create_response();
 
-    const char *log_prefix() const { return _remote_host_port.to_string().c_str(); }
+    const char *log_prefix() const { return _prefix_for_log.c_str(); }
 
 protected:
     proxy_stub *_stub;
@@ -80,7 +80,8 @@ protected:
     // we need to backup one request to create a response struct.
     dsn::message_ex *_backup_one_request;
     // the client address for which this session served
-    dsn::host_port _remote_host_port;
+    const dsn::host_port _remote_host_port;
+    const std::string _prefix_for_log;
 };
 
 class proxy_stub : public ::dsn::serverlet<proxy_stub>
