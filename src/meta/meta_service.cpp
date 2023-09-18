@@ -141,7 +141,11 @@ DSN_DECLARE_string(cold_backup_root);
     } while (0)
 
 meta_service::meta_service()
-    : serverlet("meta_service"), _failure_detector(nullptr), _started(false), _recovering(false), _dns_resolver(new dns_resolver())
+    : serverlet("meta_service"),
+      _failure_detector(nullptr),
+      _started(false),
+      _recovering(false),
+      _dns_resolver(new dns_resolver())
 {
     _opts.initialize();
     _meta_opts.initialize();
@@ -249,11 +253,10 @@ void meta_service::set_node_state(const std::vector<host_port> &nodes, bool is_a
         return;
     }
     for (const auto &hp : nodes) {
-        tasking::enqueue(
-            LPC_META_STATE_HIGH,
-            nullptr,
-            std::bind(&server_state::on_change_node_state, _state.get(), hp, is_alive),
-            server_state::sStateHash);
+        tasking::enqueue(LPC_META_STATE_HIGH,
+                         nullptr,
+                         std::bind(&server_state::on_change_node_state, _state.get(), hp, is_alive),
+                         server_state::sStateHash);
     }
 }
 
@@ -559,8 +562,7 @@ void meta_service::register_rpc_handlers()
                                          &meta_service::on_set_max_replica_count);
 }
 
-meta_leader_state meta_service::check_leader(dsn::message_ex *req,
-                                             dsn::host_port *forward_address)
+meta_leader_state meta_service::check_leader(dsn::message_ex *req, dsn::host_port *forward_address)
 {
     host_port leader;
     if (!_failure_detector->get_leader(&leader)) {

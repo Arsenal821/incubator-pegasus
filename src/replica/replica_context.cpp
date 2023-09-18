@@ -145,8 +145,9 @@ bool primary_context::check_exist(::dsn::host_port node, partition_status::type 
     case partition_status::PS_PRIMARY:
         return membership.hp_primary == node;
     case partition_status::PS_SECONDARY:
-        return std::find(membership.hp_secondaries.begin(), membership.hp_secondaries.end(), node) !=
-               membership.hp_secondaries.end();
+        return std::find(membership.hp_secondaries.begin(),
+                         membership.hp_secondaries.end(),
+                         node) != membership.hp_secondaries.end();
     case partition_status::PS_POTENTIAL_SECONDARY:
         return learners.find(node) != learners.end();
     default:

@@ -95,11 +95,10 @@ bool calc_disk_load(node_mapper &nodes,
     }
 }
 
-std::unordered_map<dsn::host_port, disk_load>
-get_node_loads(const std::shared_ptr<app_state> &app,
-               const app_mapper &apps,
-               node_mapper &nodes,
-               bool only_primary)
+std::unordered_map<dsn::host_port, disk_load> get_node_loads(const std::shared_ptr<app_state> &app,
+                                                             const app_mapper &apps,
+                                                             node_mapper &nodes,
+                                                             bool only_primary)
 {
     std::unordered_map<dsn::host_port, disk_load> node_loads;
     for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
@@ -142,8 +141,8 @@ generate_balancer_request(const app_mapper &apps,
     case balance_type::MOVE_PRIMARY:
         ans = "move_primary";
         result.balance_type = balancer_request_type::move_primary;
-        result.action_list.emplace_back(
-            new_proposal_action(from, from, hp_from, hp_from, config_type::CT_DOWNGRADE_TO_SECONDARY));
+        result.action_list.emplace_back(new_proposal_action(
+            from, from, hp_from, hp_from, config_type::CT_DOWNGRADE_TO_SECONDARY));
         result.action_list.emplace_back(
             new_proposal_action(to, to, hp_to, hp_to, config_type::CT_UPGRADE_TO_PRIMARY));
         break;
@@ -152,17 +151,18 @@ generate_balancer_request(const app_mapper &apps,
         result.balance_type = balancer_request_type::copy_primary;
         result.action_list.emplace_back(
             new_proposal_action(from, to, hp_from, hp_to, config_type::CT_ADD_SECONDARY_FOR_LB));
-        result.action_list.emplace_back(
-            new_proposal_action(from, from, hp_from, hp_from, config_type::CT_DOWNGRADE_TO_SECONDARY));
+        result.action_list.emplace_back(new_proposal_action(
+            from, from, hp_from, hp_from, config_type::CT_DOWNGRADE_TO_SECONDARY));
         result.action_list.emplace_back(
             new_proposal_action(to, to, hp_to, hp_to, config_type::CT_UPGRADE_TO_PRIMARY));
-        result.action_list.emplace_back(new_proposal_action(to, from, hp_to, hp_from, config_type::CT_REMOVE));
+        result.action_list.emplace_back(
+            new_proposal_action(to, from, hp_to, hp_from, config_type::CT_REMOVE));
         break;
     case balance_type::COPY_SECONDARY:
         ans = "copy_secondary";
         result.balance_type = balancer_request_type::copy_secondary;
-        result.action_list.emplace_back(
-            new_proposal_action(pc.primary, to, pc.hp_primary, hp_to, config_type::CT_ADD_SECONDARY_FOR_LB));
+        result.action_list.emplace_back(new_proposal_action(
+            pc.primary, to, pc.hp_primary, hp_to, config_type::CT_ADD_SECONDARY_FOR_LB));
         result.action_list.emplace_back(
             new_proposal_action(pc.primary, from, pc.hp_primary, hp_from, config_type::CT_REMOVE));
         break;
@@ -241,8 +241,15 @@ bool load_balance_policy::copy_primary(const std::shared_ptr<app_state> &app,
     const app_mapper &apps = *_global_view->apps;
     int replicas_low = app->partition_count / _alive_nodes;
 
-    std::unique_ptr<copy_replica_operation> operation = std::make_unique<copy_primary_operation>(
-        app, apps, nodes, address_vec, address_id, still_have_less_than_average, replicas_low,  _svc->get_dns_resolver());
+    std::unique_ptr<copy_replica_operation> operation =
+        std::make_unique<copy_primary_operation>(app,
+                                                 apps,
+                                                 nodes,
+                                                 address_vec,
+                                                 address_id,
+                                                 still_have_less_than_average,
+                                                 replicas_low,
+                                                 _svc->get_dns_resolver());
     return operation->start(_migration_result);
 }
 
@@ -309,8 +316,13 @@ void load_balance_policy::start_moving_primary(const std::shared_ptr<app_state> 
         const partition_configuration &pc = app->partitions[selected.get_partition_index()];
         auto balancer_result = _migration_result->emplace(
             selected,
-            generate_balancer_request(
-                *_global_view->apps, pc, balance_type::MOVE_PRIMARY, _svc->get_dns_resolver()->resolve_address(from), _svc->get_dns_resolver()->resolve_address(to), from, to));
+            generate_balancer_request(*_global_view->apps,
+                                      pc,
+                                      balance_type::MOVE_PRIMARY,
+                                      _svc->get_dns_resolver()->resolve_address(from),
+                                      _svc->get_dns_resolver()->resolve_address(to),
+                                      from,
+                                      to));
         CHECK(balancer_result.second, "gpid({}) already inserted as an action", selected);
 
         --(*prev_load)[get_disk_tag(*_global_view->apps, from, selected)];
@@ -475,7 +487,8 @@ void load_balance_policy::number_nodes(const node_mapper &nodes)
     address_id.clear();
     address_vec.resize(_alive_nodes + 2);
     for (auto iter = nodes.begin(); iter != nodes.end(); ++iter) {
-        CHECK(!iter->first.is_invalid() && !iter->second.host_port().is_invalid(), "invalid address");
+        CHECK(!iter->first.is_invalid() && !iter->second.host_port().is_invalid(),
+              "invalid address");
         CHECK(iter->second.alive(), "dead node");
 
         address_id[iter->first] = current_id;
@@ -623,7 +636,12 @@ copy_replica_operation::copy_replica_operation(
     const std::vector<dsn::host_port> &address_vec,
     const std::unordered_map<dsn::host_port, int> &address_id,
     const std::shared_ptr<dns_resolver> &resolver)
-    : _app(app), _apps(apps), _nodes(nodes), _address_vec(address_vec), _address_id(address_id), _dns_resolver(resolver)
+    : _app(app),
+      _apps(apps),
+      _nodes(nodes),
+      _address_vec(address_vec),
+      _address_id(address_id),
+      _dns_resolver(resolver)
 {
 }
 
@@ -688,7 +706,13 @@ void copy_replica_operation::copy_once(gpid selected_pid, migration_list *result
     auto to = _address_vec[*_ordered_address_ids.begin()];
 
     auto pc = _app->partitions[selected_pid.get_partition_index()];
-    auto request = generate_balancer_request(_apps, pc, get_balance_type(), _dns_resolver->resolve_address(from), _dns_resolver->resolve_address(to), from, to);
+    auto request = generate_balancer_request(_apps,
+                                             pc,
+                                             get_balance_type(),
+                                             _dns_resolver->resolve_address(from),
+                                             _dns_resolver->resolve_address(to),
+                                             from,
+                                             to);
     result->emplace(selected_pid, request);
 }
 

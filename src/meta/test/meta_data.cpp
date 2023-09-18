@@ -137,9 +137,9 @@ TEST(meta_data, collect_replica)
 
 #define CLEAR_REPLICA                                                                              \
     do {                                                                                           \
-        pc.__set_hp_primary(dsn::host_port());                                                                  \
-        pc.__set_hp_secondaries(std::vector<dsn::host_port>());                                                                    \
-        pc.__set_hp_last_drops(std::vector<dsn::host_port>());                                                                     \
+        pc.__set_hp_primary(dsn::host_port());                                                     \
+        pc.__set_hp_secondaries(std::vector<dsn::host_port>());                                    \
+        pc.__set_hp_last_drops(std::vector<dsn::host_port>());                                     \
         pc.primary.set_invalid();                                                                  \
         pc.secondaries.clear();                                                                    \
         pc.last_drops.clear();                                                                     \
@@ -271,9 +271,10 @@ TEST(meta_data, collect_replica)
     {
         // drop_list mixed, not full, not minimal position
         CLEAR_ALL;
-        cc.dropped = {dropped_replica{node_list[0].first, dropped_replica::INVALID_TIMESTAMP, 2, 2, 6},
-                      dropped_replica{node_list[1].first, dropped_replica::INVALID_TIMESTAMP, 2, 4, 6},
-                      dropped_replica{node_list[2].first, 7, 1, 1, 6}};
+        cc.dropped = {
+            dropped_replica{node_list[0].first, dropped_replica::INVALID_TIMESTAMP, 2, 2, 6},
+            dropped_replica{node_list[1].first, dropped_replica::INVALID_TIMESTAMP, 2, 4, 6},
+            dropped_replica{node_list[2].first, 7, 1, 1, 6}};
 
         rep.ballot = 3;
         rep.last_committed_decree = 1;
@@ -333,10 +334,11 @@ TEST(meta_data, collect_replica)
     {
         // drop_list no timestamp, full, largest position
         CLEAR_ALL;
-        cc.dropped = {dropped_replica{node_list[1].first, dropped_replica::INVALID_TIMESTAMP, 2, 4, 8},
-                      dropped_replica{node_list[2].first, dropped_replica::INVALID_TIMESTAMP, 2, 6, 8},
-                      dropped_replica{node_list[3].first, dropped_replica::INVALID_TIMESTAMP, 4, 2, 8},
-                      dropped_replica{node_list[4].first, dropped_replica::INVALID_TIMESTAMP, 4, 6, 8}};
+        cc.dropped = {
+            dropped_replica{node_list[1].first, dropped_replica::INVALID_TIMESTAMP, 2, 4, 8},
+            dropped_replica{node_list[2].first, dropped_replica::INVALID_TIMESTAMP, 2, 6, 8},
+            dropped_replica{node_list[3].first, dropped_replica::INVALID_TIMESTAMP, 4, 2, 8},
+            dropped_replica{node_list[4].first, dropped_replica::INVALID_TIMESTAMP, 4, 6, 8}};
 
         rep.ballot = 4;
         rep.last_committed_decree = 8;
@@ -385,12 +387,12 @@ TEST(meta_data, construct_replica)
 
 #define CLEAR_REPLICA                                                                              \
     do {                                                                                           \
-        pc.hp_primary.reset();                                                                  \
-        pc.hp_secondaries.clear();                                                                    \
-        pc.hp_last_drops.clear();                                                                     \
-        pc.__set_hp_primary(dsn::host_port());                                                                  \
-        pc.__set_hp_secondaries(std::vector<dsn::host_port>());                                                                    \
-        pc.__set_hp_last_drops(std::vector<dsn::host_port>());                                                                     \
+        pc.hp_primary.reset();                                                                     \
+        pc.hp_secondaries.clear();                                                                 \
+        pc.hp_last_drops.clear();                                                                  \
+        pc.__set_hp_primary(dsn::host_port());                                                     \
+        pc.__set_hp_secondaries(std::vector<dsn::host_port>());                                    \
+        pc.__set_hp_last_drops(std::vector<dsn::host_port>());                                     \
     } while (false)
 
 #define CLEAR_DROP_LIST                                                                            \
@@ -414,7 +416,8 @@ TEST(meta_data, construct_replica)
     // only have one node in drop_list
     {
         CLEAR_ALL;
-        cc.dropped = {dropped_replica{node_list[0].first, dropped_replica::INVALID_TIMESTAMP, 5, 10, 12}};
+        cc.dropped = {
+            dropped_replica{node_list[0].first, dropped_replica::INVALID_TIMESTAMP, 5, 10, 12}};
         ASSERT_TRUE(construct_replica(view, rep.pid, 3, resolver));
         ASSERT_EQ(node_list[0].first, pc.hp_primary);
         ASSERT_TRUE(pc.hp_secondaries.empty());
@@ -425,10 +428,11 @@ TEST(meta_data, construct_replica)
     // have multiple nodes, ballots are not same
     {
         CLEAR_ALL;
-        cc.dropped = {dropped_replica{node_list[1].first, dropped_replica::INVALID_TIMESTAMP, 6, 10, 12},
-                      dropped_replica{node_list[2].first, dropped_replica::INVALID_TIMESTAMP, 7, 10, 12},
-                      dropped_replica{node_list[3].first, dropped_replica::INVALID_TIMESTAMP, 8, 10, 12},
-                      dropped_replica{node_list[4].first, dropped_replica::INVALID_TIMESTAMP, 9, 11, 12}};
+        cc.dropped = {
+            dropped_replica{node_list[1].first, dropped_replica::INVALID_TIMESTAMP, 6, 10, 12},
+            dropped_replica{node_list[2].first, dropped_replica::INVALID_TIMESTAMP, 7, 10, 12},
+            dropped_replica{node_list[3].first, dropped_replica::INVALID_TIMESTAMP, 8, 10, 12},
+            dropped_replica{node_list[4].first, dropped_replica::INVALID_TIMESTAMP, 9, 11, 12}};
         ASSERT_TRUE(construct_replica(view, rep.pid, 3, resolver));
         ASSERT_EQ(node_list[4].first, pc.hp_primary);
         ASSERT_TRUE(pc.hp_secondaries.empty());
@@ -442,9 +446,10 @@ TEST(meta_data, construct_replica)
     // have multiple node, two have same ballots
     {
         CLEAR_ALL;
-        cc.dropped = {dropped_replica{node_list[0].first, dropped_replica::INVALID_TIMESTAMP, 5, 10, 12},
-                      dropped_replica{node_list[1].first, dropped_replica::INVALID_TIMESTAMP, 7, 11, 12},
-                      dropped_replica{node_list[2].first, dropped_replica::INVALID_TIMESTAMP, 7, 12, 12}};
+        cc.dropped = {
+            dropped_replica{node_list[0].first, dropped_replica::INVALID_TIMESTAMP, 5, 10, 12},
+            dropped_replica{node_list[1].first, dropped_replica::INVALID_TIMESTAMP, 7, 11, 12},
+            dropped_replica{node_list[2].first, dropped_replica::INVALID_TIMESTAMP, 7, 12, 12}};
 
         ASSERT_TRUE(construct_replica(view, rep.pid, 3, resolver));
         ASSERT_EQ(node_list[2].first, pc.hp_primary);
@@ -459,10 +464,11 @@ TEST(meta_data, construct_replica)
     // have multiple nodes, all have same ballots
     {
         CLEAR_ALL;
-        cc.dropped = {dropped_replica{node_list[0].first, dropped_replica::INVALID_TIMESTAMP, 7, 11, 14},
-                      dropped_replica{node_list[1].first, dropped_replica::INVALID_TIMESTAMP, 7, 12, 14},
-                      dropped_replica{node_list[2].first, dropped_replica::INVALID_TIMESTAMP, 7, 13, 14},
-                      dropped_replica{node_list[3].first, dropped_replica::INVALID_TIMESTAMP, 7, 14, 14}};
+        cc.dropped = {
+            dropped_replica{node_list[0].first, dropped_replica::INVALID_TIMESTAMP, 7, 11, 14},
+            dropped_replica{node_list[1].first, dropped_replica::INVALID_TIMESTAMP, 7, 12, 14},
+            dropped_replica{node_list[2].first, dropped_replica::INVALID_TIMESTAMP, 7, 13, 14},
+            dropped_replica{node_list[3].first, dropped_replica::INVALID_TIMESTAMP, 7, 14, 14}};
 
         ASSERT_TRUE(construct_replica(view, rep.pid, 3, resolver));
         ASSERT_EQ(node_list[3].first, pc.hp_primary);

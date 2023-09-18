@@ -241,8 +241,7 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
 
         for (int i = 0; i < pc.hp_secondaries.size(); ++i) {
             node_state *ns = get_node_state(*(view.nodes), pc.hp_secondaries[i], false);
-            CHECK_NOTNULL(
-                ns, "invalid secondary address, address = {}", pc.hp_secondaries[i]);
+            CHECK_NOTNULL(ns, "invalid secondary address, address = {}", pc.hp_secondaries[i]);
             if (!ns->alive())
                 continue;
 
@@ -367,8 +366,8 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
                 node_state *ns = get_node_state(*view.nodes, nodes[i], false);
                 if (ns == nullptr || !ns->alive()) {
                     ready = false;
-                    reason = "the last dropped node(" + nodes[i].to_string() +
-                             ") haven't come back yet";
+                    reason =
+                        "the last dropped node(" + nodes[i].to_string() + ") haven't come back yet";
                     LOG_WARNING("{}: don't select primary: {}", gpid_name, reason);
                 } else {
                     std::vector<dropped_replica>::iterator it = cc.find_from_dropped(nodes[i]);
@@ -426,12 +425,15 @@ pc_status partition_guardian::on_missing_primary(meta_view &view, const dsn::gpi
                         } else {
                             // 3. choose node with larger last_prepared_decree
                             action.hp_node = previous_dead.last_prepared_decree >
-                                                  recent_dead.last_prepared_decree
-                                              ? previous_dead.node
-                                              : recent_dead.node;
+                                                     recent_dead.last_prepared_decree
+                                                 ? previous_dead.node
+                                                 : recent_dead.node;
                         }
                         action.node = _svc->get_dns_resolver()->resolve_address(action.hp_node);
-                        LOG_INFO("{}: select {}({}) as a new primary", gpid_name, action.hp_node, action.node);
+                        LOG_INFO("{}: select {}({}) as a new primary",
+                                 gpid_name,
+                                 action.hp_node,
+                                 action.node);
                     } else {
                         char buf[1000];
                         sprintf(buf,
@@ -621,9 +623,7 @@ pc_status partition_guardian::on_missing_secondary(meta_view &view, const dsn::g
         // if not emergency, only try to recover last dropped server
         const dropped_replica &server = cc.dropped.back();
         if (is_node_alive(*view.nodes, server.node)) {
-            CHECK(!server.node.is_invalid(),
-                  "invalid server address, address = {}",
-                  server.node);
+            CHECK(!server.node.is_invalid(), "invalid server address, address = {}", server.node);
             action.hp_node = server.node;
             action.node = _svc->get_dns_resolver()->resolve_address(server.node);
         }

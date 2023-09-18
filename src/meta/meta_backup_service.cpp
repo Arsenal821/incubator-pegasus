@@ -1649,7 +1649,8 @@ void backup_service::start_backup_app(start_backup_app_rpc rpc)
     start_backup_app_response &response = rpc.response();
 
     int32_t app_id = request.app_id;
-    std::shared_ptr<backup_engine> engine = std::make_shared<backup_engine>(this, _meta_svc->get_dns_resolver());
+    std::shared_ptr<backup_engine> engine =
+        std::make_shared<backup_engine>(this, _meta_svc->get_dns_resolver());
     error_code err = engine->init_backup(app_id);
     if (err != ERR_OK) {
         response.err = err;

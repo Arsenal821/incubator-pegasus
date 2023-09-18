@@ -201,8 +201,14 @@ public:
     replication_options &options() { return _options; }
     const replication_options &options() const { return _options; }
     bool is_connected() const { return NS_Connected == _state; }
-    virtual rpc_address get_meta_server_address() const { return _dns_resolver->resolve_address(_failure_detector->get_servers()); }
-    rpc_address primary_address() const { return _dns_resolver->resolve_address(_primary_host_port); }
+    virtual rpc_address get_meta_server_address() const
+    {
+        return _dns_resolver->resolve_address(_failure_detector->get_servers());
+    }
+    rpc_address primary_address() const
+    {
+        return _dns_resolver->resolve_address(_primary_host_port);
+    }
     host_port primary_host_port() const { return _primary_host_port; }
 
     //

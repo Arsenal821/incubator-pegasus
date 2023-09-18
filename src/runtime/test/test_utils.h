@@ -87,7 +87,9 @@ class test_client : public ::dsn::serverlet<test_client>, public ::dsn::service_
 {
 public:
     test_client(const service_app_info *info)
-        : ::dsn::serverlet<test_client>("test-server"), ::dsn::service_app(info), _dns_resolver(new dns_resolver())
+        : ::dsn::serverlet<test_client>("test-server"),
+          ::dsn::service_app(info),
+          _dns_resolver(new dns_resolver())
     {
     }
 

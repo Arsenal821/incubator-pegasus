@@ -53,8 +53,11 @@ bool vector_equal(const std::vector<T> &a, const std::vector<T> &b)
     return true;
 }
 
-partition_resolver_ptr partition_resolver_manager::find_or_create(
-    const char *cluster_name, const std::vector<host_port> &meta_list, const char *app_name, const std::shared_ptr<dns_resolver> &dns_resolver)
+partition_resolver_ptr
+partition_resolver_manager::find_or_create(const char *cluster_name,
+                                           const std::vector<host_port> &meta_list,
+                                           const char *app_name,
+                                           const std::shared_ptr<dns_resolver> &dns_resolver)
 {
     dsn::zauto_lock l(_lock);
     std::map<std::string, partition_resolver_ptr> &app_map = _resolvers[cluster_name];

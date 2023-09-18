@@ -464,12 +464,12 @@ bool failure_detector::end_ping_internal(::dsn::error_code err, const beacon_ack
 
     master_record &record = itr->second;
     if (!ack.allowed) {
-        LOG_WARNING(
-            "worker rejected, stop sending beacon message, remote_master[{}({})], local_worker[{}({})]",
-            hp_this_node,
-            ack.this_node,
-            dsn_primary_host_port(),
-            dsn_primary_address());
+        LOG_WARNING("worker rejected, stop sending beacon message, remote_master[{}({})], "
+                    "local_worker[{}({})]",
+                    hp_this_node,
+                    ack.this_node,
+                    dsn_primary_host_port(),
+                    dsn_primary_address());
         record.rejected = true;
         record.send_beacon_timer->cancel(true);
         return false;
@@ -490,8 +490,11 @@ bool failure_detector::end_ping_internal(::dsn::error_code err, const beacon_ack
 
     // if ack is not from master meta, worker should not update its last send time
     if (!ack.is_master) {
-        LOG_WARNING(
-            "node[{}({})] is not master, ack.primary_node[{}({})] is real master", hp_this_node, ack.this_node, hp_primary_node, ack.primary_node);
+        LOG_WARNING("node[{}({})] is not master, ack.primary_node[{}({})] is real master",
+                    hp_this_node,
+                    ack.this_node,
+                    hp_primary_node,
+                    ack.primary_node);
         return true;
     }
 
@@ -605,8 +608,12 @@ void failure_detector::send_beacon(::dsn::host_port target, uint64_t time)
     beacon.__set_hp_to_addr(target);
     beacon.__set_start_time(static_cast<int64_t>(dsn::utils::process_start_millis()));
 
-    LOG_INFO(
-        "send ping message, from[{}({})], to[{}({})], time[{}]", beacon.hp_from_addr, beacon.from_addr, beacon.hp_to_addr, beacon.to_addr, time);
+    LOG_INFO("send ping message, from[{}({})], to[{}({})], time[{}]",
+             beacon.hp_from_addr,
+             beacon.from_addr,
+             beacon.hp_to_addr,
+             beacon.to_addr,
+             time);
 
     ::dsn::rpc::call(addr,
                      RPC_FD_FAILURE_DETECTOR_PING,

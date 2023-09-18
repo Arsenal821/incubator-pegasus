@@ -60,7 +60,10 @@ class meta_service;
 class meta_duplication_service
 {
 public:
-    meta_duplication_service(server_state *ss, meta_service *ms, const std::shared_ptr<dns_resolver> &resolver) : _state(ss), _meta_svc(ms), _dns_resolver(resolver)
+    meta_duplication_service(server_state *ss,
+                             meta_service *ms,
+                             const std::shared_ptr<dns_resolver> &resolver)
+        : _state(ss), _meta_svc(ms), _dns_resolver(resolver)
     {
         CHECK_NOTNULL(_state, "_state should not be null");
         CHECK_NOTNULL(_meta_svc, "_meta_svc should not be null");

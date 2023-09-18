@@ -309,7 +309,8 @@ public:
                                            const gpid &pid,
                                            error_code rpc_err = ERR_OK)
     {
-        bulk_svc().on_partition_ingestion_reply(rpc_err, std::move(resp), APP_NAME, pid, PRIMARY_HP);
+        bulk_svc().on_partition_ingestion_reply(
+            rpc_err, std::move(resp), APP_NAME, pid, PRIMARY_HP);
         wait_all();
     }
 
@@ -373,7 +374,8 @@ public:
         state->initialize_data_structure();
 
         _ms->set_function_level(meta_function_level::fl_steady);
-        _ms->_failure_detector.reset(new meta_server_failure_detector(_ms->_dns_resolver, _ms.get()));
+        _ms->_failure_detector.reset(
+            new meta_server_failure_detector(_ms->_dns_resolver, _ms.get()));
         _ss = _ms->_state;
     }
 

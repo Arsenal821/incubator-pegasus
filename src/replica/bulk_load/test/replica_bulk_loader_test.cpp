@@ -420,7 +420,8 @@ public:
     int32_t get_download_progress() { return _bulk_loader->_download_progress.load(); }
     bool is_secondary_bulk_load_state_reset()
     {
-        const partition_bulk_load_state &state = _replica->get_secondary_bulk_load_state(SECONDARY_HP);
+        const partition_bulk_load_state &state =
+            _replica->get_secondary_bulk_load_state(SECONDARY_HP);
         bool is_download_state_reset =
             (state.__isset.download_progress && state.__isset.download_status &&
              state.download_progress == 0 && state.download_status == ERR_OK);

@@ -109,7 +109,6 @@ TEST(core, group_address_talk_to_others)
     resp->wait();
 }
 
-
 TEST(core, group_address_change_leader)
 {
     ::dsn::rpc_address addr = build_group();

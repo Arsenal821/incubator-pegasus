@@ -314,7 +314,8 @@ void nfs_client_impl::continue_copy()
                                        }
                                    },
                                    std::chrono::milliseconds(FLAGS_rpc_timeout_ms),
-                                   _dns_resolver->resolve_address(req->file_ctx->user_req->file_size_req.hp_source));
+                                   _dns_resolver->resolve_address(
+                                       req->file_ctx->user_req->file_size_req.hp_source));
             } else {
                 --ureq->concurrent_copy_count;
                 --_concurrent_copy_request_count;
@@ -349,14 +350,15 @@ void nfs_client_impl::end_copy(::dsn::error_code err,
         if (!fc->user_req->is_finished) {
             host_port hp = fc->user_req->file_size_req.hp_source;
             if (reqc->retry_count > 0) {
-                LOG_WARNING("[nfs_service] remote copy failed, source = {}({}), dir = {}, file = {}, "
-                            "err = {}, retry_count = {}",
-                            hp,
-                            fc->user_req->file_size_req.source,
-                            fc->user_req->file_size_req.source_dir,
-                            fc->file_name,
-                            err,
-                            reqc->retry_count);
+                LOG_WARNING(
+                    "[nfs_service] remote copy failed, source = {}({}), dir = {}, file = {}, "
+                    "err = {}, retry_count = {}",
+                    hp,
+                    fc->user_req->file_size_req.source,
+                    fc->user_req->file_size_req.source_dir,
+                    fc->file_name,
+                    err,
+                    reqc->retry_count);
 
                 // retry copy
                 reqc->retry_count--;

@@ -168,7 +168,7 @@ void greedy_balancer_perfect_move_primary()
     std::vector<std::pair<dsn::host_port, dsn::rpc_address>> node_pairs;
     std::vector<dsn::host_port> node_list;
     generate_node_list(node_pairs, 19, 100);
-    for (const auto& p : node_pairs) {
+    for (const auto &p : node_pairs) {
         node_list.emplace_back(p.first);
     }
 

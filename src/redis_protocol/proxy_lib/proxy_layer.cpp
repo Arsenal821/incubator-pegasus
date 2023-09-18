@@ -108,7 +108,9 @@ void proxy_stub::remove_session(dsn::host_port remote_host_port)
 }
 
 proxy_session::proxy_session(proxy_stub *op, dsn::message_ex *first_msg)
-    : _stub(op), _is_session_reset(false), _backup_one_request(first_msg),
+    : _stub(op),
+      _is_session_reset(false),
+      _backup_one_request(first_msg),
       _remote_host_port(::dsn::host_port(_backup_one_request->header->from_address)),
       _prefix_for_log(_remote_host_port.to_string())
 {

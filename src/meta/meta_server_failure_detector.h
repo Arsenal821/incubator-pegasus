@@ -150,7 +150,9 @@ private:
 
 public:
     /* these two functions are for test */
-    meta_server_failure_detector(const std::shared_ptr<dns_resolver> &resolver, host_port leader_host_port, bool is_myself_leader);
+    meta_server_failure_detector(const std::shared_ptr<dns_resolver> &resolver,
+                                 host_port leader_host_port,
+                                 bool is_myself_leader);
     void set_leader_for_test(host_port leader_host_port, bool is_myself_leader);
     stability_map *get_stability_map_for_test();
 };

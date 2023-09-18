@@ -304,7 +304,8 @@ public:
         create_splitting_app_on_remote_stroage(state->_apps_root);
         state->initialize_data_structure();
 
-        _ms->_failure_detector.reset(new meta_server_failure_detector(_ms->_dns_resolver, _ms.get()));
+        _ms->_failure_detector.reset(
+            new meta_server_failure_detector(_ms->_dns_resolver, _ms.get()));
         _ss = _ms->_state;
     }
 

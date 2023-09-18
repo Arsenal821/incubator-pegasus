@@ -226,7 +226,8 @@ void meta_service_test_app::update_configuration_test()
 {
     dsn::error_code ec;
     std::shared_ptr<fake_sender_meta_service> svc(new fake_sender_meta_service(this));
-    svc->_failure_detector.reset(new dsn::replication::meta_server_failure_detector(svc->_dns_resolver, svc.get()));
+    svc->_failure_detector.reset(
+        new dsn::replication::meta_server_failure_detector(svc->_dns_resolver, svc.get()));
     ec = svc->remote_storage_initialize();
     ASSERT_EQ(ec, dsn::ERR_OK);
     svc->_partition_guardian.reset(new partition_guardian(svc.get()));
@@ -317,7 +318,8 @@ void meta_service_test_app::adjust_dropped_size()
 {
     dsn::error_code ec;
     std::shared_ptr<null_meta_service> svc(new null_meta_service());
-    svc->_failure_detector.reset(new dsn::replication::meta_server_failure_detector(svc->_dns_resolver, svc.get()));
+    svc->_failure_detector.reset(
+        new dsn::replication::meta_server_failure_detector(svc->_dns_resolver, svc.get()));
     ec = svc->remote_storage_initialize();
     ASSERT_EQ(ec, dsn::ERR_OK);
     svc->_partition_guardian.reset(new partition_guardian(svc.get()));
@@ -357,7 +359,7 @@ void meta_service_test_app::adjust_dropped_size()
     ss->sync_apps_to_remote_storage();
 
     std::vector<dsn::host_port> hps;
-    for (const auto& p : nodes) {
+    for (const auto &p : nodes) {
         hps.emplace_back(p.first);
     }
     generate_node_mapper(ss->_nodes, ss->_all_apps, hps);
@@ -430,8 +432,8 @@ void meta_service_test_app::apply_balancer_test()
     ec = meta_svc->remote_storage_initialize();
     ASSERT_EQ(dsn::ERR_OK, ec);
 
-    meta_svc->_failure_detector.reset(
-        new dsn::replication::meta_server_failure_detector(meta_svc->_dns_resolver, meta_svc.get()));
+    meta_svc->_failure_detector.reset(new dsn::replication::meta_server_failure_detector(
+        meta_svc->_dns_resolver, meta_svc.get()));
     meta_svc->_partition_guardian.reset(new partition_guardian(meta_svc.get()));
     meta_svc->_balancer.reset(new greedy_load_balancer(meta_svc.get()));
 
@@ -440,7 +442,7 @@ void meta_service_test_app::apply_balancer_test()
     generate_node_list(node_list, 5, 10);
 
     std::vector<dsn::host_port> hps;
-    for (const auto& p : node_list) {
+    for (const auto &p : node_list) {
         hps.emplace_back(p.first);
     }
 
@@ -537,7 +539,7 @@ void meta_service_test_app::cannot_run_balancer_test()
     pc.__set_hp_secondaries({nodes[1].first, nodes[2].first});
 
     std::vector<dsn::host_port> hps;
-    for (const auto& p : nodes) {
+    for (const auto &p : nodes) {
         hps.emplace_back(p.first);
     }
 

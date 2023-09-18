@@ -63,9 +63,10 @@ class meta_options;
 DSN_DECLARE_string(cluster_root);
 DSN_DECLARE_string(meta_state_service_type);
 
-static void random_assign_partition_config(std::shared_ptr<app_state> &app,
-                                           std::vector<std::pair<dsn::host_port, dsn::rpc_address>> &server_list,
-                                           int max_replica_count)
+static void random_assign_partition_config(
+    std::shared_ptr<app_state> &app,
+    std::vector<std::pair<dsn::host_port, dsn::rpc_address>> &server_list,
+    int max_replica_count)
 {
     auto get_server = [&server_list](int indice) {
         if (indice % 2 != 0) {
@@ -394,7 +395,7 @@ void meta_service_test_app::construct_apps_test()
     std::string hint_message;
     generate_node_list(nodes, 1, 1);
     std::vector<dsn::host_port> hps;
-    for (const auto& p : nodes) {
+    for (const auto &p : nodes) {
         hps.emplace_back(p.first);
     }
     svc->_state->construct_apps({resp}, hps, hint_message);

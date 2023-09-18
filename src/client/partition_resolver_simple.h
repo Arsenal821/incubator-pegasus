@@ -49,7 +49,9 @@ namespace replication {
 class partition_resolver_simple : public partition_resolver
 {
 public:
-    partition_resolver_simple(host_port meta_server, const char *app_name, const std::shared_ptr<dns_resolver> &dns_resolver);
+    partition_resolver_simple(host_port meta_server,
+                              const char *app_name,
+                              const std::shared_ptr<dns_resolver> &dns_resolver);
 
     virtual ~partition_resolver_simple();
 

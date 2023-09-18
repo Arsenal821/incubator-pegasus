@@ -355,9 +355,15 @@ void asio_udp_provider::do_receive()
             if (msg->header->from_address != remote_addr) {
                 if (!msg->header->context.u.is_forwarded) {
                     msg->header->from_address = remote_addr;
-                    LOG_DEBUG("msg from_address {} not be same as socket remote_addr {}, assign it to remote_addr.", msg->header->from_address, remote_addr);
+                    LOG_DEBUG("msg from_address {} not be same as socket remote_addr {}, assign it "
+                              "to remote_addr.",
+                              msg->header->from_address,
+                              remote_addr);
                 } else {
-                    LOG_DEBUG("msg from_address {} not be same as socket remote_addr {}, but it's forwarded message, ignore it!.", msg->header->from_address, remote_addr);
+                    LOG_DEBUG("msg from_address {} not be same as socket remote_addr {}, but it's "
+                              "forwarded message, ignore it!.",
+                              msg->header->from_address,
+                              remote_addr);
                 }
             }
 

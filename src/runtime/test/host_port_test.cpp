@@ -42,7 +42,6 @@
 #include "utils/error_code.h"
 #include "utils/errors.h"
 
-
 namespace dsn {
 
 TEST(host_port_test, host_port_to_string)

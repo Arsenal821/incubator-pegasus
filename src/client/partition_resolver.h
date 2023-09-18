@@ -91,7 +91,9 @@ public:
     const char *log_prefix() const { return _app_name.c_str(); }
 
 protected:
-    partition_resolver(host_port meta_server, const char *app_name, const std::shared_ptr<dns_resolver> &dns_resolver)
+    partition_resolver(host_port meta_server,
+                       const char *app_name,
+                       const std::shared_ptr<dns_resolver> &dns_resolver)
         : _app_name(app_name), _meta_server(meta_server), _dns_resolver(dns_resolver)
     {
     }

@@ -102,7 +102,7 @@ private:
     state_snapshot _last_states;
 
     std::map<std::string, dsn::host_port> _node_to_address; // address is primary_address()
-    std::map<int, std::string> _address_to_node;              // port is enough for key
+    std::map<int, std::string> _address_to_node;            // port is enough for key
 };
 
 class wrap_checker : public dsn::tools::checker

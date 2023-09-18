@@ -207,10 +207,10 @@ public:
 
     dsn::error_code ddd_diagnose(gpid pid, std::vector<ddd_partition_info> &ddd_partitions);
 
-    void query_disk_info(
-        const std::vector<dsn::host_port> &targets,
-        const std::string &app_name,
-        /*out*/ std::map<dsn::host_port, error_with<query_disk_info_response>> &resps);
+    void
+    query_disk_info(const std::vector<dsn::host_port> &targets,
+                    const std::string &app_name,
+                    /*out*/ std::map<dsn::host_port, error_with<query_disk_info_response>> &resps);
 
     error_with<start_bulk_load_response> start_bulk_load(const std::string &app_name,
                                                          const std::string &cluster_name,
@@ -396,18 +396,19 @@ private:
         dsn::task_tracker tracker;
         error_code err = ERR_UNKNOWN;
         for (auto &rpc : rpcs) {
-            rpc.second.call(
-                _dns_resolver->resolve_address(rpc.first), &tracker, [&err, &resps, &rpcs, &rpc](error_code code) mutable {
-                    err = code;
-                    if (err == dsn::ERR_OK) {
-                        resps.emplace(rpc.first, std::move(rpc.second.response()));
-                        rpcs.erase(rpc.first);
-                    } else {
-                        resps.emplace(
-                            rpc.first,
-                            std::move(error_s::make(err, "unable to send rpc to server")));
-                    }
-                });
+            rpc.second.call(_dns_resolver->resolve_address(rpc.first),
+                            &tracker,
+                            [&err, &resps, &rpcs, &rpc](error_code code) mutable {
+                                err = code;
+                                if (err == dsn::ERR_OK) {
+                                    resps.emplace(rpc.first, std::move(rpc.second.response()));
+                                    rpcs.erase(rpc.first);
+                                } else {
+                                    resps.emplace(rpc.first,
+                                                  std::move(error_s::make(
+                                                      err, "unable to send rpc to server")));
+                                }
+                            });
         }
         tracker.wait_outstanding_tasks();
 

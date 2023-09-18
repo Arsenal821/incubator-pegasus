@@ -281,9 +281,8 @@ bool app_disk(command_executor *e, shell_context *sc, arguments args)
         dsn::perf_counter_info info;
         dsn::blob bb(results[i].second.data(), 0, results[i].second.size());
         if (!dsn::json::json_forwarder<dsn::perf_counter_info>::decode(bb, info)) {
-            std::cout << "ERROR: decode perf counter info from node "
-                      << nodes[i].hp.to_string() << " failed, result = " << results[i].second
-                      << std::endl;
+            std::cout << "ERROR: decode perf counter info from node " << nodes[i].hp.to_string()
+                      << " failed, result = " << results[i].second << std::endl;
             return true;
         }
         if (info.result != "OK") {

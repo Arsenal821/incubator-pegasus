@@ -658,8 +658,11 @@ call_remote_command(shell_context *sc,
                 results[i].second = err.to_string();
             }
         };
-        tasks[i] = dsn::dist::cmd::async_call_remote(
-            sc->resolver->resolve_address(nodes[i].hp), cmd, arguments, callback, std::chrono::milliseconds(5000));
+        tasks[i] = dsn::dist::cmd::async_call_remote(sc->resolver->resolve_address(nodes[i].hp),
+                                                     cmd,
+                                                     arguments,
+                                                     callback,
+                                                     std::chrono::milliseconds(5000));
     }
     for (int i = 0; i < nodes.size(); ++i) {
         tasks[i]->wait();
@@ -1037,14 +1040,12 @@ inline bool decode_node_perf_counter_info(const dsn::host_port &hp,
     }
     dsn::blob bb(result.second.data(), 0, result.second.size());
     if (!dsn::json::json_forwarder<dsn::perf_counter_info>::decode(bb, info)) {
-        LOG_ERROR(
-            "decode perf counter info from node {} failed, result = {}", hp, result.second);
+        LOG_ERROR("decode perf counter info from node {} failed, result = {}", hp, result.second);
         return false;
     }
     if (info.result != "OK") {
-        LOG_ERROR("query perf counter info from node {} returns error, error = {}",
-                  hp,
-                  info.result);
+        LOG_ERROR(
+            "query perf counter info from node {} returns error, error = {}", hp, info.result);
         return false;
     }
     return true;
@@ -1371,8 +1372,11 @@ inline bool get_storage_size_stat(shell_context *sc, app_storage_size_stat &st_s
     return true;
 }
 
-inline configuration_proposal_action
-new_proposal_action(const dsn::rpc_address &target, const dsn::rpc_address &node, const dsn::host_port &hp_target, const dsn::host_port &hp_node, config_type::type type)
+inline configuration_proposal_action new_proposal_action(const dsn::rpc_address &target,
+                                                         const dsn::rpc_address &node,
+                                                         const dsn::host_port &hp_target,
+                                                         const dsn::host_port &hp_node,
+                                                         config_type::type type)
 {
     configuration_proposal_action act;
     act.__set_target(target);
@@ -1382,4 +1386,3 @@ new_proposal_action(const dsn::rpc_address &target, const dsn::rpc_address &node
     act.__set_type(type);
     return act;
 }
-

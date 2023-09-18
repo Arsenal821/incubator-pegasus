@@ -62,12 +62,14 @@ uint32_t random32(uint32_t min, uint32_t max);
 
 // Generates a random number [min_count, max_count] of node addresses
 // each node is given a random port value in range of [min_count, max_count]
-void generate_node_list(/*out*/ std::vector<std::pair<dsn::host_port, dsn::rpc_address>> &output_list,
-                        int min_count,
-                        int max_count);
+void generate_node_list(
+    /*out*/ std::vector<std::pair<dsn::host_port, dsn::rpc_address>> &output_list,
+    int min_count,
+    int max_count);
 
 // Generates `size` of node addresses, each with port value in range [start_port, start_port + size]
-inline std::vector<std::pair<dsn::host_port, dsn::rpc_address>> generate_node_list(size_t size, int start_port = 12321)
+inline std::vector<std::pair<dsn::host_port, dsn::rpc_address>>
+generate_node_list(size_t size, int start_port = 12321)
 {
     std::vector<std::pair<dsn::host_port, dsn::rpc_address>> result;
     result.resize(size);

@@ -86,7 +86,9 @@ TEST(cluster_balance_policy, node_migration_info)
 TEST(cluster_balance_policy, get_skew)
 {
     std::map<host_port, uint32_t> count_map = {
-        {host_port("localhost", 10085), 1}, {host_port("localhost", 10086), 3}, {host_port("localhost", 10087), 5},
+        {host_port("localhost", 10085), 1},
+        {host_port("localhost", 10086), 3},
+        {host_port("localhost", 10087), 5},
     };
 
     ASSERT_EQ(get_skew(count_map), count_map.rbegin()->second - count_map.begin()->second);

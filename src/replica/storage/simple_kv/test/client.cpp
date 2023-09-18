@@ -79,9 +79,7 @@ simple_kv_client_app::~simple_kv_client_app() { stop(); }
     replica_helper::load_meta_servers(meta_servers);
     _meta_server_group.assign_group("meta_servers");
     for (const auto &hp : meta_servers) {
-        LOG_WARNING_IF(!_meta_server_group.group_host_port()->add(hp),
-                       "duplicate adress {}",
-                       hp);
+        LOG_WARNING_IF(!_meta_server_group.group_host_port()->add(hp), "duplicate adress {}", hp);
     }
 
     _simple_kv_client.reset(

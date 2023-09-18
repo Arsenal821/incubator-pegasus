@@ -122,7 +122,7 @@ void meta_service_test_app::balancer_validator()
     std::vector<std::pair<dsn::host_port, dsn::rpc_address>> node_pairs;
     std::vector<dsn::host_port> node_list;
     generate_node_list(node_pairs, 20, 100);
-    for (const auto& p : node_pairs) {
+    for (const auto &p : node_pairs) {
         node_list.emplace_back(p.first);
     }
 
@@ -187,7 +187,7 @@ dsn::host_port get_host_port(const std::string &ip_port)
 {
     int splitter = ip_port.find_first_of(':');
     return host_port(ip_port.substr(0, splitter).c_str(),
-                       boost::lexical_cast<int>(ip_port.substr(splitter + 1)));
+                     boost::lexical_cast<int>(ip_port.substr(splitter + 1)));
 }
 
 static void load_apps_and_nodes(const char *file, app_mapper &apps, node_mapper &nodes)

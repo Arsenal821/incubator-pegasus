@@ -63,7 +63,8 @@ DSN_DEFINE_string(meta_server,
 namespace dsn {
 namespace replication {
 
-meta_server_failure_detector::meta_server_failure_detector(const std::shared_ptr<dns_resolver> &resolver, meta_service *svc)
+meta_server_failure_detector::meta_server_failure_detector(
+    const std::shared_ptr<dns_resolver> &resolver, meta_service *svc)
     : dsn::fd::failure_detector(resolver),
       _svc(svc),
       _lock_svc(nullptr),
@@ -214,9 +215,7 @@ void meta_server_failure_detector::reset_stability_stat(const host_port &node)
 void meta_server_failure_detector::leader_initialize(const std::string &lock_service_owner)
 {
     dsn::host_port hp;
-    CHECK(hp.from_string(lock_service_owner),
-          "parse {} to host_port failed",
-          lock_service_owner);
+    CHECK(hp.from_string(lock_service_owner), "parse {} to host_port failed", lock_service_owner);
     CHECK_EQ_MSG(hp, dsn_primary_host_port(), "acquire leader return success, but owner not match");
     _is_leader.store(true);
     _election_moment.store(dsn_now_ms());
@@ -226,7 +225,7 @@ bool meta_server_failure_detector::update_stability_stat(const fd::beacon_msg &b
 {
     zauto_lock l(_map_lock);
 
-    host_port hp_from_addr; 
+    host_port hp_from_addr;
     if (beacon.__isset.hp_from_addr) {
         hp_from_addr = beacon.hp_from_addr;
     } else {
@@ -240,8 +239,10 @@ bool meta_server_failure_detector::update_stability_stat(const fd::beacon_msg &b
     } else {
         worker_stability &w = iter->second;
         if (beacon.start_time == w.last_start_time_ms) {
-            LOG_DEBUG(
-                "{}({}) isn't restarted, last_start_time({})", hp_from_addr, beacon.from_addr, w.last_start_time_ms);
+            LOG_DEBUG("{}({}) isn't restarted, last_start_time({})",
+                      hp_from_addr,
+                      beacon.from_addr,
+                      w.last_start_time_ms);
             if (dsn_now_ms() - w.last_start_time_ms >= FLAGS_stable_rs_min_running_seconds * 1000 &&
                 w.unstable_restart_count > 0) {
                 LOG_INFO("{}({}) has stably run for a while, reset it's unstable count({}) to 0",
@@ -275,7 +276,9 @@ bool meta_server_failure_detector::update_stability_stat(const fd::beacon_msg &b
 
             w.last_start_time_ms = beacon.start_time;
         } else {
-            LOG_WARNING("{}({}): possible encounter a staled message, ignore it", hp_from_addr, beacon.from_addr);
+            LOG_WARNING("{}({}): possible encounter a staled message, ignore it",
+                        hp_from_addr,
+                        beacon.from_addr);
         }
         return w.unstable_restart_count < FLAGS_max_succssive_unstable_restart;
     }
@@ -284,7 +287,7 @@ bool meta_server_failure_detector::update_stability_stat(const fd::beacon_msg &b
 void meta_server_failure_detector::on_ping(const fd::beacon_msg &beacon,
                                            rpc_replier<fd::beacon_ack> &reply)
 {
-    host_port hp_from_addr, hp_to_addr; 
+    host_port hp_from_addr, hp_to_addr;
     if (beacon.__isset.hp_from_addr) {
         hp_from_addr = beacon.hp_from_addr;
     } else {
@@ -297,7 +300,8 @@ void meta_server_failure_detector::on_ping(const fd::beacon_msg &beacon,
     }
 
     if (beacon.__isset.start_time && !update_stability_stat(beacon)) {
-        LOG_WARNING("{}({}) is unstable, don't response to it's beacon", beacon.from_addr, hp_from_addr);
+        LOG_WARNING(
+            "{}({}) is unstable, don't response to it's beacon", beacon.from_addr, hp_from_addr);
         return;
     }
 
@@ -334,9 +338,10 @@ void meta_server_failure_detector::on_ping(const fd::beacon_msg &beacon,
 }
 
 /*the following functions are only for test*/
-meta_server_failure_detector::meta_server_failure_detector(const std::shared_ptr<dns_resolver> &resolver,
-                                                           host_port leader_host_port,
-                                                           bool is_myself_leader)
+meta_server_failure_detector::meta_server_failure_detector(
+    const std::shared_ptr<dns_resolver> &resolver,
+    host_port leader_host_port,
+    bool is_myself_leader)
     : dsn::fd::failure_detector(resolver)
 {
     LOG_INFO("set {} as leader", leader_host_port);

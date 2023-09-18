@@ -173,7 +173,8 @@ TEST(copy_primary_operation, can_select)
     std::vector<dsn::host_port> address_vec;
     std::unordered_map<dsn::host_port, int> address_id;
     std::shared_ptr<dns_resolver> resolver = std::make_shared<dns_resolver>();
-    copy_primary_operation op(nullptr, apps, nodes, address_vec, address_id, false, false, resolver);
+    copy_primary_operation op(
+        nullptr, apps, nodes, address_vec, address_id, false, false, resolver);
 
     gpid cannot_select_gpid(1, 1);
     gpid can_select_gpid(1, 2);
@@ -191,7 +192,8 @@ TEST(copy_primary_operation, only_copy_primary)
     std::vector<dsn::host_port> address_vec;
     std::unordered_map<dsn::host_port, int> address_id;
     std::shared_ptr<dns_resolver> resolver = std::make_shared<dns_resolver>();
-    copy_primary_operation op(nullptr, apps, nodes, address_vec, address_id, false, false, resolver);
+    copy_primary_operation op(
+        nullptr, apps, nodes, address_vec, address_id, false, false, resolver);
 
     ASSERT_TRUE(op.only_copy_primary());
 }

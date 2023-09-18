@@ -290,9 +290,8 @@ private:
     void downgrade_secondary_to_inactive(std::shared_ptr<app_state> &app,
                                          int pidx,
                                          const host_port &node);
-    void downgrade_stateless_nodes(std::shared_ptr<app_state> &app,
-                                   int pidx,
-                                   const host_port &address);
+    void
+    downgrade_stateless_nodes(std::shared_ptr<app_state> &app, int pidx, const host_port &address);
 
     void on_partition_node_dead(std::shared_ptr<app_state> &app,
                                 int pidx,

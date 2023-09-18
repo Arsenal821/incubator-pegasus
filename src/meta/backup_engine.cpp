@@ -54,8 +54,13 @@
 namespace dsn {
 namespace replication {
 
-backup_engine::backup_engine(backup_service *service, const std::shared_ptr<dns_resolver> &dns_resolver)
-    : _backup_service(service), _block_service(nullptr), _backup_path(""), _is_backup_failed(false), _dns_resolver(dns_resolver)
+backup_engine::backup_engine(backup_service *service,
+                             const std::shared_ptr<dns_resolver> &dns_resolver)
+    : _backup_service(service),
+      _block_service(nullptr),
+      _backup_path(""),
+      _is_backup_failed(false),
+      _dns_resolver(dns_resolver)
 {
 }
 
@@ -214,10 +219,11 @@ void backup_engine::backup_app_partition(const gpid &pid)
              pid.to_string(),
              partition_primary.to_string());
     backup_rpc rpc(std::move(req), RPC_COLD_BACKUP, 10000_ms, 0, pid.thread_hash());
-    rpc.call(
-        _dns_resolver->resolve_address(partition_primary), &_tracker, [this, rpc, pid, partition_primary](error_code err) mutable {
-            on_backup_reply(err, rpc.response(), pid, partition_primary);
-        });
+    rpc.call(_dns_resolver->resolve_address(partition_primary),
+             &_tracker,
+             [this, rpc, pid, partition_primary](error_code err) mutable {
+                 on_backup_reply(err, rpc.response(), pid, partition_primary);
+             });
 
     zauto_lock l(_lock);
     _backup_status[pid.get_partition_index()] = backup_status::ALIVE;

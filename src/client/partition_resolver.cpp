@@ -38,12 +38,14 @@
 namespace dsn {
 namespace replication {
 /*static*/
-partition_resolver_ptr partition_resolver::get_resolver(const char *cluster_name,
-                                                        const std::vector<host_port> &meta_list,
-                                                        const char *app_name,
-                                                        const std::shared_ptr<dns_resolver> &dns_resolver)
+partition_resolver_ptr
+partition_resolver::get_resolver(const char *cluster_name,
+                                 const std::vector<host_port> &meta_list,
+                                 const char *app_name,
+                                 const std::shared_ptr<dns_resolver> &dns_resolver)
 {
-    return partition_resolver_manager::instance().find_or_create(cluster_name, meta_list, app_name, dns_resolver);
+    return partition_resolver_manager::instance().find_or_create(
+        cluster_name, meta_list, app_name, dns_resolver);
 }
 
 DEFINE_TASK_CODE(LPC_RPC_DELAY_CALL, TASK_PRIORITY_COMMON, THREAD_POOL_DEFAULT)

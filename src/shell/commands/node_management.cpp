@@ -244,8 +244,8 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
             if (tmp_it == tmp_map.end())
                 continue;
             if (!results[i].first) {
-                std::cout << "query perf counter info from node " << hp.to_string()
-                          << " failed" << std::endl;
+                std::cout << "query perf counter info from node " << hp.to_string() << " failed"
+                          << std::endl;
                 return true;
             }
             dsn::perf_counter_info info;
@@ -304,8 +304,8 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
             if (tmp_it == tmp_map.end())
                 continue;
             if (!results[i].first) {
-                std::cout << "query perf counter info from node " << hp.to_string()
-                          << " failed" << std::endl;
+                std::cout << "query perf counter info from node " << hp.to_string() << " failed"
+                          << std::endl;
                 return true;
             }
             dsn::perf_counter_info info;
@@ -363,8 +363,8 @@ bool ls_nodes(command_executor *e, shell_context *sc, arguments args)
             if (tmp_it == tmp_map.end())
                 continue;
             if (!results[i].first) {
-                std::cout << "query perf counter info from node " << hp.to_string()
-                          << " failed" << std::endl;
+                std::cout << "query perf counter info from node " << hp.to_string() << " failed"
+                          << std::endl;
                 return true;
             }
             dsn::perf_counter_info info;

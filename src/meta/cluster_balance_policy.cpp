@@ -553,9 +553,12 @@ bool cluster_balance_policy::apply_move(const move_info &move,
     }
     auto source_addr = resolver->resolve_address(source);
     auto target_addr = resolver->resolve_address(target);
-    list[move.pid] = generate_balancer_request(*_global_view->apps, pc, move.type, source_addr, target_addr, source, target);
+    list[move.pid] = generate_balancer_request(
+        *_global_view->apps, pc, move.type, source_addr, target_addr, source, target);
     _migration_result->emplace(
-        move.pid, generate_balancer_request(*_global_view->apps, pc, move.type, source_addr, target_addr, source, target));
+        move.pid,
+        generate_balancer_request(
+            *_global_view->apps, pc, move.type, source_addr, target_addr, source, target));
     selected_pids.insert(move.pid);
 
     cluster_info.apps_skew[app_id] = get_skew(app_info.replicas_count);

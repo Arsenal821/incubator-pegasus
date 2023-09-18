@@ -53,8 +53,8 @@ class batch_get : public test_util
 TEST_F(batch_get, set_and_then_batch_get)
 {
     std::shared_ptr<dsn::dns_resolver> dns_resolver = std::make_shared<dsn::dns_resolver>();
-    auto rrdb_client =
-        new ::dsn::apps::rrdb_client(cluster_name_.c_str(), meta_list_, app_name_.c_str(), dns_resolver);
+    auto rrdb_client = new ::dsn::apps::rrdb_client(
+        cluster_name_.c_str(), meta_list_, app_name_.c_str(), dns_resolver);
 
     int test_data_count = 100;
     int test_timeout_milliseconds = 3000;

@@ -456,10 +456,11 @@ void bulk_load_service::partition_bulk_load(const std::string &app_name, const g
     rpc.call(primary_addr, _meta_svc->tracker(), [this, rpc](error_code err) mutable {
 
         // fill host_port struct if needed
-        auto& bulk_load_resp = rpc.response();
+        auto &bulk_load_resp = rpc.response();
         if (!bulk_load_resp.__isset.hp_group_bulk_load_state) {
-            bulk_load_resp.__set_hp_group_bulk_load_state(std::map<host_port, partition_bulk_load_state>());
-            for (const auto& kv : bulk_load_resp.group_bulk_load_state) {
+            bulk_load_resp.__set_hp_group_bulk_load_state(
+                std::map<host_port, partition_bulk_load_state>());
+            for (const auto &kv : bulk_load_resp.group_bulk_load_state) {
                 auto hp = host_port(kv.first);
                 bulk_load_resp.hp_group_bulk_load_state[hp] = kv.second;
             }
@@ -480,13 +481,13 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
     const auto &primary_hp = request.hp_primary_addr;
 
     if (err != ERR_OK) {
-        LOG_ERROR(
-            "app({}), partition({}) failed to receive bulk load response from node({}({})), error = {}",
-            app_name,
-            pid,
-            primary_hp.to_string(),
-            primary_addr.to_string(),
-            err.to_string());
+        LOG_ERROR("app({}), partition({}) failed to receive bulk load response from node({}({})), "
+                  "error = {}",
+                  app_name,
+                  pid,
+                  primary_hp.to_string(),
+                  primary_addr.to_string(),
+                  err.to_string());
         try_rollback_to_downloading(app_name, pid);
         try_resend_bulk_load_request(app_name, pid);
         return;
@@ -518,14 +519,15 @@ void bulk_load_service::on_partition_bulk_load_reply(error_code err,
     }
 
     if (response.err != ERR_OK) {
-        LOG_ERROR("app({}), partition({}) from node({}({})) handle bulk load response failed, error = "
-                  "{}, primary status = {}",
-                  app_name,
-                  pid,
-                  primary_hp.to_string(),
-                  primary_addr.to_string(),
-                  response.err.to_string(),
-                  dsn::enum_to_string(response.primary_bulk_load_status));
+        LOG_ERROR(
+            "app({}), partition({}) from node({}({})) handle bulk load response failed, error = "
+            "{}, primary status = {}",
+            app_name,
+            pid,
+            primary_hp.to_string(),
+            primary_addr.to_string(),
+            response.err.to_string(),
+            dsn::enum_to_string(response.primary_bulk_load_status));
         handle_bulk_load_failed(pid.get_app_id(), response.err);
         try_resend_bulk_load_request(app_name, pid);
         return;
@@ -1620,13 +1622,14 @@ void bulk_load_service::on_query_bulk_load_status(query_bulk_load_rpc rpc)
     }
 
     response.bulk_load_states.resize(partition_count);
-    response.__set_hp_bulk_load_states(std::vector<std::map<host_port, partition_bulk_load_state>>(partition_count));
+    response.__set_hp_bulk_load_states(
+        std::vector<std::map<host_port, partition_bulk_load_state>>(partition_count));
     for (const auto &kv : _partitions_bulk_load_state) {
         if (kv.first.get_app_id() == app_id) {
             auto gpid = kv.first.get_partition_index();
             response.hp_bulk_load_states[gpid] = kv.second;
 
-            std::map<rpc_address, partition_bulk_load_state> addr_pbls;  
+            std::map<rpc_address, partition_bulk_load_state> addr_pbls;
             for (const auto &bls : kv.second) {
                 addr_pbls[_meta_svc->get_dns_resolver()->resolve_address(bls.first)] = bls.second;
             }

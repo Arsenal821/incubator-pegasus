@@ -40,7 +40,10 @@ struct shell_context
     std::unique_ptr<dsn::dns_resolver> resolver;
     bool escape_all;
     int timeout_ms;
-    shell_context() : pg_client(nullptr), resolver(new dsn::dns_resolver()), escape_all(false), timeout_ms(5000) {}
+    shell_context()
+        : pg_client(nullptr), resolver(new dsn::dns_resolver()), escape_all(false), timeout_ms(5000)
+    {
+    }
 };
 
 struct arguments

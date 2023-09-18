@@ -557,9 +557,7 @@ inline int count_partitions(const app_mapper &apps)
 void when_update_replicas(config_type::type t, const std::function<void(bool)> &func);
 
 template <typename T>
-void maintain_drops(/*inout*/ std::vector<T> &drops,
-                    const T &node,
-                    config_type::type t)
+void maintain_drops(/*inout*/ std::vector<T> &drops, const T &node, config_type::type t)
 {
     auto action = [&drops, &node](bool is_adding) {
         auto it = std::find(drops.begin(), drops.end(), node);
@@ -584,7 +582,10 @@ void maintain_drops(/*inout*/ std::vector<T> &drops,
 //   if construct the replica successfully, return true.
 //   Notice: as long as we can construct something from current infos, we treat it as a
 //   success
-bool construct_replica(meta_view view, const gpid &pid, int max_replica_count, const std::shared_ptr<dns_resolver> &resolver);
+bool construct_replica(meta_view view,
+                       const gpid &pid,
+                       int max_replica_count,
+                       const std::shared_ptr<dns_resolver> &resolver);
 
 // When replica infos are collected from replica servers, meta-server
 // will use this to check if a replica on a server is useful

@@ -48,7 +48,8 @@
 namespace dsn {
 namespace replication {
 
-partition_resolver_simple::partition_resolver_simple(host_port meta_server, const char *app_name, const std::shared_ptr<dns_resolver> &dns_resolver)
+partition_resolver_simple::partition_resolver_simple(
+    host_port meta_server, const char *app_name, const std::shared_ptr<dns_resolver> &dns_resolver)
     : partition_resolver(meta_server, app_name, dns_resolver),
       _app_id(-1),
       _app_partition_count(-1),

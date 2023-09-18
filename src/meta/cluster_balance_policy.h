@@ -133,14 +133,8 @@ private:
         // key-disk tag, value-partition set
         std::map<std::string, partition_set> partitions;
         partition_set future_partitions;
-        bool operator<(const node_migration_info &another) const
-        {
-            return hp < another.hp;
-        }
-        bool operator==(const node_migration_info &another) const
-        {
-            return hp == another.hp;
-        }
+        bool operator<(const node_migration_info &another) const { return hp < another.hp; }
+        bool operator==(const node_migration_info &another) const { return hp == another.hp; }
     };
 
     struct cluster_migration_info

@@ -44,7 +44,8 @@ public:
                      const char *app_name)
     {
         _dns_resolver = std::make_shared<dns_resolver>();
-        _resolver = partition_resolver::get_resolver(cluster_name, meta_list, app_name, _dns_resolver);
+        _resolver =
+            partition_resolver::get_resolver(cluster_name, meta_list, app_name, _dns_resolver);
     }
 
     simple_kv_client() {}

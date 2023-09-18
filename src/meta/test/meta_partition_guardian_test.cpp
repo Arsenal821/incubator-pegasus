@@ -97,8 +97,7 @@ static void apply_update_request(/*in-out*/ configuration_update_request &update
         if (update_req.hp_node == pc.hp_primary) {
             pc.primary.set_invalid();
             pc.hp_primary.reset();
-        }
-        else {
+        } else {
             replica_helper::remove_node(update_req.node, pc.secondaries);
             replica_helper::remove_node(update_req.hp_node, pc.hp_secondaries);
         }
@@ -180,7 +179,8 @@ void meta_partition_guardian_test::cure_test()
     dsn::error_code ec;
     dsn::task_ptr t;
     std::shared_ptr<message_filter> svc(new message_filter(this));
-    svc->_failure_detector.reset(new dsn::replication::meta_server_failure_detector(_ms->_dns_resolver, svc.get()));
+    svc->_failure_detector.reset(
+        new dsn::replication::meta_server_failure_detector(_ms->_dns_resolver, svc.get()));
     bool proposal_sent;
     dsn::host_port last_addr;
 
@@ -208,7 +208,7 @@ void meta_partition_guardian_test::cure_test()
     std::vector<std::pair<dsn::host_port, dsn::rpc_address>> nodes;
     generate_node_list(nodes, 4, 4);
     std::vector<dsn::host_port> nodes_list;
-    for (const auto& p : nodes) {
+    for (const auto &p : nodes) {
         nodes_list.emplace_back(p.first);
     }
 
@@ -807,7 +807,7 @@ void meta_partition_guardian_test::cure()
     std::vector<std::pair<dsn::host_port, dsn::rpc_address>> nodes_pairs;
     std::vector<dsn::host_port> nodes_list;
     generate_node_list(nodes_pairs, 20, 100);
-    for (const auto& p : nodes_pairs) {
+    for (const auto &p : nodes_pairs) {
         nodes_list.emplace_back(p.first);
     }
 
@@ -881,7 +881,7 @@ void meta_partition_guardian_test::from_proposal_test()
     std::shared_ptr<app_state> the_app = app_state::create(info);
 
     app.emplace(the_app->app_id, the_app);
-    for (const auto& p : nodes_list) {
+    for (const auto &p : nodes_list) {
         get_node_state(nodes, p.first, true)->set_alive(true);
     }
 
@@ -898,21 +898,31 @@ void meta_partition_guardian_test::from_proposal_test()
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 2: test invalid proposal: invalid target" << std::endl;
-    cpa2 =
-        new_proposal_action(dsn::rpc_address(), nodes_list[0].second, dsn::host_port(), nodes_list[0].first, config_type::CT_UPGRADE_TO_PRIMARY);
+    cpa2 = new_proposal_action(dsn::rpc_address(),
+                               nodes_list[0].second,
+                               dsn::host_port(),
+                               nodes_list[0].first,
+                               config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 3: test invalid proposal: invalid node" << std::endl;
-    cpa2 =
-        new_proposal_action(nodes_list[0].second, dsn::rpc_address(), nodes_list[0].first, dsn::host_port(), config_type::CT_UPGRADE_TO_PRIMARY);
+    cpa2 = new_proposal_action(nodes_list[0].second,
+                               dsn::rpc_address(),
+                               nodes_list[0].first,
+                               dsn::host_port(),
+                               config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 4: test invalid proposal: dead target" << std::endl;
-    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[0].second, nodes_list[0].first, nodes_list[0].first, config_type::CT_UPGRADE_TO_PRIMARY);
+    cpa2 = new_proposal_action(nodes_list[0].second,
+                               nodes_list[0].second,
+                               nodes_list[0].first,
+                               nodes_list[0].first,
+                               config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     get_node_state(nodes, nodes_list[0].first, false)->set_alive(false);
     ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
@@ -920,7 +930,11 @@ void meta_partition_guardian_test::from_proposal_test()
     get_node_state(nodes, nodes_list[0].first, false)->set_alive(true);
 
     std::cerr << "Case 5: test invalid proposal: dead node" << std::endl;
-    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[1].second, nodes_list[0].first, nodes_list[1].first, config_type::CT_ADD_SECONDARY);
+    cpa2 = new_proposal_action(nodes_list[0].second,
+                               nodes_list[1].second,
+                               nodes_list[0].first,
+                               nodes_list[1].first,
+                               config_type::CT_ADD_SECONDARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     get_node_state(nodes, nodes_list[1].first, false)->set_alive(false);
     ASSERT_FALSE(guardian.from_proposals(mv, p, cpa));
@@ -928,7 +942,11 @@ void meta_partition_guardian_test::from_proposal_test()
     get_node_state(nodes, nodes_list[1].first, false)->set_alive(true);
 
     std::cerr << "Case 6: test invalid proposal: already have priamry but assign" << std::endl;
-    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[0].second, nodes_list[0].first, nodes_list[0].first, config_type::CT_ASSIGN_PRIMARY);
+    cpa2 = new_proposal_action(nodes_list[0].second,
+                               nodes_list[0].second,
+                               nodes_list[0].first,
+                               nodes_list[0].first,
+                               config_type::CT_ASSIGN_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     pc.primary = nodes_list[1].second;
     pc.__set_hp_primary(nodes_list[1].first);
@@ -936,7 +954,11 @@ void meta_partition_guardian_test::from_proposal_test()
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 7: test invalid proposal: upgrade non-secondary" << std::endl;
-    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[0].second, nodes_list[0].first, nodes_list[0].first, config_type::CT_UPGRADE_TO_PRIMARY);
+    cpa2 = new_proposal_action(nodes_list[0].second,
+                               nodes_list[0].second,
+                               nodes_list[0].first,
+                               nodes_list[0].first,
+                               config_type::CT_UPGRADE_TO_PRIMARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     pc.primary.set_invalid();
     pc.hp_primary.reset();
@@ -944,7 +966,11 @@ void meta_partition_guardian_test::from_proposal_test()
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 8: test invalid proposal: add exist secondary" << std::endl;
-    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[1].second, nodes_list[0].first, nodes_list[1].first, config_type::CT_ADD_SECONDARY);
+    cpa2 = new_proposal_action(nodes_list[0].second,
+                               nodes_list[1].second,
+                               nodes_list[0].first,
+                               nodes_list[1].first,
+                               config_type::CT_ADD_SECONDARY);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     pc.primary = nodes_list[1].second;
     pc.__set_hp_primary(nodes_list[1].first);
@@ -954,7 +980,11 @@ void meta_partition_guardian_test::from_proposal_test()
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 9: test invalid proposal: downgrade non member" << std::endl;
-    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[1].second, nodes_list[0].first, nodes_list[1].first, config_type::CT_REMOVE);
+    cpa2 = new_proposal_action(nodes_list[0].second,
+                               nodes_list[1].second,
+                               nodes_list[0].first,
+                               nodes_list[1].first,
+                               config_type::CT_REMOVE);
     cc.lb_actions.assign_balancer_proposals({cpa2});
     pc.primary = nodes_list[0].second;
     pc.__set_hp_primary(nodes_list[0].first);
@@ -963,7 +993,11 @@ void meta_partition_guardian_test::from_proposal_test()
     ASSERT_EQ(config_type::CT_INVALID, cpa.type);
 
     std::cerr << "Case 10: test abnormal learning detect" << std::endl;
-    cpa2 = new_proposal_action(nodes_list[0].second, nodes_list[1].second, nodes_list[0].first, nodes_list[1].first, config_type::CT_ADD_SECONDARY);
+    cpa2 = new_proposal_action(nodes_list[0].second,
+                               nodes_list[1].second,
+                               nodes_list[0].first,
+                               nodes_list[1].first,
+                               config_type::CT_ADD_SECONDARY);
     pc.primary = nodes_list[0].second;
     pc.__set_hp_primary(nodes_list[0].first);
     pc.hp_secondaries.clear();

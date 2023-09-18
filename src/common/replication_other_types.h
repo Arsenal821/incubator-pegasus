@@ -64,7 +64,8 @@ inline bool is_primary(const partition_configuration &pc, const host_port &node)
 inline bool is_secondary(const partition_configuration &pc, const host_port &node)
 {
     return !node.is_invalid() &&
-           std::find(pc.hp_secondaries.begin(), pc.hp_secondaries.end(), node) != pc.hp_secondaries.end();
+           std::find(pc.hp_secondaries.begin(), pc.hp_secondaries.end(), node) !=
+               pc.hp_secondaries.end();
 }
 inline bool is_member(const partition_configuration &pc, const host_port &node)
 {
@@ -79,9 +80,8 @@ inline bool is_partition_config_equal(const partition_configuration &pc1,
             return false;
     // last_drops is not considered into equality check
     return pc1.ballot == pc2.ballot && pc1.pid == pc2.pid &&
-           pc1.max_replica_count == pc2.max_replica_count &&
-           pc1.primary == pc2.primary && pc1.hp_primary == pc2.hp_primary &&
-           pc1.secondaries.size() == pc2.secondaries.size() &&
+           pc1.max_replica_count == pc2.max_replica_count && pc1.primary == pc2.primary &&
+           pc1.hp_primary == pc2.hp_primary && pc1.secondaries.size() == pc2.secondaries.size() &&
            pc1.hp_secondaries.size() == pc2.hp_secondaries.size() &&
            pc1.last_committed_decree == pc2.last_committed_decree;
 }

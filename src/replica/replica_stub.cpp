@@ -1637,7 +1637,8 @@ void replica_stub::remove_replica_on_meta_server(const app_info &info,
     if (_primary_host_port == config.hp_primary) {
         request->config.primary.set_invalid();
         request->config.hp_primary.reset();
-    } else if (replica_helper::remove_node(primary_address(), request->config.secondaries)&&replica_helper::remove_node(_primary_host_port, request->config.hp_secondaries)) {
+    } else if (replica_helper::remove_node(primary_address(), request->config.secondaries) &&
+               replica_helper::remove_node(_primary_host_port, request->config.hp_secondaries)) {
     } else {
         return;
     }
@@ -1645,10 +1646,7 @@ void replica_stub::remove_replica_on_meta_server(const app_info &info,
     ::dsn::marshall(msg, *request);
 
     rpc_address target(_dns_resolver->resolve_address(_failure_detector->get_servers()));
-    rpc::call(target,
-              msg,
-              nullptr,
-              [](error_code err, dsn::message_ex *, dsn::message_ex *) {});
+    rpc::call(target, msg, nullptr, [](error_code err, dsn::message_ex *, dsn::message_ex *) {});
 }
 
 void replica_stub::on_meta_server_disconnected()

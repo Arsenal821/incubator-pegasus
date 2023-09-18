@@ -112,7 +112,8 @@ protected:
 
 public:
     worker_fd_test(replication::replica_stub *stub, std::vector<dsn::host_port> &meta_servers)
-        : slave_failure_detector_with_multimaster(stub == nullptr ? std::make_shared<dns_resolver>() : stub->get_dns_resolver(),
+        : slave_failure_detector_with_multimaster(stub == nullptr ? std::make_shared<dns_resolver>()
+                                                                  : stub->get_dns_resolver(),
                                                   meta_servers,
                                                   [=]() { stub->on_meta_server_disconnected(); },
                                                   [=]() { stub->on_meta_server_connected(); })
@@ -162,7 +163,8 @@ public:
         if (_connected_cb)
             _connected_cb(node);
     }
-    master_fd_test(const std::shared_ptr<::dsn::dns_resolver> &resolver) : meta_server_failure_detector(resolver, host_port(), false)
+    master_fd_test(const std::shared_ptr<::dsn::dns_resolver> &resolver)
+        : meta_server_failure_detector(resolver, host_port(), false)
     {
         _response_ping_switch = true;
     }
@@ -376,12 +378,11 @@ void finish(test_worker *worker, test_master *master, int master_index)
             --wait_count;
         });
 
-    master->fd()->when_disconnected(
-        [&wait_count](const std::vector<host_port> &addr_list) mutable {
-            ASSERT_EQ(addr_list.size(), 1);
-            ASSERT_EQ(addr_list[0].port(), WPORT);
-            --wait_count;
-        });
+    master->fd()->when_disconnected([&wait_count](const std::vector<host_port> &addr_list) mutable {
+        ASSERT_EQ(addr_list.size(), 1);
+        ASSERT_EQ(addr_list[0].port(), WPORT);
+        --wait_count;
+    });
 
     // we don't send any ping message now
     worker->fd()->toggle_send_ping(false);

@@ -119,17 +119,21 @@ void replica_follower::async_duplicate_checkpoint_from_master_replica()
     dsn::message_ex *msg = dsn::message_ex::create_request(
         RPC_CM_QUERY_PARTITION_CONFIG_BY_INDEX, 0, get_gpid().thread_hash());
     dsn::marshall(msg, meta_config_request);
-    rpc::call(_replica->get_dns_resolver()->resolve_address(meta_servers), msg, &_tracker, [&](error_code err, query_cfg_response &&resp) mutable {
-        FAIL_POINT_INJECT_F("duplicate_checkpoint_ok", [&](string_view s) -> void {
-            _tracker.set_tasks_success();
-            return;
-        });
+    rpc::call(_replica->get_dns_resolver()->resolve_address(meta_servers),
+              msg,
+              &_tracker,
+              [&](error_code err, query_cfg_response &&resp) mutable {
+                  FAIL_POINT_INJECT_F("duplicate_checkpoint_ok", [&](string_view s) -> void {
+                      _tracker.set_tasks_success();
+                      return;
+                  });
 
-        FAIL_POINT_INJECT_F("duplicate_checkpoint_failed", [&](string_view s) -> void { return; });
-        if (update_master_replica_config(err, std::move(resp)) == ERR_OK) {
-            copy_master_replica_checkpoint();
-        }
-    });
+                  FAIL_POINT_INJECT_F("duplicate_checkpoint_failed",
+                                      [&](string_view s) -> void { return; });
+                  if (update_master_replica_config(err, std::move(resp)) == ERR_OK) {
+                      copy_master_replica_checkpoint();
+                  }
+              });
 }
 
 // ThreadPool: THREAD_POOL_DEFAULT
@@ -226,8 +230,7 @@ error_code replica_follower::nfs_copy_checkpoint(error_code err, learn_response 
         hp = host_port(resp.address);
     }
 
-    nfs_copy_remote_files(
-        hp, resp.replica_disk_tag, resp.base_local_dir, resp.state.files, dest);
+    nfs_copy_remote_files(hp, resp.replica_disk_tag, resp.base_local_dir, resp.state.files, dest);
     return ERR_OK;
 }
 

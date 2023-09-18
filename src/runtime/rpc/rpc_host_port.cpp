@@ -69,7 +69,6 @@ host_port::host_port(std::string host, uint16_t port)
     CHECK_NE_MSG(rpc_address::ipv4_from_host(_host.c_str()), 0, "invalid hostname: {}", _host);
 }
 
-
 bool host_port::from_string(const std::string s)
 {
     std::string ip_port = s;
@@ -228,11 +227,11 @@ error_s host_port::resolve_addresses(std::vector<rpc_address> &addresses) const
     return error_s::ok();
 }
 
-void host_port::fill_host_ports_from_addresses(const std::vector<rpc_address> &addr_v, std::vector<host_port> &hp_v)
+void host_port::fill_host_ports_from_addresses(const std::vector<rpc_address> &addr_v,
+                                               std::vector<host_port> &hp_v)
 {
     CHECK(hp_v.empty(), "optional host_port should be empty!");
-    for (const auto &addr : addr_v)
-    {
+    for (const auto &addr : addr_v) {
         hp_v.emplace_back(host_port(addr));
     }
 }

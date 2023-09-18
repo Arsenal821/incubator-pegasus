@@ -276,200 +276,200 @@ public:
 
     void set_state_connected() { _state = replica_node_state::NS_Connected; }
 
-        rpc_address get_meta_server_address() const override { return rpc_address("127.0.0.1", 12321); }
+    rpc_address get_meta_server_address() const override { return rpc_address("127.0.0.1", 12321); }
 
-        std::map<gpid, mock_replica *> mock_replicas;
+    std::map<gpid, mock_replica *> mock_replicas;
 
-        /// helper functions
-        mock_replica_ptr
-        generate_replica_ptr(const app_info &info,
-                             gpid pid,
-                             partition_status::type status = partition_status::PS_INACTIVE,
-                             ballot b = 5,
-                             bool need_restore = false,
-                             bool is_duplication_follower = false,
-                             dir_node *dn = nullptr)
-        {
-            replica_configuration config;
-            config.ballot = b;
-            config.pid = pid;
-            config.status = status;
-
-            if (dn == nullptr) {
-                dn = _fs_manager.create_replica_dir_if_necessary(info.app_type, pid);
-            }
-            CHECK_NOTNULL(dn, "");
-            mock_replica_ptr rep =
-                new mock_replica(this, pid, info, dn, need_restore, is_duplication_follower);
-            rep->set_replica_config(config);
-            _replicas[pid] = rep;
-
-            return rep;
-        }
-
-        replica *generate_replica(const app_info &info,
-                                  gpid pid,
-                                  partition_status::type status = partition_status::PS_INACTIVE,
-                                  ballot b = 5,
-                                  bool need_restore = false,
-                                  bool is_duplication_follower = false)
-        {
-            replica_configuration config;
-            config.ballot = b;
-            config.pid = pid;
-            config.status = status;
-
-            auto dn = _fs_manager.create_replica_dir_if_necessary(info.app_type, pid);
-            CHECK_NOTNULL(dn, "");
-            auto *rep = new mock_replica(this, pid, info, dn, need_restore, is_duplication_follower);
-            rep->set_replica_config(config);
-            return rep;
-        }
-
-        void generate_replicas_base_dir_nodes_for_app(const app_info &ai,
-                                                      int primary_count_per_disk,
-                                                      int secondary_count_per_disk)
-        {
-            int partition_index = 0;
-            for (const auto &dn : _fs_manager.get_dir_nodes()) {
-                // Create 'partition_count' count of replicas.
-                if (partition_index >= ai.partition_count) {
-                    break;
-                }
-                int replica_count_per_disk = primary_count_per_disk + secondary_count_per_disk;
-                int primary_count = primary_count_per_disk;
-                int secondary_count = secondary_count_per_disk;
-                // Create 'replica_count_per_disk' count of replicas on 'dn'.
-                while (replica_count_per_disk-- > 0) {
-                    gpid new_gpid(ai.app_id, partition_index++);
-                    _fs_manager.specify_dir_for_new_replica_for_test(dn.get(), ai.app_type, new_gpid);
-                    if (primary_count-- > 0) {
-                        // Create 'primary_count' count of primary replicas on 'dn'.
-                        add_replica(generate_replica_ptr(ai,
-                                                         new_gpid,
-                                                         partition_status::PS_PRIMARY,
-                                                         ai.app_id,
-                                                         false,
-                                                         false,
-                                                         dn.get()));
-                    } else if (secondary_count-- > 0) {
-                        // Create 'secondary_count' count of secondary replicas on 'dn'.
-                        add_replica(generate_replica_ptr(ai,
-                                                         new_gpid,
-                                                         partition_status::PS_SECONDARY,
-                                                         ai.app_id,
-                                                         false,
-                                                         false,
-                                                         dn.get()));
-                    }
-                }
-            }
-        }
-
-        void set_log(mutation_log_ptr log) { _log = log; }
-
-        int32_t get_bulk_load_downloading_count() const { return _bulk_load_downloading_count.load(); }
-        void set_bulk_load_downloading_count(int32_t count)
-        {
-            _bulk_load_downloading_count.store(count);
-        }
-
-        void set_host_port(const host_port &address) { _primary_host_port = address; }
-    };
-
-    class mock_log_file : public log_file
+    /// helper functions
+    mock_replica_ptr
+    generate_replica_ptr(const app_info &info,
+                         gpid pid,
+                         partition_status::type status = partition_status::PS_INACTIVE,
+                         ballot b = 5,
+                         bool need_restore = false,
+                         bool is_duplication_follower = false,
+                         dir_node *dn = nullptr)
     {
-    public:
-        mock_log_file(const std::string path, int index)
-            : log_file(path.c_str(), nullptr, index, 0, false)
-        {
+        replica_configuration config;
+        config.ballot = b;
+        config.pid = pid;
+        config.status = status;
+
+        if (dn == nullptr) {
+            dn = _fs_manager.create_replica_dir_if_necessary(info.app_type, pid);
         }
+        CHECK_NOTNULL(dn, "");
+        mock_replica_ptr rep =
+            new mock_replica(this, pid, info, dn, need_restore, is_duplication_follower);
+        rep->set_replica_config(config);
+        _replicas[pid] = rep;
 
-        void set_file_size(int size) { _end_offset = _start_offset + size; }
-    };
-    typedef dsn::ref_ptr<mock_log_file> mock_log_file_ptr;
+        return rep;
+    }
 
-    class mock_mutation_log_private : public mutation_log_private
+    replica *generate_replica(const app_info &info,
+                              gpid pid,
+                              partition_status::type status = partition_status::PS_INACTIVE,
+                              ballot b = 5,
+                              bool need_restore = false,
+                              bool is_duplication_follower = false)
     {
-    public:
-        mock_mutation_log_private(dsn::gpid pid, dsn::replication::replica *r)
-            : mutation_log_private("", 10, pid, r)
-        {
-        }
+        replica_configuration config;
+        config.ballot = b;
+        config.pid = pid;
+        config.status = status;
 
-        dsn::task_ptr append(dsn::replication::mutation_ptr &mu,
-                             dsn::task_code callback_code,
-                             dsn::task_tracker *tracker,
-                             dsn::aio_handler &&callback,
-                             int hash = 0,
-                             int64_t *pending_size = nullptr) override
-        {
-            _mu_list.push_back(mu);
-            return nullptr;
-        }
+        auto dn = _fs_manager.create_replica_dir_if_necessary(info.app_type, pid);
+        CHECK_NOTNULL(dn, "");
+        auto *rep = new mock_replica(this, pid, info, dn, need_restore, is_duplication_follower);
+        rep->set_replica_config(config);
+        return rep;
+    }
 
-        void get_in_memory_mutations(decree start_decree,
-                                     ballot start_ballot,
-                                     std::vector<mutation_ptr> &mutation_list) const override
-        {
-            for (auto &mu : _mu_list) {
-                ballot current_ballot =
-                    (start_ballot == invalid_ballot) ? invalid_ballot : mu->get_ballot();
-                if ((mu->get_decree() >= start_decree && start_ballot == current_ballot) ||
-                    current_ballot > start_ballot) {
-                    mutation_list.push_back(mu);
+    void generate_replicas_base_dir_nodes_for_app(const app_info &ai,
+                                                  int primary_count_per_disk,
+                                                  int secondary_count_per_disk)
+    {
+        int partition_index = 0;
+        for (const auto &dn : _fs_manager.get_dir_nodes()) {
+            // Create 'partition_count' count of replicas.
+            if (partition_index >= ai.partition_count) {
+                break;
+            }
+            int replica_count_per_disk = primary_count_per_disk + secondary_count_per_disk;
+            int primary_count = primary_count_per_disk;
+            int secondary_count = secondary_count_per_disk;
+            // Create 'replica_count_per_disk' count of replicas on 'dn'.
+            while (replica_count_per_disk-- > 0) {
+                gpid new_gpid(ai.app_id, partition_index++);
+                _fs_manager.specify_dir_for_new_replica_for_test(dn.get(), ai.app_type, new_gpid);
+                if (primary_count-- > 0) {
+                    // Create 'primary_count' count of primary replicas on 'dn'.
+                    add_replica(generate_replica_ptr(ai,
+                                                     new_gpid,
+                                                     partition_status::PS_PRIMARY,
+                                                     ai.app_id,
+                                                     false,
+                                                     false,
+                                                     dn.get()));
+                } else if (secondary_count-- > 0) {
+                    // Create 'secondary_count' count of secondary replicas on 'dn'.
+                    add_replica(generate_replica_ptr(ai,
+                                                     new_gpid,
+                                                     partition_status::PS_SECONDARY,
+                                                     ai.app_id,
+                                                     false,
+                                                     false,
+                                                     dn.get()));
                 }
             }
         }
+    }
 
-        static error_code replay(std::vector<std::string> &log_files,
-                                 replay_callback callback,
-                                 /*out*/ int64_t &end_offset)
-        {
-            return dsn::ERR_OK;
-        }
+    void set_log(mutation_log_ptr log) { _log = log; }
 
-        void add_log_file(dsn::replication::log_file_ptr lf) { _log_files[lf->index()] = lf; }
-
-    private:
-        std::vector<dsn::replication::mutation_ptr> _mu_list;
-    };
-    typedef dsn::ref_ptr<mock_mutation_log_private> mock_mutation_log_private_ptr;
-
-    class mock_mutation_log_shared : public mutation_log_shared
+    int32_t get_bulk_load_downloading_count() const { return _bulk_load_downloading_count.load(); }
+    void set_bulk_load_downloading_count(int32_t count)
     {
-    public:
-        mock_mutation_log_shared(const std::string &dir) : mutation_log_shared(dir, 1000, false) {}
+        _bulk_load_downloading_count.store(count);
+    }
 
-        ::dsn::task_ptr append(mutation_ptr &mu,
-                               dsn::task_code callback_code,
-                               dsn::task_tracker *tracker,
-                               aio_handler &&callback,
-                               int hash = 0,
-                               int64_t *pending_size = nullptr)
-        {
-            _mu_list.push_back(mu);
-            return nullptr;
-        }
+    void set_host_port(const host_port &address) { _primary_host_port = address; }
+};
 
-        void flush() {}
-        void flush_once() {}
-
-    private:
-        std::vector<dsn::replication::mutation_ptr> _mu_list;
-    };
-    typedef dsn::ref_ptr<mock_mutation_log_shared> mock_mutation_log_shared_ptr;
-
-    struct mock_mutation_duplicator : public mutation_duplicator
+class mock_log_file : public log_file
+{
+public:
+    mock_log_file(const std::string path, int index)
+        : log_file(path.c_str(), nullptr, index, 0, false)
     {
-        explicit mock_mutation_duplicator(replica_base *r) : mutation_duplicator(r) {}
+    }
 
-        void duplicate(mutation_tuple_set mut, callback cb) override { _func(mut, cb); }
+    void set_file_size(int size) { _end_offset = _start_offset + size; }
+};
+typedef dsn::ref_ptr<mock_log_file> mock_log_file_ptr;
 
-        typedef std::function<void(mutation_tuple_set, callback)> duplicate_function;
-        static void mock(duplicate_function hook) { _func = std::move(hook); }
-        static duplicate_function _func;
-    };
+class mock_mutation_log_private : public mutation_log_private
+{
+public:
+    mock_mutation_log_private(dsn::gpid pid, dsn::replication::replica *r)
+        : mutation_log_private("", 10, pid, r)
+    {
+    }
 
-    } // namespace replication
+    dsn::task_ptr append(dsn::replication::mutation_ptr &mu,
+                         dsn::task_code callback_code,
+                         dsn::task_tracker *tracker,
+                         dsn::aio_handler &&callback,
+                         int hash = 0,
+                         int64_t *pending_size = nullptr) override
+    {
+        _mu_list.push_back(mu);
+        return nullptr;
+    }
+
+    void get_in_memory_mutations(decree start_decree,
+                                 ballot start_ballot,
+                                 std::vector<mutation_ptr> &mutation_list) const override
+    {
+        for (auto &mu : _mu_list) {
+            ballot current_ballot =
+                (start_ballot == invalid_ballot) ? invalid_ballot : mu->get_ballot();
+            if ((mu->get_decree() >= start_decree && start_ballot == current_ballot) ||
+                current_ballot > start_ballot) {
+                mutation_list.push_back(mu);
+            }
+        }
+    }
+
+    static error_code replay(std::vector<std::string> &log_files,
+                             replay_callback callback,
+                             /*out*/ int64_t &end_offset)
+    {
+        return dsn::ERR_OK;
+    }
+
+    void add_log_file(dsn::replication::log_file_ptr lf) { _log_files[lf->index()] = lf; }
+
+private:
+    std::vector<dsn::replication::mutation_ptr> _mu_list;
+};
+typedef dsn::ref_ptr<mock_mutation_log_private> mock_mutation_log_private_ptr;
+
+class mock_mutation_log_shared : public mutation_log_shared
+{
+public:
+    mock_mutation_log_shared(const std::string &dir) : mutation_log_shared(dir, 1000, false) {}
+
+    ::dsn::task_ptr append(mutation_ptr &mu,
+                           dsn::task_code callback_code,
+                           dsn::task_tracker *tracker,
+                           aio_handler &&callback,
+                           int hash = 0,
+                           int64_t *pending_size = nullptr)
+    {
+        _mu_list.push_back(mu);
+        return nullptr;
+    }
+
+    void flush() {}
+    void flush_once() {}
+
+private:
+    std::vector<dsn::replication::mutation_ptr> _mu_list;
+};
+typedef dsn::ref_ptr<mock_mutation_log_shared> mock_mutation_log_shared_ptr;
+
+struct mock_mutation_duplicator : public mutation_duplicator
+{
+    explicit mock_mutation_duplicator(replica_base *r) : mutation_duplicator(r) {}
+
+    void duplicate(mutation_tuple_set mut, callback cb) override { _func(mut, cb); }
+
+    typedef std::function<void(mutation_tuple_set, callback)> duplicate_function;
+    static void mock(duplicate_function hook) { _func = std::move(hook); }
+    static duplicate_function _func;
+};
+
+} // namespace replication
 } // namespace dsn

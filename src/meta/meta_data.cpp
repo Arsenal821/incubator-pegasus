@@ -100,7 +100,10 @@ void when_update_replicas(config_type::type t, const std::function<void(bool)> &
     }
 }
 
-bool construct_replica(meta_view view, const gpid &pid, int max_replica_count, const std::shared_ptr<dns_resolver> &resolver)
+bool construct_replica(meta_view view,
+                       const gpid &pid,
+                       int max_replica_count,
+                       const std::shared_ptr<dns_resolver> &resolver)
 {
     partition_configuration &pc = *get_config(*view.apps, pid);
     config_context &cc = *get_config_context(*view.apps, pid);
@@ -139,9 +142,7 @@ bool construct_replica(meta_view view, const gpid &pid, int max_replica_count, c
     // we put max_replica_count-1 recent replicas to last_drops, in case of the DDD-state when the
     // only primary dead
     // when add node to pc.last_drops, we don't remove it from our cc.drop_list
-    CHECK(pc.hp_last_drops.empty(),
-          "last_drops of partition({}) must be empty",
-          pid);
+    CHECK(pc.hp_last_drops.empty(), "last_drops of partition({}) must be empty", pid);
     for (auto iter = drop_list.rbegin(); iter != drop_list.rend(); ++iter) {
         if (pc.hp_last_drops.size() + 1 >= max_replica_count)
             break;

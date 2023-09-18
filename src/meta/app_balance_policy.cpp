@@ -142,7 +142,8 @@ copy_secondary_operation::copy_secondary_operation(
     const std::unordered_map<dsn::host_port, int> &address_id,
     const std::shared_ptr<dns_resolver> &resolver,
     int replicas_low)
-    : copy_replica_operation(app, apps, nodes, address_vec, address_id, resolver), _replicas_low(replicas_low)
+    : copy_replica_operation(app, apps, nodes, address_vec, address_id, resolver),
+      _replicas_low(replicas_low)
 {
 }
 

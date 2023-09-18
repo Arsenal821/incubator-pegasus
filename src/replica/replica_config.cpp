@@ -214,7 +214,8 @@ void replica::add_potential_secondary(configuration_update_request &proposal)
                                 "secondary proposal");
                 return;
             } else {
-                LOG_INFO_PREFIX("add a new secondary({}) for future load balancer", proposal.hp_node);
+                LOG_INFO_PREFIX("add a new secondary({}) for future load balancer",
+                                proposal.hp_node);
             }
         } else {
             CHECK(false, "invalid config_type, type = {}", enum_to_string(proposal.type));
@@ -231,7 +232,8 @@ void replica::add_potential_secondary(configuration_update_request &proposal)
     } else {
         state.signature = ++_primary_states.next_learning_version;
         _primary_states.learners[proposal.hp_node] = state;
-        _primary_states.statuses[host_port(proposal.hp_node)] = partition_status::PS_POTENTIAL_SECONDARY;
+        _primary_states.statuses[host_port(proposal.hp_node)] =
+            partition_status::PS_POTENTIAL_SECONDARY;
     }
 
     group_check_request request;
@@ -301,7 +303,8 @@ void replica::downgrade_to_inactive_on_primary(configuration_update_request &pro
         proposal.config.primary.set_invalid();
         proposal.config.hp_primary.reset();
     } else {
-        CHECK(replica_helper::remove_node(proposal.node, proposal.config.secondaries) && replica_helper::remove_node(proposal.hp_node, proposal.config.hp_secondaries),
+        CHECK(replica_helper::remove_node(proposal.node, proposal.config.secondaries) &&
+                  replica_helper::remove_node(proposal.hp_node, proposal.config.hp_secondaries),
               "remove node failed, node = {}",
               proposal.node);
     }
@@ -328,7 +331,8 @@ void replica::remove(configuration_update_request &proposal)
         proposal.config.hp_primary.reset();
         break;
     case partition_status::PS_SECONDARY: {
-        CHECK(replica_helper::remove_node(proposal.node, proposal.config.secondaries) && replica_helper::remove_node(proposal.hp_node, proposal.config.hp_secondaries),
+        CHECK(replica_helper::remove_node(proposal.node, proposal.config.secondaries) &&
+                  replica_helper::remove_node(proposal.hp_node, proposal.config.hp_secondaries),
               "remove_node failed, node = {}",
               proposal.node);
     } break;
@@ -420,7 +424,8 @@ void replica::update_configuration_on_meta_server(config_type::type type,
         enum_to_string(request->type),
         request->node);
 
-    rpc_address target(_stub->get_dns_resolver()->resolve_address(_stub->_failure_detector->get_servers()));
+    rpc_address target(
+        _stub->get_dns_resolver()->resolve_address(_stub->_failure_detector->get_servers()));
     _primary_states.reconfiguration_task =
         rpc::call(target,
                   msg,
@@ -461,7 +466,8 @@ void replica::on_update_configuration_on_meta_server_reply(
                 LPC_DELAY_UPDATE_CONFIG,
                 &_tracker,
                 [ this, request, req2 = std::move(req) ]() {
-                    rpc_address target(_stub->get_dns_resolver()->resolve_address(_stub->_failure_detector->get_servers()));
+                    rpc_address target(_stub->get_dns_resolver()->resolve_address(
+                        _stub->_failure_detector->get_servers()));
                     rpc_response_task_ptr t = rpc::create_rpc_response_task(
                         request,
                         &_tracker,
@@ -1095,7 +1101,8 @@ void replica::on_config_sync(const app_info &info,
         if (status() == partition_status::PS_INACTIVE && !_inactive_is_transient) {
             if (config.hp_primary == _stub->_primary_host_port // dead primary
                 ||
-                config.hp_primary.is_invalid() // primary is dead (otherwise let primary remove this)
+                config.hp_primary
+                    .is_invalid() // primary is dead (otherwise let primary remove this)
                 ) {
                 LOG_INFO_PREFIX("downgrade myself as inactive is not transient, remote_config({})",
                                 boost::lexical_cast<std::string>(config));

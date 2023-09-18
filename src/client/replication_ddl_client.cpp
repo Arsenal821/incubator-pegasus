@@ -132,7 +132,8 @@ dsn::error_code replication_ddl_client::wait_app_ready(const std::string &app_na
         int ready_count = 0;
         for (int i = 0; i < partition_count; i++) {
             const partition_configuration &pc = query_resp.partitions[i];
-            if (!pc.hp_primary.is_invalid() && (pc.hp_secondaries.size() + 1 >= max_replica_count)) {
+            if (!pc.hp_primary.is_invalid() &&
+                (pc.hp_secondaries.size() + 1 >= max_replica_count)) {
                 ready_count++;
             }
         }
@@ -784,9 +785,9 @@ dsn::error_code replication_ddl_client::list_app(const std::string &app_name,
             std::stringstream oss;
             oss << replica_count << "/" << p.max_replica_count;
             tp_details.append_data(oss.str());
-            tp_details.append_data(
-                (p.hp_primary.is_invalid() ? "-" : host_name_resolve(resolve_ip,
-                                                                  p.hp_primary.to_string())));
+            tp_details.append_data((p.hp_primary.is_invalid()
+                                        ? "-"
+                                        : host_name_resolve(resolve_ip, p.hp_primary.to_string())));
             oss.str("");
             oss << "[";
             // TODO (yingchun) join
@@ -1724,8 +1725,8 @@ replication_ddl_client::query_partition_split(const std::string &app_name)
     return call_rpc_sync(query_split_rpc(std::move(req), RPC_CM_QUERY_PARTITION_SPLIT));
 }
 
-error_with<add_new_disk_response>
-replication_ddl_client::add_new_disk(const host_port &target_node, const std::string &disk_str)
+error_with<add_new_disk_response> replication_ddl_client::add_new_disk(const host_port &target_node,
+                                                                       const std::string &disk_str)
 {
     auto req = std::make_unique<add_new_disk_request>();
     req->disk_str = disk_str;

@@ -307,7 +307,8 @@ void replica::init_prepare(mutation_ptr &mu, bool reconciliation, bool pop_all_c
 
     // remote prepare
     mu->set_prepare_ts();
-    mu->set_left_secondary_ack_count((unsigned int)_primary_states.membership.hp_secondaries.size());
+    mu->set_left_secondary_ack_count(
+        (unsigned int)_primary_states.membership.hp_secondaries.size());
     for (auto it = _primary_states.membership.hp_secondaries.begin();
          it != _primary_states.membership.hp_secondaries.end();
          ++it) {
