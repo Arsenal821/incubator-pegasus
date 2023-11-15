@@ -266,6 +266,18 @@ pegasus_server_impl::pegasus_server_impl(dsn::replication::replica *r)
                                         12,
                                         "rocksdb options.max_background_compactions");
 
+    _db_opts.stats_dump_period_sec =
+        (unsigned int)dsn_config_get_value_uint64("pegasus.server",
+                                                  "rocksdb_stats_dump_period_sec",
+                                                  600,
+                                                  "rocksdb options.stats_dump_period_sec");
+
+    _db_opts.stats_persist_period_sec =
+        (unsigned int)dsn_config_get_value_uint64("pegasus.server",
+                                                  "rocksdb_stats_persist_period_sec",
+                                                  600,
+                                                  "rocksdb options.stats_persist_period_sec");
+
     // init rocksdb::ColumnFamilyOptions for data column family
     _data_cf_opts.write_buffer_size =
         (size_t)dsn_config_get_value_uint64("pegasus.server",
