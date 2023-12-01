@@ -2150,6 +2150,8 @@ case $cmd in
         ;;
     pack_server)
         shift
+        # source the config_hdfs.sh to get the HADOOP_HOME.
+        source "${ROOT}"/scripts/config_hdfs.sh
         PEGASUS_ROOT=$ROOT ./scripts/pack_server.sh $*
         ;;
     pack_client)

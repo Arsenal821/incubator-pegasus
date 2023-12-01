@@ -108,14 +108,18 @@ ExternalProject_Add(gperftools
         BUILD_IN_SOURCE 1
         )
 
-set(HDFS_CLIENT_DIR "hadoop-hdfs-project/hadoop-hdfs-native-client")
+# This is the hadoop version we used in production, it's aimed to keep the same version with the version of
+# Impala used to reduce package size. Files with same md5sum are considered as the same and have only one copy.
+execute_process(COMMAND arch OUTPUT_VARIABLE ARCH_NAME OUTPUT_STRIP_TRAILING_WHITESPACE)
+set(TOOLCHAIN_VERSION "toolchain-4.0.x-20231128")
+set(HADOOP_VERSION "hadoop-3.1.1.7.2.9.0-146")
+set(HADOOP_MD5_x86_64 "a040be28e2f42eebea2db2b4cf147932")
+set(HADOOP_MD5_aarch64 "50a5e4481dc1ef65f3553ee1c9753efd")
 ExternalProject_Add(hadoop
-        URL ${OSS_URL_PREFIX}/hadoop-release-2.8.4.tar.gz
-        https://github.com/apache/hadoop/archive/refs/tags/rel/release-2.8.4.tar.gz
-        URL_MD5 a1be737d4bff14923689619ab6545a96
+        URL https://jfrog-internal.sensorsdata.cn:443/artifactory/dragon-internal/inf/skv/${TOOLCHAIN_VERSION}-${HADOOP_VERSION}-${ARCH_NAME}-el9.tgz
+        URL_MD5 ${HADOOP_MD5_${ARCH_NAME}}
         PATCH_COMMAND ""
-        COMMAND cd ${HDFS_CLIENT_DIR} && mvn package -Pdist,native -DskipTests -Dmaven.javadoc.skip=true -Dtar
-        COMMAND cd ${HDFS_CLIENT_DIR} && cp -R target/hadoop-hdfs-native-client-2.8.4/include/. ${TP_OUTPUT}/include/hdfs && cp -R target/hadoop-hdfs-native-client-2.8.4/lib/native/. ${TP_OUTPUT}/lib
+        COMMAND mkdir -p ${TP_OUTPUT}/include/hdfs/ && cp include/hdfs.h ${TP_OUTPUT}/include/hdfs/ && cp lib/native/libhdfs.a lib/native/libhdfs.so ${TP_OUTPUT}/lib/ && cd ${TP_OUTPUT}/lib/ && ln -sf libhdfs.so libhdfs.so.0.0.0
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""

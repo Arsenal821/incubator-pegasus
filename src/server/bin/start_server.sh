@@ -45,6 +45,24 @@ else
     echo not support arch "$output"
 fi
 
+if [ ! -d "$JAVA_HOME" ]; then
+  echo "JAVA_HOME must be set!"
+  exit 1
+fi
+
+# Set CLASSPATH to all the Hadoop jars needed to run Hadoop itself as well as
+# the right configuration directory containing core-site.xml or hdfs-site.xml.
+PEGASUS_HADOOP_HOME=${MODULE_DIR}/hadoop
+if [ ! -d "${PEGASUS_HADOOP_HOME}/core-site.xml" ] || [ ! -d "${PEGASUS_HADOOP_HOME}/hdfs-site.xml" ]; then
+  echo "There is no core-site.xml or hdfs-site.xml in ${PEGASUS_HADOOP_HOME}."
+  exit 1
+fi
+
+export CLASSPATH=${PEGASUS_HADOOP_HOME}
+for f in ${PEGASUS_HADOOP_HOME}/*.jar; do
+  export CLASSPATH=$CLASSPATH:$f
+done
+
 export LD_LIBRARY_PATH=${JAVA_HOME}/jre/lib/$ARCH_TYPE/server:${JAVA_HOME}/jre/lib/$ARCH_TYPE:${LIB_DIR}:${LD_LIBRARY_PATH}
 
 if [[ -n "${USE_TCMALLOC_HEAP_PROFILE}" ]]; then
