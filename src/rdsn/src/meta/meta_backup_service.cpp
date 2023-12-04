@@ -25,6 +25,7 @@
 #include <dsn/tool-api/rpc_address.h>
 #include <dsn/tool-api/rpc_message.h>
 #include <dsn/tool-api/task_code.h>
+#include <dsn/utility/defer.h>
 #include <dsn/utility/filesystem.h>
 #include <dsn/utility/output_utils.h>
 #include <dsn/utils/time_utils.h>
@@ -1240,6 +1241,11 @@ void backup_service::add_backup_policy(dsn::message_ex *msg)
 {
     configuration_add_backup_policy_request request;
     configuration_add_backup_policy_response response;
+    auto log_on_failed = dsn::defer([&response]() {
+        if (!response.hint_message.empty()) {
+            dwarn_f(response.hint_message);
+        }
+    });
 
     dsn::message_ex *copied_msg = message_ex::copy_message_no_reply(*msg);
     ::dsn::unmarshall(msg, request);
@@ -1423,6 +1429,11 @@ void backup_service::query_backup_policy(query_backup_policy_rpc rpc)
 {
     const configuration_query_backup_policy_request &request = rpc.request();
     configuration_query_backup_policy_response &response = rpc.response();
+    auto log_on_failed = dsn::defer([&response]() {
+        if (!response.hint_msg.empty()) {
+            dwarn_f(response.hint_msg);
+        }
+    });
 
     response.err = ERR_OK;
 
@@ -1493,6 +1504,12 @@ void backup_service::modify_backup_policy(configuration_modify_backup_policy_rpc
     const configuration_modify_backup_policy_request &request = rpc.request();
     configuration_modify_backup_policy_response &response = rpc.response();
     response.err = ERR_OK;
+
+    auto log_on_failed = dsn::defer([&response]() {
+        if (!response.hint_message.empty()) {
+            dwarn_f(response.hint_message);
+        }
+    });
 
     std::shared_ptr<policy_context> context_ptr;
     {
@@ -1649,6 +1666,11 @@ void backup_service::start_backup_app(start_backup_app_rpc rpc)
 {
     const start_backup_app_request &request = rpc.request();
     start_backup_app_response &response = rpc.response();
+    auto log_on_failed = dsn::defer([&response]() {
+        if (!response.hint_message.empty()) {
+            dwarn_f(response.hint_message);
+        }
+    });
 
     int32_t app_id = request.app_id;
     std::shared_ptr<backup_engine> engine = std::make_shared<backup_engine>(this);
@@ -1714,6 +1736,11 @@ void backup_service::query_backup_status(query_backup_status_rpc rpc)
 {
     const query_backup_status_request &request = rpc.request();
     query_backup_status_response &response = rpc.response();
+    auto log_on_failed = dsn::defer([&response]() {
+        if (!response.hint_message.empty()) {
+            dwarn_f(response.hint_message);
+        }
+    });
 
     int32_t app_id = request.app_id;
     {
