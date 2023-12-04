@@ -20,7 +20,7 @@ function build() {
 
     local target_server_dir=PACK_OUT/skv_server
     local target_tools_dir=${target_server_dir}/tools
-    mkdir -p ${target_server_dir}/{bin,conf,lib,tools}
+    mkdir -p ${target_server_dir}/{bin,conf,lib,tools,hadoop}
     
     cp -a ${source_server_dir}/bin/meta_server ${target_server_dir}/bin/
     cp -a ${source_server_dir}/bin/replica_server ${target_server_dir}/bin/
@@ -30,6 +30,8 @@ function build() {
 
     cp -a ${source_server_dir}/META_SERVER_VERSION ${target_server_dir}/
     cp -a ${source_server_dir}/REPLICA_SERVER_VERSION ${target_server_dir}/
+
+    cp -r ${source_server_dir}/hadoop ${target_server_dir}/
 
     mkdir -p ${target_tools_dir}/DSN_ROOT/bin/pegasus_shell ${target_tools_dir}/src/shell
     cp -r ${source_tools_dir}/DSN_ROOT/bin/pegasus_shell/pegasus_shell ${target_tools_dir}/DSN_ROOT/bin/pegasus_shell/

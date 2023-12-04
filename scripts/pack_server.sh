@@ -133,6 +133,7 @@ copy_file ./thirdparty/output/lib/libhdfs* ${pack}/lib
 copy_file ./thirdparty/output/lib/libsasl*.so.* ${pack}/lib
 copy_file ./thirdparty/output/lib/libcom_err*.so.* ${pack}/lib
 copy_file ./scripts/config_hdfs.sh ${pack}/bin
+copy_file ./scripts/get_hdfs_access_conf.py ${pack}/bin
 
 copy_file "$(get_stdcpp_lib $custom_gcc)" "${pack}/lib"
 

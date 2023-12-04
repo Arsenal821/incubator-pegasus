@@ -50,18 +50,15 @@ if [ ! -d "$JAVA_HOME" ]; then
   exit 1
 fi
 
-# Set CLASSPATH to all the Hadoop jars needed to run Hadoop itself as well as
-# the right configuration directory containing core-site.xml or hdfs-site.xml.
+# Set CLASSPATH to all the Hadoop jars needed to run Hadoop client.
 PEGASUS_HADOOP_HOME=${MODULE_DIR}/hadoop
-if [ ! -d "${PEGASUS_HADOOP_HOME}/core-site.xml" ] || [ ! -d "${PEGASUS_HADOOP_HOME}/hdfs-site.xml" ]; then
-  echo "There is no core-site.xml or hdfs-site.xml in ${PEGASUS_HADOOP_HOME}."
-  exit 1
-fi
-
-export CLASSPATH=${PEGASUS_HADOOP_HOME}
 for f in ${PEGASUS_HADOOP_HOME}/*.jar; do
-  export CLASSPATH=$CLASSPATH:$f
+  export CLASSPATH=${CLASSPATH}:${f}
 done
+# As well as the right configuration directory containing core-site.xml or hdfs-site.xml.
+HDFS_CONN_INFO_PATH=$(${MODULE_DIR}/tools/scripts/get_hdfs_access_conf.py)
+export CLASSPATH=$CLASSPATH:${HDFS_CONN_INFO_PATH}
+echo "CLASSPATH: ${CLASSPATH}"
 
 export LD_LIBRARY_PATH=${JAVA_HOME}/jre/lib/$ARCH_TYPE/server:${JAVA_HOME}/jre/lib/$ARCH_TYPE:${LIB_DIR}:${LD_LIBRARY_PATH}
 
