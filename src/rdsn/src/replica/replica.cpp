@@ -259,7 +259,10 @@ void replica::on_client_read(dsn::message_ex *request, bool ignore_throttling)
     uint64_t start_time_ns = dsn_now_ns();
     dassert(_app != nullptr, "");
     auto storage_error = _app->on_request(request);
-    if (dsn_unlikely(storage_error != ERR_OK)) {
+    // kNotFound is normal, it indicates that the key is not found (including expired)
+    // in the storage engine, so just ignore it.
+    if (dsn_unlikely(storage_error != rocksdb::Status::kOk &&
+                     storage_error != rocksdb::Status::kNotFound)) {
         switch (storage_error) {
         // TODO(yingchun): Now only kCorruption is dealt, consider to deal with more storage
         //  engine errors.
