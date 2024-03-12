@@ -15,12 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include <gmock/gmock-matchers.h>
-// IWYU pragma: no_include <gtest/gtest-message.h>
-// IWYU pragma: no_include <gtest/gtest-test-part.h>
-#include <gtest/gtest.h>
+#include <stddef.h>
 #include <stdint.h>
-#include <unistd.h>
+#include <atomic>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -36,13 +33,16 @@
 #include "common/gpid.h"
 #include "common/replica_envs.h"
 #include "common/replication.codes.h"
+#include "common/replication_common.h"
+#include "common/replication_enums.h"
 #include "common/replication_other_types.h"
 #include "consensus_types.h"
 #include "dsn.layer2_types.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "http/http_server.h"
+#include "http/http_status_code.h"
 #include "metadata_types.h"
-#include "perf_counter/perf_counter.h"
-#include "perf_counter/perf_counter_wrapper.h"
 #include "replica/disk_cleaner.h"
 #include "replica/replica.h"
 #include "replica/replica_http_service.h"
@@ -51,7 +51,6 @@
 #include "replica/test/mock_utils.h"
 #include "replica_test_base.h"
 #include "runtime/api_layer1.h"
-#include "runtime/rpc/network.h"
 #include "runtime/rpc/network.sim.h"
 #include "runtime/rpc/rpc_address.h"
 #include "runtime/rpc/rpc_message.h"
@@ -59,17 +58,20 @@
 #include "runtime/task/task_tracker.h"
 #include "utils/autoref_ptr.h"
 #include "utils/defer.h"
+#include "utils/env.h"
 #include "utils/error_code.h"
 #include "utils/filesystem.h"
 #include "utils/flags.h"
 #include "utils/fmt_logging.h"
+#include "utils/metrics.h"
 #include "utils/string_conv.h"
 #include "utils/test_macros.h"
 
-namespace dsn {
-namespace replication {
 DSN_DECLARE_bool(fd_disabled);
 DSN_DECLARE_string(cold_backup_root);
+
+namespace dsn {
+namespace replication {
 
 class replica_test : public replica_test_base
 {
@@ -85,7 +87,6 @@ public:
     void SetUp() override
     {
         FLAGS_enable_http_server = false;
-        stub->install_perf_counters();
         mock_app_info();
         _mock_replica =
             stub->generate_replica_ptr(_app_info, _pid, partition_status::PS_PRIMARY, 1);
@@ -96,15 +97,7 @@ public:
         FLAGS_cold_backup_root = "test_cluster";
     }
 
-    int get_write_size_exceed_threshold_count()
-    {
-        return stub->_counter_recent_write_size_exceed_threshold_count->get_value();
-    }
-
-    int get_table_level_backup_request_qps()
-    {
-        return _mock_replica->_counter_backup_request_qps->get_integer_value();
-    }
+    int64_t get_backup_request_count() const { return _mock_replica->get_backup_request_count(); }
 
     bool get_validate_partition_hash() const { return _mock_replica->_validate_partition_hash; }
 
@@ -149,7 +142,7 @@ public:
     {
         _app_info.app_id = 2;
         _app_info.app_name = "replica_test";
-        _app_info.app_type = "replica";
+        _app_info.app_type = replication_options::kReplicaAppType;
         _app_info.is_stateful = true;
         _app_info.max_replica_count = 3;
         _app_info.partition_count = 8;
@@ -183,7 +176,8 @@ public:
             cold_backup::get_current_chkpt_file(backup_root, req.app_name, req.pid, req.backup_id);
         ASSERT_TRUE(dsn::utils::filesystem::file_exists(current_chkpt_file));
         int64_t size = 0;
-        dsn::utils::filesystem::file_size(current_chkpt_file, size);
+        dsn::utils::filesystem::file_size(
+            current_chkpt_file, dsn::utils::FileDataType::kSensitive, size);
         ASSERT_LT(0, size);
     }
 
@@ -233,13 +227,13 @@ public:
         dsn::app_info info;
         replica_app_info replica_info(&info);
 
-        auto path = dsn::utils::filesystem::path_combine(_mock_replica->_dir,
-                                                         dsn::replication::replica::kAppInfo);
+        auto path = dsn::utils::filesystem::path_combine(
+            _mock_replica->_dir, dsn::replication::replica_app_info::kAppInfo);
         std::cout << "the path of .app-info file is " << path << std::endl;
 
         // load new max_replica_count from file
         auto err = replica_info.load(path);
-        ASSERT_EQ(err, ERR_OK);
+        ASSERT_EQ(ERR_OK, err);
         ASSERT_EQ(info, _mock_replica->_app_info);
         std::cout << "the loaded new app_info is " << info << std::endl;
 
@@ -254,6 +248,8 @@ public:
         std::cout << "the loaded original app_info is " << info << std::endl;
     }
 
+    void test_auto_trash(error_code ec);
+
 public:
     dsn::app_info _app_info;
     dsn::gpid _pid;
@@ -265,27 +261,34 @@ private:
     const std::string _policy_name;
 };
 
-TEST_F(replica_test, write_size_limited)
+INSTANTIATE_TEST_SUITE_P(, replica_test, ::testing::Values(false, true));
+
+TEST_P(replica_test, write_size_limited)
 {
-    int count = 100;
+    const int count = 100;
     struct dsn::message_header header;
     header.body_length = 10000000;
 
     auto write_request = dsn::message_ex::create_request(RPC_TEST);
     auto cleanup = dsn::defer([=]() { delete write_request; });
+    header.context.u.is_forwarded = false;
     write_request->header = &header;
     std::unique_ptr<tools::sim_network_provider> sim_net(
         new tools::sim_network_provider(nullptr, nullptr));
     write_request->io_session = sim_net->create_client_session(rpc_address());
 
+    const auto initial_write_size_exceed_threshold_requests =
+        METRIC_VALUE(*_mock_replica, write_size_exceed_threshold_requests);
+
     for (int i = 0; i < count; i++) {
         stub->on_client_write(_pid, write_request);
     }
 
-    ASSERT_EQ(get_write_size_exceed_threshold_count(), count);
+    ASSERT_EQ(initial_write_size_exceed_threshold_requests + count,
+              METRIC_VALUE(*_mock_replica, write_size_exceed_threshold_requests));
 }
 
-TEST_F(replica_test, backup_request_qps)
+TEST_P(replica_test, backup_request_count)
 {
     // create backup request
     struct dsn::message_header header;
@@ -296,15 +299,12 @@ TEST_F(replica_test, backup_request_qps)
         new tools::sim_network_provider(nullptr, nullptr));
     backup_request->io_session = sim_net->create_client_session(rpc_address());
 
+    const auto initial_backup_request_count = get_backup_request_count();
     _mock_replica->on_client_read(backup_request);
-
-    // We have to sleep >= 0.1s, or the value this perf-counter will be 0, according to the
-    // implementation of perf-counter which type is COUNTER_TYPE_RATE.
-    usleep(1e5);
-    ASSERT_GT(get_table_level_backup_request_qps(), 0);
+    ASSERT_EQ(initial_backup_request_count + 1, get_backup_request_count());
 }
 
-TEST_F(replica_test, query_data_version_test)
+TEST_P(replica_test, query_data_version_test)
 {
     replica_http_service http_svc(stub.get());
     struct query_data_version_test
@@ -312,12 +312,12 @@ TEST_F(replica_test, query_data_version_test)
         std::string app_id;
         http_status_code expected_code;
         std::string expected_response_json;
-    } tests[] = {{"", http_status_code::bad_request, "app_id should not be empty"},
-                 {"wrong", http_status_code::bad_request, "invalid app_id=wrong"},
+    } tests[] = {{"", http_status_code::kBadRequest, "app_id should not be empty"},
+                 {"wrong", http_status_code::kBadRequest, "invalid app_id=wrong"},
                  {"2",
-                  http_status_code::ok,
+                  http_status_code::kOk,
                   R"({"1":{"data_version":"1"}})"},
-                 {"4", http_status_code::not_found, "app_id=4 not found"}};
+                 {"4", http_status_code::kNotFound, "app_id=4 not found"}};
     for (const auto &test : tests) {
         http_request req;
         http_response resp;
@@ -331,7 +331,7 @@ TEST_F(replica_test, query_data_version_test)
     }
 }
 
-TEST_F(replica_test, query_compaction_test)
+TEST_P(replica_test, query_compaction_test)
 {
     replica_http_service http_svc(stub.get());
     struct query_compaction_test
@@ -339,13 +339,13 @@ TEST_F(replica_test, query_compaction_test)
         std::string app_id;
         http_status_code expected_code;
         std::string expected_response_json;
-    } tests[] = {{"", http_status_code::bad_request, "app_id should not be empty"},
-                 {"xxx", http_status_code::bad_request, "invalid app_id=xxx"},
+    } tests[] = {{"", http_status_code::kBadRequest, "app_id should not be empty"},
+                 {"xxx", http_status_code::kBadRequest, "invalid app_id=xxx"},
                  {"2",
-                  http_status_code::ok,
+                  http_status_code::kOk,
                   R"({"status":{"finished":0,"idle":1,"queuing":0,"running":0}})"},
                  {"4",
-                  http_status_code::ok,
+                  http_status_code::kOk,
                   R"({"status":{"finished":0,"idle":0,"queuing":0,"running":0}})"}};
     for (const auto &test : tests) {
         http_request req;
@@ -359,7 +359,7 @@ TEST_F(replica_test, query_compaction_test)
     }
 }
 
-TEST_F(replica_test, update_validate_partition_hash_test)
+TEST_P(replica_test, update_validate_partition_hash_test)
 {
     struct update_validate_partition_hash_test
     {
@@ -382,7 +382,7 @@ TEST_F(replica_test, update_validate_partition_hash_test)
     }
 }
 
-TEST_F(replica_test, update_allow_ingest_behind_test)
+TEST_P(replica_test, update_allow_ingest_behind_test)
 {
     struct update_allow_ingest_behind_test
     {
@@ -405,24 +405,26 @@ TEST_F(replica_test, update_allow_ingest_behind_test)
     }
 }
 
-TEST_F(replica_test, test_replica_backup_and_restore)
+TEST_P(replica_test, test_replica_backup_and_restore)
 {
     // TODO(yingchun): this test last too long time, optimize it!
+    return;
     test_on_cold_backup();
     auto err = test_find_valid_checkpoint();
     ASSERT_EQ(ERR_OK, err);
 }
 
-TEST_F(replica_test, test_replica_backup_and_restore_with_specific_path)
+TEST_P(replica_test, test_replica_backup_and_restore_with_specific_path)
 {
     // TODO(yingchun): this test last too long time, optimize it!
+    return;
     std::string user_specified_path = "test/backup";
     test_on_cold_backup(user_specified_path);
     auto err = test_find_valid_checkpoint(user_specified_path);
     ASSERT_EQ(ERR_OK, err);
 }
 
-TEST_F(replica_test, test_trigger_manual_emergency_checkpoint)
+TEST_P(replica_test, test_trigger_manual_emergency_checkpoint)
 {
     ASSERT_EQ(_mock_replica->trigger_manual_emergency_checkpoint(100), ERR_OK);
     ASSERT_TRUE(is_checkpointing());
@@ -449,7 +451,7 @@ TEST_F(replica_test, test_trigger_manual_emergency_checkpoint)
     _mock_replica->tracker()->wait_outstanding_tasks();
 }
 
-TEST_F(replica_test, test_query_last_checkpoint_info)
+TEST_P(replica_test, test_query_last_checkpoint_info)
 {
     // test no exist gpid
     auto req = std::make_unique<learn_request>();
@@ -472,7 +474,7 @@ TEST_F(replica_test, test_query_last_checkpoint_info)
     ASSERT_STR_CONTAINS(resp.base_local_dir, "/data/checkpoint.100");
 }
 
-TEST_F(replica_test, test_clear_on_failure)
+TEST_P(replica_test, test_clear_on_failure)
 {
     // Clear up the remaining state.
     auto *dn = stub->get_fs_manager()->find_replica_dir(_app_info.app_type, _pid);
@@ -495,50 +497,73 @@ TEST_F(replica_test, test_clear_on_failure)
     ASSERT_FALSE(has_gpid(_pid));
 }
 
-TEST_F(replica_test, test_auto_trash)
+void replica_test::test_auto_trash(error_code ec)
 {
+    // The replica path will only be moved to error path when encounter ERR_RDB_CORRUPTION
+    // error.
+    bool moved_to_err_path = (ec == ERR_RDB_CORRUPTION);
+
     // Clear up the remaining state.
     auto *dn = stub->get_fs_manager()->find_replica_dir(_app_info.app_type, _pid);
     if (dn != nullptr) {
         dsn::utils::filesystem::remove_path(dn->replica_dir(_app_info.app_type, _pid));
+        dn->holding_replicas.clear();
     }
-    dn->holding_replicas.clear();
 
     // Disable failure detector to avoid connecting with meta server which is not started.
     FLAGS_fd_disabled = true;
 
     replica *rep =
         stub->generate_replica(_app_info, _pid, partition_status::PS_PRIMARY, 1, false, true);
-    auto path = rep->dir();
+    auto original_replica_path = rep->dir();
     ASSERT_TRUE(has_gpid(_pid));
 
-    rep->handle_local_failure(ERR_RDB_CORRUPTION);
+    rep->handle_local_failure(ec);
     stub->wait_closing_replicas_finished();
 
-    ASSERT_FALSE(dsn::utils::filesystem::path_exists(path));
-    dn = stub->get_fs_manager()->get_dir_node(path);
+    ASSERT_EQ(!moved_to_err_path, dsn::utils::filesystem::path_exists(original_replica_path));
+    dn = stub->get_fs_manager()->get_dir_node(original_replica_path);
     ASSERT_NE(dn, nullptr);
     std::vector<std::string> subs;
     ASSERT_TRUE(dsn::utils::filesystem::get_subdirectories(dn->full_dir, subs, false));
-    bool found = false;
+    bool found_err_path = false;
+    std::string err_path;
     const int ts_length = 16;
-    size_t err_pos = path.size() + ts_length + 1; // Add 1 for dot in path.
+    size_t err_pos = original_replica_path.size() + ts_length + 1; // Add 1 for dot in path.
     for (const auto &sub : subs) {
-        if (sub.size() <= path.size()) {
+        if (sub.size() <= original_replica_path.size()) {
             continue;
         }
         uint64_t ts = 0;
-        if (sub.find(path) == 0 && sub.find(kFolderSuffixErr) == err_pos &&
-            dsn::buf2uint64(sub.substr(path.size() + 1, ts_length), ts)) {
-            found = true;
+        if (sub.find(original_replica_path) == 0 && sub.find(kFolderSuffixErr) == err_pos &&
+            dsn::buf2uint64(sub.substr(original_replica_path.size() + 1, ts_length), ts)) {
+            err_path = sub;
+            ASSERT_GT(ts, 0);
+            found_err_path = true;
             break;
         }
     }
-    ASSERT_TRUE(found);
+    ASSERT_EQ(moved_to_err_path, found_err_path);
     ASSERT_FALSE(has_gpid(_pid));
+    ASSERT_EQ(moved_to_err_path, dn->status == disk_status::NORMAL) << moved_to_err_path << ", "
+                                                                    << enum_to_string(dn->status);
+    ASSERT_EQ(!moved_to_err_path, dn->status == disk_status::IO_ERROR)
+        << moved_to_err_path << ", " << enum_to_string(dn->status);
+
+    // It's safe to cleanup the .err path after been found.
+    if (!err_path.empty()) {
+        dsn::utils::filesystem::remove_path(err_path);
+    }
 }
 
-TEST_F(replica_test, update_deny_client_test)
+TEST_P(replica_test, test_auto_trash_of_corruption)
+{
+    NO_FATALS(test_auto_trash(ERR_RDB_CORRUPTION));
+}
+
+TEST_P(replica_test, test_auto_trash_of_io_error) { NO_FATALS(test_auto_trash(ERR_DISK_IO_ERROR)); }
+
+TEST_P(replica_test, update_deny_client_test)
 {
     struct update_deny_client_test
     {
@@ -557,7 +582,7 @@ TEST_F(replica_test, update_deny_client_test)
     }
 }
 
-TEST_F(replica_test, test_update_app_max_replica_count) { test_update_app_max_replica_count(); }
+TEST_P(replica_test, test_update_app_max_replica_count) { test_update_app_max_replica_count(); }
 
 } // namespace replication
 } // namespace dsn

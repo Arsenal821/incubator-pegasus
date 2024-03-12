@@ -28,17 +28,18 @@
 
 #include <cstdint>
 #include <string>
+#include <set>
 
 namespace dsn {
-namespace replication {
 
 class replica_envs
 {
 public:
+    static const uint64_t MIN_SLOW_QUERY_THRESHOLD_MS;
+
     static const std::string DENY_CLIENT_REQUEST;
     static const std::string WRITE_QPS_THROTTLING;
     static const std::string WRITE_SIZE_THROTTLING;
-    static const uint64_t MIN_SLOW_QUERY_THRESHOLD_MS;
     static const std::string SLOW_QUERY_THRESHOLD;
     static const std::string TABLE_LEVEL_DEFAULT_TTL;
     static const std::string ROCKSDB_USAGE_SCENARIO;
@@ -46,10 +47,14 @@ public:
     static const std::string ROCKSDB_CHECKPOINT_RESERVE_TIME_SECONDS;
     static const std::string ROCKSDB_ITERATION_THRESHOLD_TIME_MS;
     static const std::string ROCKSDB_BLOCK_CACHE_ENABLED;
+    static const std::string MANUAL_COMPACT_ONCE_PREFIX;
+    static const std::string MANUAL_COMPACT_PERIODIC_PREFIX;
     static const std::string MANUAL_COMPACT_DISABLED;
+    static const std::string MANUAL_COMPACT_TARGET_LEVEL;
     static const std::string MANUAL_COMPACT_MAX_CONCURRENT_RUNNING_COUNT;
     static const std::string MANUAL_COMPACT_ONCE_TRIGGER_TIME;
     static const std::string MANUAL_COMPACT_ONCE_TARGET_LEVEL;
+    static const std::string MANUAL_COMPACT_BOTTOMMOST_LEVEL_COMPACTION;
     static const std::string MANUAL_COMPACT_ONCE_BOTTOMMOST_LEVEL_COMPACTION;
     static const std::string MANUAL_COMPACT_PERIODIC_TRIGGER_TIME;
     static const std::string MANUAL_COMPACT_PERIODIC_TARGET_LEVEL;
@@ -64,7 +69,11 @@ public:
     static const std::string USER_SPECIFIED_COMPACTION;
     static const std::string ROCKSDB_ALLOW_INGEST_BEHIND;
     static const std::string UPDATE_MAX_REPLICA_COUNT;
+    static const std::string ROCKSDB_WRITE_BUFFER_SIZE;
+    static const std::string ROCKSDB_NUM_LEVELS;
+
+    static const std::set<std::string> ROCKSDB_DYNAMIC_OPTIONS;
+    static const std::set<std::string> ROCKSDB_STATIC_OPTIONS;
 };
 
-} // namespace replication
 } // namespace dsn

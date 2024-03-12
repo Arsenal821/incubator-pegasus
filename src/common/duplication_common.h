@@ -28,11 +28,12 @@
 #include "runtime/rpc/rpc_holder.h"
 #include "utils/errors.h"
 #include "utils/flags.h"
+#include "utils/fmt_utils.h"
+
+DSN_DECLARE_uint32(duplicate_log_batch_bytes);
 
 namespace dsn {
 namespace replication {
-
-DSN_DECLARE_uint32(duplicate_log_batch_bytes);
 
 typedef rpc_holder<duplication_modify_request, duplication_modify_response> duplication_modify_rpc;
 typedef rpc_holder<duplication_add_request, duplication_add_response> duplication_add_rpc;
@@ -87,5 +88,7 @@ struct duplication_constants
     const static std::string kDuplicationEnvMasterMetasKey;
 };
 
+USER_DEFINED_ENUM_FORMATTER(duplication_fail_mode::type)
+USER_DEFINED_ENUM_FORMATTER(duplication_status::type)
 } // namespace replication
 } // namespace dsn

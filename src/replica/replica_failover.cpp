@@ -24,17 +24,10 @@
  * THE SOFTWARE.
  */
 
-/*
- * Description:
- *     failure handling in replica
- *
- * Revision history:
- *     Mar., 2015, @imzhenyu (Zhenyu Guo), first version
- *     xxxx-xx-xx, author, fix bug about xxx
- */
-
+#include <atomic>
 #include <string>
 
+#include "common/fs_manager.h"
 #include "common/replication_common.h"
 #include "common/replication_enums.h"
 #include "dsn.layer2_types.h"
@@ -43,18 +36,24 @@
 #include "replica.h"
 #include "replica/replica_context.h"
 #include "replica_stub.h"
+#include "runtime/rpc/dns_resolver.h"
 #include "runtime/rpc/rpc_address.h"
+#include "runtime/rpc/rpc_host_port.h"
 #include "utils/error_code.h"
 #include "utils/fmt_logging.h"
 
 namespace dsn {
 namespace replication {
 
+// The failure handling part of replica.
+
 void replica::handle_local_failure(error_code error)
 {
     LOG_INFO_PREFIX("handle local failure error {}, status = {}", error, enum_to_string(status()));
 
-    if (error == ERR_RDB_CORRUPTION) {
+    if (error == ERR_DISK_IO_ERROR) {
+        _dir_node->status = disk_status::IO_ERROR;
+    } else if (error == ERR_RDB_CORRUPTION) {
         _data_corrupted = true;
     }
 
@@ -66,7 +65,7 @@ void replica::handle_local_failure(error_code error)
 }
 
 void replica::handle_remote_failure(partition_status::type st,
-                                    ::dsn::rpc_address node,
+                                    ::dsn::host_port node,
                                     error_code error,
                                     const std::string &caused_by)
 {
@@ -77,7 +76,7 @@ void replica::handle_remote_failure(partition_status::type st,
                      node);
 
     CHECK_EQ(status(), partition_status::PS_PRIMARY);
-    CHECK_NE(node, _stub->_primary_address);
+    CHECK_NE(node, _stub->primary_host_port());
 
     switch (st) {
     case partition_status::PS_SECONDARY:
@@ -87,7 +86,8 @@ void replica::handle_remote_failure(partition_status::type st,
               enum_to_string(st));
         {
             configuration_update_request request;
-            request.node = node;
+            request.node = dsn::dns_resolver::instance().resolve_address(node);
+            request.__set_hp_node(node);
             request.type = config_type::CT_DOWNGRADE_TO_INACTIVE;
             request.config = _primary_states.membership;
             downgrade_to_inactive_on_primary(request);
